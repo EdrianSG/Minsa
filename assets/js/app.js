@@ -330,12 +330,8 @@ function initDbStatusWatcher() {
 
   async function checkStatus() {
     try {
-      const res = await fetch('api/db_status.php', {
-        headers: { 'Accept': 'application/json' }
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      updateDbStatus(Boolean(data.online));
+      const data = await API.checkRevision();
+      updateDbStatus(Boolean(data.conexion_sql));
     } catch (e) {
       updateDbStatus(false);
     }
@@ -357,6 +353,31 @@ function initDbStatusWatcher() {
     }
   }
 
+  window.addEventListener('sigh:connection', event => {
+    updateDbStatus(Boolean(event.detail.online));
+    const notice = document.getElementById('dataFreshnessNotice');
+    if (!event.detail.online) showDataNotice('Conexión interrumpida. Se muestra la última información disponible. Los guardados requieren conexión.');
+    else if (notice?.dataset.offline === 'true') notice.remove();
+  });
+  window.addEventListener('sigh:data-changed', () => showDataNotice('Hay información actualizada. Actualice la vista cuando termine sus cambios.', false));
+  function showDataNotice(message, offline = true) {
+    let notice = document.getElementById('dataFreshnessNotice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'dataFreshnessNotice';
+      notice.className = 'alert alert-info';
+      notice.setAttribute('role', 'status');
+      document.querySelector('.app-content')?.prepend(notice);
+    }
+    notice.dataset.offline = String(offline);
+    notice.textContent = message + ' ';
+    const button = document.createElement('button');
+    button.className = 'btn btn-secondary btn-sm';
+    button.textContent = 'Actualizar vista';
+    button.addEventListener('click', () => window.location.reload());
+    notice.append(button);
+  }
+  checkStatus();
   // Verificar periódicamente cada 20 segundos
   setInterval(checkStatus, 20000);
 

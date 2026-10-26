@@ -11,6 +11,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../includes/api_bootstrap.php';
 apiGuard('asistencia', ['GET'], ['JEFE_RRHH', 'OPERADOR_ASISTENCIA']);
 
+if (Auth::getAllowedServiceId() !== null) apiError(403, 'El historial técnico de importaciones requiere acceso institucional.');
+
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
 

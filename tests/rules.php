@@ -1,4 +1,6 @@
 <?php
+putenv('DB_HOST=127.0.0.1');
+putenv('DB_PORT=1');
 require_once __DIR__ . '/../includes/AttendanceRules.php';
 require_once __DIR__ . '/../includes/SnapshotStore.php';
 $count = 0;

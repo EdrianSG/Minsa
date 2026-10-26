@@ -45,6 +45,8 @@ $serviciosCriticos = [
 $pdo = Database::getConnection();
 $dbConnected = ($pdo !== null);
 $ausentes = [];
+require_once __DIR__ . '/../../includes/SnapshotStore.php';
+$backupKey = 'ausentes_' . $fecha . '_serv_' . ($servicioId ?? 0);
 
 if ($dbConnected) {
     try {
@@ -130,9 +132,17 @@ if ($dbConnected) {
                 'requiere_reemplazo'   => $esCritico
             ];
         }
+        SnapshotStore::set($backupKey, $ausentes, ['source'=>'SQL_SERVER_LIVE']);
     } catch (Exception $e) {
+        $dbConnected = false;
         error_log("Error en api/asistencia/ausentes.php: " . $e->getMessage());
     }
+}
+
+if (!$dbConnected) {
+    $backup = SnapshotStore::get($backupKey);
+    if (!$backup) apiError(503, 'SQL Server no está disponible y no existe un respaldo de ausencias para esta fecha.');
+    $ausentes = $backup['data'];
 }
 
 $totalAltaCriticidad = count(array_filter($ausentes, function($a) { return $a['criticidad'] === 'ALTA_URGENTE'; }));
@@ -141,6 +151,7 @@ $totalRequierenReemplazo = count(array_filter($ausentes, function($a) { return $
 echo json_encode([
     'ok'                      => true,
     'fecha'                   => $fecha,
+    'conexion_sql'            => $dbConnected,
     'total_ausentes'          => count($ausentes),
     'ausencias_criticas'      => $totalAltaCriticidad,
     'requieren_reemplazo_urg' => $totalRequierenReemplazo,

@@ -446,7 +446,7 @@ function renderConsolidadoPlanillas(data) {
                 <td style="text-align: center; font-weight: 700;">${f.horas_netas}h</td>
                 <td>
                   <span class="badge ${f.estado_planilla === 'CONFORME' ? 'badge-present' : 'badge-late'}">
-                    ${f.estado_planilla === 'CONFORME' ? 'Conforme' : 'Con Descuento'}
+                    ${({CONFORME: 'Conforme', CON_DESCUENTO: 'Con Descuento', SIN_DATOS: 'Sin datos', PENDIENTE: 'Pendiente'})[f.estado_planilla] || 'Pendiente'}
                   </span>
                 </td>
               </tr>
@@ -1584,6 +1584,9 @@ function esFeriadoNacional(mes, dia) {
 
 function getBadgeEstadoSimple(estado) {
   switch (estado) {
+    case 'SIN_DATOS': return '<span class="badge badge-neutral">Sin datos</span>';
+    case 'EN_CURSO': return '<span class="badge badge-neutral">Jornada en curso</span>';
+    case 'PROGRAMADO': return '<span class="badge badge-neutral">Programado</span>';
     case 'ASISTIO': return '<span class="badge badge-present">Asistió Puntual</span>';
     case 'TARDANZA': return '<span class="badge badge-late">Tardanza</span>';
     case 'FALTA': return '<span class="badge badge-absent">Inasistencia</span>';

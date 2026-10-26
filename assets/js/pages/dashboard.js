@@ -188,11 +188,11 @@ function actualizarKpisUI(resumen) {
   const totalPres = resumen.asistio_puntual ?? 0;
   const totalTard = resumen.tardanzas ?? 0;
   const totalFalt = resumen.faltas ?? 0;
-  const pctPres   = resumen.porcentaje_asistencia ?? (totalProg > 0 ? Math.round((totalPres / totalProg) * 100) : 0);
+  const pctPres   = resumen.porcentaje_asistencia;
 
   if (elProg) elProg.textContent = totalProg;
   if (elPres) elPres.textContent = totalPres;
-  if (elPct)  elPct.textContent = `${pctPres}% puntualidad`;
+  if (elPct)  elPct.textContent = pctPres == null ? 'Sin datos de puntualidad' : `${pctPres}% puntualidad`;
   if (elTard) elTard.textContent = totalTard;
   if (elFalt) elFalt.textContent = totalFalt;
 }

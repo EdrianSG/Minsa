@@ -411,6 +411,9 @@ function renderTablaAsistencia(items) {
  */
 function getChipEntrada(horaEntrada, horaProg, estado, minTardanza) {
   if (!horaEntrada) {
+    if (['SIN_DATOS', 'EN_CURSO', 'PROGRAMADO'].includes(estado)) {
+      return '<span class="punch-chip">Pendiente de verificación</span>';
+    }
     if (estado === 'DESCANSO') {
       return `<span class="punch-chip" style="color: var(--text-tertiary); border: 1px dashed var(--border-subtle);">--:--</span>`;
     }
@@ -462,6 +465,9 @@ function getChipSalida(horaSalida, horaProgFin, turnoCodigo) {
  */
 function getBadgeEstado(estado, tardanza) {
   switch (estado) {
+    case 'SIN_DATOS': return '<span class="badge badge-neutral">Sin datos</span>';
+    case 'EN_CURSO': return '<span class="badge badge-neutral">Jornada en curso</span>';
+    case 'PROGRAMADO': return '<span class="badge badge-neutral">Programado</span>';
     case 'ASISTIO':
       return `<span class="badge badge-present">Asistió Puntual</span>`;
     case 'TARDANZA':

@@ -1,0 +1,55 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "key": "tipos_permiso_catalogo",
+        "version": 1,
+        "saved_at": "2026-10-26 12:25:00",
+        "timestamp": 1793035500,
+        "hash": "8478c0a49c1ef9a51d905785ceb5ebd7",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "TipoPermisoLaboralID": "1",
+            "Nombre": "Descanso Médico (CITT EsSalud)",
+            "Descripcion": "Incapacidad temporal para el trabajo certificada",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "2",
+            "Nombre": "Permiso por Capacitación Oficial",
+            "Descripcion": "Eventos académicos aprobados por MINSA\/DIRESA",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "3",
+            "Nombre": "Permiso por Asuntos Particulares",
+            "Descripcion": "Permiso personal con o sin goce de haber",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "4",
+            "Nombre": "Vacaciones Programadas",
+            "Descripcion": "Rol anual de descanso vacacional",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "5",
+            "Nombre": "Compensación de Horas Extra",
+            "Descripcion": "Descanso compensatorio por sobretiempo",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "6",
+            "Nombre": "Licencia por Maternidad \/ Paternidad",
+            "Descripcion": "Licencia legal por alumbramiento",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "7",
+            "Nombre": "Licencia Sindical",
+            "Descripcion": "Representación gremial autorizada",
+            "Estado": "1"
+        }
+    ]
+}

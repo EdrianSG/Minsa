@@ -225,7 +225,7 @@ function updatePeriodoUI(periodo, resiliencia) {
     let extraRes = '';
     if (resiliencia && resiliencia.es_snapshot) {
       const fechaSnap = resiliencia.snapshot_meta?.saved_at || 'Reciente';
-      extraRes = ` <span class="badge badge-neutral" style="font-size: 0.68rem; background-color: var(--primary-50); color: var(--primary-700);" title="Cargado desde el Snapshot Local de disco">• 💾 Snapshot Real (${fechaSnap}) v${progState.versionBase}</span>`;
+      extraRes = ` <span class="badge badge-neutral" style="font-size: 0.68rem; background-color: var(--primary-50); color: var(--primary-700);" title="SQL no está disponible. Último respaldo de consulta">• Respaldo de emergencia (${fechaSnap}) v${progState.versionBase}</span>`;
     }
     label.innerHTML = `${escapeHtml(periodo.servicio_nombre)} • ${periodo.mes_nombre} ${periodo.anio}${extraRes}`;
   }
@@ -860,11 +860,11 @@ async function guardarCambiosRol(forzar = false) {
       if (res.nueva_version) {
         progState.versionBase = res.nueva_version;
       }
-      showToast(`Programación guardada y asegurada en disco (v${progState.versionBase}).`, 'success');
+      showToast(`Programación guardada en SQL Server (v${progState.versionBase}).`, 'success');
       // Actualizar badge de resiliencia si existe
       const badgeRes = document.querySelector('.prog-meta-pill');
       if (badgeRes) {
-        badgeRes.innerHTML = `💾 Snapshot Real v${progState.versionBase}`;
+        badgeRes.innerHTML = `Guardado en SQL Server · v${progState.versionBase}`;
       }
     }
   } catch (error) {

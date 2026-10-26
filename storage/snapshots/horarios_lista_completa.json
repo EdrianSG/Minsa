@@ -2,10 +2,10 @@
     "_meta": {
         "source": "SQL_SERVER_LIVE",
         "key": "horarios_lista_completa",
-        "version": 19,
-        "saved_at": "2026-10-26 08:32:46",
-        "timestamp": 1793021566,
-        "hash": "edc4ad447fa2c348e36cd94891a99aba",
+        "version": 22,
+        "saved_at": "2026-10-26 11:55:01",
+        "timestamp": 1793033701,
+        "hash": "323665d5f8224ffcb8a3692692228b88",
         "is_snapshot": true
     },
     "data": [
@@ -6676,7 +6676,13 @@
                     "hora": "13:00 - 19:00",
                     "horas": 6
                 },
-                "4": null,
+                "4": {
+                    "turno_id": "3",
+                    "turno_nombre": "Guardia Nocturna (19:00 - 07:00)",
+                    "codigo": "N",
+                    "hora": "19:00 - 07:00",
+                    "horas": 12
+                },
                 "5": {
                     "turno_id": "4",
                     "turno_nombre": "Guardia Diurna (07:00 - 19:00)",
@@ -6699,7 +6705,7 @@
                     "horas": 6
                 }
             },
-            "total_horas_semana": 54
+            "total_horas_semana": 66
         },
         {
             "personal_id": "90",

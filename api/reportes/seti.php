@@ -14,9 +14,12 @@ apiGuard('reportes', ['GET'], []);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
+require_once __DIR__ . '/../../includes/AttendancePeriod.php';
+require_once __DIR__ . '/../../includes/ProgramacionStore.php';
 
 $mes        = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
 $anio       = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
+if ($mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Periodo inválido.');
 $servicioId = (isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' && intval($_GET['servicio_id']) > 0) ? intval($_GET['servicio_id']) : null;
 
 // Restricción estricta de autorización por servicio
@@ -35,7 +38,7 @@ $nombresMeses = [
     9 => 'Setiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
 ];
 
-$pdo = Database::getConnection();
+$pdo = apiRequireDatabase();
 $dbConnected = ($pdo !== null);
 
 $asistenciales = [];
@@ -77,8 +80,8 @@ if ($dbConnected) {
 
         if (!empty($rows)) {
             // Leer programación de la matriz para asociar tipos de turno
-            $snapGlobal = SnapshotStore::get("programacion_serv_0_{$anio}_{$mes}");
-            $servSnap = ($servicioId > 0) ? SnapshotStore::get("programacion_serv_{$servicioId}_{$anio}_{$mes}") : null;
+            $snapGlobal = ['data'=>ProgramacionStore::read($pdo, $anio, $mes, $servicioId ?? 0)];
+            $servSnap = null;
             $listaSnap = $snapGlobal['data']['personal_servicio'] ?? ($servSnap['data']['personal_servicio'] ?? []);
 
             $patronPorPersonal = [];
@@ -99,19 +102,7 @@ if ($dbConnected) {
             }
 
             // Consultar CITT desde rrhh.PermisoLaboral (parámetros distintos para evitar error de conteo ODBC)
-            $stmtCitt = $pdo->prepare("
-                SELECT pl.PersonalID, COUNT(*) AS CantCitt
-                FROM rrhh.PermisoLaboral pl
-                WHERE pl.TipoPermisoLaboralID = 1 AND pl.Estado = 'APROBADO'
-                  AND ((MONTH(pl.FechaInicio) = :m1 AND YEAR(pl.FechaInicio) = :a1)
-                       OR (MONTH(pl.FechaFin) = :m2 AND YEAR(pl.FechaFin) = :a2))
-                GROUP BY pl.PersonalID
-            ");
-            $stmtCitt->execute([':m1' => $mes, ':a1' => $anio, ':m2' => $mes, ':a2' => $anio]);
-            $cittMap = [];
-            while ($crow = $stmtCitt->fetch(PDO::FETCH_ASSOC)) {
-                $cittMap[intval($crow['PersonalID'])] = intval($crow['CantCitt']);
-            }
+            $cittMap = AttendancePeriod::loadMedicalDays($pdo, $anio, $mes);
 
             $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
 
@@ -191,6 +182,7 @@ if ($dbConnected) {
         }
     } catch (Exception $e) {
         error_log("Error en api/reportes/seti.php: " . $e->getMessage());
+        apiError(503, 'No se pudo consultar la información del reporte.');
     }
 }
 

@@ -98,150 +98,25 @@ $esSnapshotLocal = false;
 $snapshotMeta = null;
 $pdo = Database::getConnection();
 
-// 1. Si ya existe un Snapshot guardado para este servicio y mes, evaluar su consistencia
-if (SnapshotStore::has($snapshotKey)) {
-    $snap = SnapshotStore::get($snapshotKey);
-    if ($snap && isset($snap['data']['personal_servicio']) && !empty($snap['data']['personal_servicio'])) {
-        $candidatePersonal = $snap['data']['personal_servicio'];
-        // Si hay conexión con SQL Server y el snapshot proviene de una versión desactualizada con conteo mínimo (ej. 13 vs 283)
-        $needRefresh = false;
-        if ($pdo && $servicioId === 0 && count($candidatePersonal) < 50) {
-            $needRefresh = true;
-        }
-        if (!$needRefresh) {
-            $personalServicio = $candidatePersonal;
-            $esSnapshotLocal = true;
-            $snapshotMeta = $snap['_meta'] ?? null;
-        }
-    }
-}
-
-// 2. Si no hay snapshot válido o requiere refresco, consultar a SQL Server y crear/actualizar snapshot base
-if (empty($personalServicio) && $pdo) {
+require_once __DIR__ . '/../../includes/ProgramacionStore.php';
+if ($pdo) {
     try {
-        $whereServicio = ($servicioId > 0) ? "WHERE s.ServicioID = :servId" : "WHERE 1=1";
-        $sqlPersonal = "
-            SELECT 
-                p.PersonalID AS personal_id,
-                p.CodigoEmpleado AS codigo_empleado,
-                per.NumeroDocumento AS dni,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS nombre_completo,
-                ISNULL(c.Nombre, 'Personal') AS cargo_nombre,
-                ISNULL(s.Nombre, 'Servicio General') AS servicio_nombre,
-                s.ServicioID AS servicio_id,
-                ISNULL(tc.Nombre, 'CAS') AS condicion_laboral,
-                CASE 
-                    WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 'ADMINISTRATIVO'
-                    ELSE 'ASISTENCIAL'
-                END AS regimen_laboral,
-                CASE 
-                    WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 0
-                    ELSE 1
-                END AS aplica_seti
-            FROM organizacion.Servicio s
-            INNER JOIN rrhh.AsignacionPersonal ap ON s.ServicioID = ap.ServicioID AND ap.EsActual = 1 AND ap.Estado = 1
-            INNER JOIN rrhh.Personal p ON ap.PersonalID = p.PersonalID AND p.Estado = 1
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
-            LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-            {$whereServicio}
-            ORDER BY 
-                CASE WHEN c.Nombre LIKE '%Médico%' THEN 1 WHEN c.Nombre LIKE '%Enferm%' THEN 2 ELSE 3 END,
-                per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
-        ";
-        $stmtP = $pdo->prepare($sqlPersonal);
-        if ($servicioId > 0) {
-            $stmtP->execute([':servId' => $servicioId]);
-        } else {
-            $stmtP->execute();
-        }
-        $rowsP = $stmtP->fetchAll(PDO::FETCH_ASSOC);
-
-        if (!empty($rowsP)) {
-            // Consultar turnos asignados en rrhh.Horario para cada trabajador
-            $stmtH = $pdo->prepare("
-                SELECT h.DiaSemana, t.Nombre AS TurnoNombre
-                FROM rrhh.Horario h
-                INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
-                WHERE h.PersonalID = :pid AND h.Estado = 1
-            ");
-
-            foreach ($rowsP as $rp) {
-                $pid = intval($rp['personal_id']);
-                $stmtH->execute([':pid' => $pid]);
-                $pautaDias = [];
-                while ($h = $stmtH->fetch(PDO::FETCH_ASSOC)) {
-                    $dSem = intval($h['DiaSemana']);
-                    $tName = $h['TurnoNombre'];
-                    if (stripos($tName, 'Mañana') !== false) {
-                        $cod = 'M';
-                    } elseif (stripos($tName, 'Tarde') !== false) {
-                        $cod = 'T';
-                    } elseif (stripos($tName, 'Nocturna') !== false || stripos($tName, 'Noche') !== false) {
-                        $cod = 'N';
-                    } elseif (stripos($tName, 'Diurna') !== false) {
-                        $cod = 'GD';
-                    } elseif (stripos($tName, 'Admin') !== false) {
-                        $cod = 'ADM';
-                    } else {
-                        $cod = 'M';
-                    }
-                    $pautaDias[$dSem] = $cod;
-                }
-
-                // Armar el array de los días del mes calendario según la pauta asignada
-                $diasPatron = [];
-                for ($d = 1; $d <= $diasEnMes; $d++) {
-                    $fechaStr = sprintf('%04d-%02d-%02d', $anio, $mes, $d);
-                    $phpW = intval(date('w', strtotime($fechaStr))); // 0=Dom, 1=Lun..6=Sab
-                    $diaSemanaNum = ($phpW === 0) ? 7 : $phpW; // 1=Lun..7=Dom
-
-                    if (!empty($pautaDias)) {
-                        $diasPatron[] = $pautaDias[$diaSemanaNum] ?? 'LIB';
-                    } else {
-                        if ($rp['regimen_laboral'] === 'ADMINISTRATIVO') {
-                            $diasPatron[] = ($diaSemanaNum >= 6) ? 'LIB' : 'ADM';
-                        } else {
-                            $diasPatron[] = ($diaSemanaNum % 2 === 0) ? 'M' : 'T';
-                        }
-                    }
-                }
-
-                $rp['patron'] = $diasPatron;
-                $personalServicio[] = $rp;
-            }
-
-            // Persistir como Snapshot inicial en disco (solo una vez)
-            if (!empty($personalServicio)) {
-                SnapshotStore::set($snapshotKey, [
-                    'personal_servicio' => $personalServicio,
-                    'servicio_id'       => $servicioId,
-                    'mes'               => $mes,
-                    'anio'              => $anio
-                ], ['servicio_id' => $servicioId, 'ultimo_autor' => 'Sistema (Carga Base SQL)']);
-                
-                $snapInit = SnapshotStore::get($snapshotKey);
-                $snapshotMeta = $snapInit['_meta'] ?? null;
-                $esSnapshotLocal = true;
-            }
-        }
-    } catch (Exception $e) {
-        $personalServicio = [];
+        $sqlData = ProgramacionStore::read($pdo, $anio, $mes, $servicioId);
+        $personalServicio = $sqlData['personal_servicio'];
+        ProgramacionStore::snapshot($sqlData);
+        $snapshotMeta = ['version'=>$sqlData['version'], 'source'=>'SQL_SERVER'];
+    } catch (Throwable $e) {
+        error_log('Consulta de programación SQL: ' . $e->getMessage());
+        apiError(503, 'No se pudo consultar la programación SQL. Verifique la migración de programación mensual.');
     }
-}
-
-// Si la base de datos no respondió o no trajo personal, consultar si existe un Snapshot real en disco
-if (empty($personalServicio) && SnapshotStore::has($snapshotKey)) {
+} else {
     $snap = SnapshotStore::get($snapshotKey);
-    if ($snap && isset($snap['data']['personal_servicio'])) {
-        $personalServicio = $snap['data']['personal_servicio'];
-        $esSnapshotLocal = true;
-        $snapshotMeta = $snap['_meta'] ?? null;
-    }
+    if (!$snap) apiError(503, 'SQL Server no está disponible y no existe un respaldo de este periodo.');
+    $personalServicio = $snap['data']['personal_servicio'] ?? [];
+    $esSnapshotLocal = true;
+    $snapshotMeta = $snap['_meta'] ?? [];
+    $snapshotMeta['version'] = $snapshotMeta['sql_version'] ?? $snapshotMeta['version'] ?? 1;
 }
-
-if (empty($personalServicio)) apiError(503, 'No hay programación disponible para este servicio y periodo.');
 
 // Filtrar por condición si aplica
 if ($condicion !== '') {
@@ -333,22 +208,8 @@ foreach ($personalServicio as $p) {
     ];
 }
 
-$turnosDisponibles = [];
-if ($pdo) {
-    try {
-        $stmtT = $pdo->query("SELECT TurnoID AS turno_id, Nombre AS nombre, HoraInicio AS hora_inicio, HoraFin AS hora_fin FROM rrhh.Turno WHERE Estado = 1 ORDER BY TurnoID");
-        $turnosDisponibles = $stmtT->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {}
-}
-if (empty($turnosDisponibles)) {
-    $turnosDisponibles = [
-        ['turno_id' => 1, 'nombre' => 'Mañana Ordinario (07:00 - 13:00)', 'codigo' => 'M', 'horas' => 6.0],
-        ['turno_id' => 2, 'nombre' => 'Tarde Ordinario (13:00 - 19:00)', 'codigo' => 'T', 'horas' => 6.0],
-        ['turno_id' => 3, 'nombre' => 'Guardia Nocturna (19:00 - 07:00)', 'codigo' => 'N', 'horas' => 12.0],
-        ['turno_id' => 4, 'nombre' => 'Guardia Diurna (07:00 - 19:00)', 'codigo' => 'GD', 'horas' => 12.0],
-        ['turno_id' => 5, 'nombre' => 'Jornada Administrativa (08:00 - 16:45)', 'codigo' => 'ADM', 'horas' => 8.0]
-    ];
-}
+$turnosDisponibles = $pdo ? TurnoCatalog::load($pdo) : (SnapshotStore::get('turnos_catalogo_oficial')['data'] ?? []);
+if ($pdo) SnapshotStore::set('turnos_catalogo_oficial', $turnosDisponibles, ['source'=>'SQL_SERVER_LIVE']);
 
 echo json_encode([
     'ok'       => true,
@@ -375,6 +236,8 @@ echo json_encode([
     'resiliencia'        => [
         'es_snapshot'   => $esSnapshotLocal,
         'snapshot_meta' => $snapshotMeta,
-        'conexion_sql'  => ($pdo !== null && !$esSnapshotLocal)
+        'conexion_sql'  => ($pdo !== null),
+        'origen' => $esSnapshotLocal ? 'RESPALDO_EMERGENCIA' : 'SQL_SERVER',
+        'solo_lectura' => $esSnapshotLocal
     ]
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

@@ -191,6 +191,7 @@
   <!-- Configuración del usuario en sesión para control de interfaz -->
   <script>
     window.currentUser = <?= json_encode([
+        'cache_scope'        => hash('sha256', session_id() . '|' . ($currentUser['rol'] ?? '') . '|' . (string)Auth::getAllowedServiceId()),
         'usuario_id'         => $currentUser['usuario_id'] ?? null,
         'username'           => $currentUser['username'] ?? '',
         'nombre'             => $currentUser['nombre_completo'] ?? '',

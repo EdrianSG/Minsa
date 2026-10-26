@@ -14,6 +14,7 @@ function apiError(int $status, string $message): void {
 function apiGuard(string $module, array $methods = ['GET'], array $writeRoles = []): void {
     if (!Auth::isAuthenticated()) apiError(401, 'Debe iniciar sesión.');
     if (!Auth::checkPermission($module)) apiError(403, 'No tiene permiso para este módulo.');
+    if (Auth::getAllowedServiceId() === 0) apiError(403, 'Su cuenta no tiene un servicio asignado.');
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if (!in_array($method, $methods, true)) {
         header('Allow: ' . implode(', ', $methods));

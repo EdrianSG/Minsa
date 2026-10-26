@@ -1,7 +1,7 @@
 # Sistema Integral de Gestión Hospitalaria y Control de Asistencia (SIGH-MINSA)
 ## Hospital Distrital de Pacasmayo — Red Integrada de Salud Pacasmayo / GERESA La Libertad
 
-> **Estado verificado (20/10/2026):** este documento describe el alcance previsto. La sincronización bidireccional offline y los reportes para planilla aún tienen pendientes. La programación persiste localmente; otras escrituras requieren SQL Server. Consulte [pruebas, cambios y pendientes](docs/PRUEBAS_Y_PENDIENTES.md) antes de usar datos para pagos o descuentos. En desarrollo local se conservan las credenciales de SQL en `config/database.php`, las claves de prueba y las cuentas de contingencia. El login muestra accesos rápidos para `admin`, `curcia` y `atorres`. Las variables de entorno permiten sustituir las credenciales si se desea.
+> **Estado actual:** SQL Server es la fuente principal. La programación mensual cuenta con persistencia transaccional SQL y las vistas reutilizan caché de sesión mientras la revisión de datos siga vigente. Los snapshots quedan como respaldo de consulta ante emergencias. Consulte [instalación y funcionamiento SQL/caché](docs/SQL_Y_CACHE.md) y las [correcciones previas](docs/CORRECCIONES_2026-10-26.md). El login exige verificación de hash SQL; los reportes oficiales requieren conexión.
 
 ---
 

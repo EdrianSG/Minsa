@@ -125,6 +125,15 @@ if ($regimen !== '') {
     $categoriaNombre = ($servicioId === 0) ? 'PLANTEL COMPLETO (ASISTENCIALES Y ADMINISTRATIVOS)' : ($isAsistencial ? 'PERSONAL ASISTENCIAL' : 'PERSONAL ADMINISTRATIVO');
 }
 
+if ($mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Periodo inválido.');
+$rolSQL = null;
+if ($tipo === 'rol') {
+    require_once __DIR__ . '/../../includes/ProgramacionStore.php';
+    $rolPDO = apiRequireDatabase();
+    try { $rolSQL = ProgramacionStore::read($rolPDO, $anio, $mes, $servicioId); }
+    catch (Throwable $e) { error_log($e->getMessage()); apiError(503, 'No se pudo consultar el rol oficial en SQL Server.'); }
+}
+
 // Definir nombre de archivo
 $filename = "rol_programacion_{$mes}_{$anio}.xls";
 if ($tipo === 'individual') {
@@ -326,29 +335,7 @@ header("Expires: 0");
 if ($tipo === 'rol'):
     $colspanTotal = $totalDias + 1;
 
-    // Cargar personal desde el snapshot oficial de programación
-    $personalServicio = [];
-    $snapshotKey = "programacion_serv_{$servicioId}_{$anio}_{$mes}";
-    if (SnapshotStore::has($snapshotKey)) {
-        $snap = SnapshotStore::get($snapshotKey);
-        if (!empty($snap['data']['personal_servicio'])) {
-            $personalServicio = $snap['data']['personal_servicio'];
-        }
-    }
-
-    if (empty($personalServicio) && SnapshotStore::has("programacion_serv_0_{$anio}_{$mes}")) {
-        $snap = SnapshotStore::get("programacion_serv_0_{$anio}_{$mes}");
-        if (!empty($snap['data']['personal_servicio'])) {
-            $allStaff = $snap['data']['personal_servicio'];
-            if ($servicioId > 0) {
-                $personalServicio = array_values(array_filter($allStaff, function($p) use ($servicioId) {
-                    return intval($p['servicio_id'] ?? 0) === $servicioId;
-                }));
-            } else {
-                $personalServicio = $allStaff;
-            }
-        }
-    }
+    $personalServicio = $rolSQL['personal_servicio'];
 
     // Filtrar por régimen si se solicitó
     if ($regimen !== '') {

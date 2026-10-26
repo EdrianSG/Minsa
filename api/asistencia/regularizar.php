@@ -40,20 +40,32 @@ apiRequirePersonalAccess($personalId);
 
 if (!apiValidDate($fecha) || ($horaEntrada !== null && !apiValidTime($horaEntrada))
     || ($horaSalida !== null && !apiValidTime($horaSalida))
-    || !apiValidTime($data['hora_prog_inicio'] ?? '08:00')) {
+) {
     apiError(400, 'Fecha u hora inválida.');
 }
 if ($horaEntrada === null && $horaSalida === null) apiError(400, 'Ingrese al menos una marcación.');
 if ($sustento === '' || $motivo === '') apiError(400, 'El motivo y documento de sustento son obligatorios.');
 
 require_once __DIR__ . '/../../includes/AttendanceRules.php';
-$horaProgInicio = $data['hora_prog_inicio'] ?? '08:00';
+require_once __DIR__ . '/../../includes/AttendanceSchedule.php';
 
 $pdo = apiRequireDatabase();
 $dbConnected = ($pdo !== null);
 
 if ($dbConnected) {
     try {
+        $scheduleStmt = $pdo->prepare("SELECT h.PersonalID, t.TurnoID,
+            CONVERT(VARCHAR(8), t.HoraInicio, 108) AS HoraProgInicio,
+            CONVERT(VARCHAR(8), t.HoraFin, 108) AS HoraProgFin,
+            (SELECT TOP 1 ap.ServicioID FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = h.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1) AS ServicioID
+            FROM rrhh.Horario h INNER JOIN rrhh.Turno t ON t.TurnoID = h.TurnoID
+            WHERE h.PersonalID = :pid AND h.DiaSemana = :dia AND h.Estado = 1
+              AND h.FechaInicio <= :inicio AND (h.FechaFin IS NULL OR h.FechaFin >= :fin)");
+        $scheduleStmt->execute([':pid'=>$personalId, ':dia'=>(int)date('N', strtotime($fecha)), ':inicio'=>$fecha, ':fin'=>$fecha]);
+        $schedule = $scheduleStmt->fetch(PDO::FETCH_ASSOC) ?: ['PersonalID'=>$personalId, 'TurnoID'=>null];
+        $schedule = AttendanceSchedule::apply($schedule, $fecha);
+        if (empty($schedule['TurnoID'])) apiError(422, 'No hay una jornada programada para regularizar.');
+        $horaProgInicio = $schedule['HoraProgInicio'];
         // Verificar si ya existe registro de asistencia para esa fecha
         $checkStmt = $pdo->prepare("SELECT AsistenciaID, HoraEntrada, HoraSalida FROM rrhh.Asistencia WHERE PersonalID = :pid AND Fecha = :fec");
         $checkStmt->execute([':pid' => $personalId, ':fec' => $fecha]);
@@ -63,10 +75,10 @@ if ($dbConnected) {
             $horaEntrada = $horaEntrada ?? $existente['HoraEntrada'];
             $horaSalida = $horaSalida ?? $existente['HoraSalida'];
         }
-        $evaluation = AttendanceRules::evaluate($horaEntrada, $horaProgInicio);
+        $evaluation = AttendanceRules::evaluate($horaEntrada, $horaProgInicio, $fecha, $schedule['HoraProgFin']);
         $estadoEvaluado = $evaluation['estado'];
         $minutosTardanza = $evaluation['minutos'];
-        $obsCompleta = "Regularizado: $motivo. Sustento: $sustento. Obs: $observacion";
+        $obsCompleta = ($minutosTardanza > 0 ? "Tardanza de {$minutosTardanza} min. " : "") . "Regularizado: $motivo. Sustento: $sustento. Obs: $observacion";
 
         if ($existente) {
             $upd = $pdo->prepare("

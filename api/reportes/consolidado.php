@@ -13,10 +13,14 @@ apiGuard('reportes', ['GET'], []);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
+require_once __DIR__ . '/../../includes/AttendancePeriod.php';
+require_once __DIR__ . '/../../includes/ProgramacionStore.php';
 
 $mes            = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
 $anio           = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
 $servicioId     = (isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' && intval($_GET['servicio_id']) > 0) ? intval($_GET['servicio_id']) : null;
+
+if ($mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Periodo inválido.');
 
 // Restringir a jefaturas de servicio
 $userAllowedServ = Auth::getAllowedServiceId();
@@ -37,7 +41,7 @@ $nombresMeses = [
     9 => 'Setiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
 ];
 
-$pdo = Database::getConnection();
+$pdo = apiRequireDatabase();
 $dbConnected = ($pdo !== null);
 
 $personalConsolidado = [];
@@ -92,8 +96,8 @@ if ($dbConnected) {
             ];
 
             // Leer snapshot para obtener horas programadas reales de la matriz
-            $snapGlobal = SnapshotStore::get("programacion_serv_0_{$anio}_{$mes}");
-            $servSnap = ($servicioId > 0) ? SnapshotStore::get("programacion_serv_{$servicioId}_{$anio}_{$mes}") : null;
+            $snapGlobal = ['data'=>ProgramacionStore::read($pdo, $anio, $mes, $servicioId ?? 0)];
+            $servSnap = null;
 
             $patronPorPersonal = [];
             $horasProgPorPersonal = [];
@@ -130,19 +134,7 @@ if ($dbConnected) {
             }
 
             // Consultar descansos médicos CITT desde rrhh.PermisoLaboral (parámetros distintos para evitar error ODBC)
-            $stmtCitt = $pdo->prepare("
-                SELECT pl.PersonalID, COUNT(*) AS CantCitt
-                FROM rrhh.PermisoLaboral pl
-                WHERE pl.TipoPermisoLaboralID = 1 AND pl.Estado = 'APROBADO'
-                  AND ((MONTH(pl.FechaInicio) = :m1 AND YEAR(pl.FechaInicio) = :a1)
-                       OR (MONTH(pl.FechaFin) = :m2 AND YEAR(pl.FechaFin) = :a2))
-                GROUP BY pl.PersonalID
-            ");
-            $stmtCitt->execute([':m1' => $mes, ':a1' => $anio, ':m2' => $mes, ':a2' => $anio]);
-            $cittMap = [];
-            while ($crow = $stmtCitt->fetch(PDO::FETCH_ASSOC)) {
-                $cittMap[intval($crow['PersonalID'])] = intval($crow['CantCitt']);
-            }
+            $cittMap = AttendancePeriod::loadMedicalDays($pdo, $anio, $mes);
 
             $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
 
@@ -161,6 +153,13 @@ if ($dbConnected) {
                 $horasEfectivas = 0.0;
 
                 $workerAsist = $asistMap[$pid] ?? [];
+                $incompleto = empty($workerAsist) || $patron === null;
+                foreach ($workerAsist as $registro) {
+                    if (in_array(strtoupper(trim((string)$registro['Estado'])), ['SIN_DATOS', 'EN_CURSO', 'PROGRAMADO'], true)) $incompleto = true;
+                }
+                foreach ($patron ?? [] as $dia => $codigo) {
+                    if (($duracionTurnos[$codigo] ?? 0) > 0 && !isset($workerAsist[$dia + 1])) $incompleto = true;
+                }
 
                 if (!empty($workerAsist)) {
                     for ($d = 1; $d <= $diasEnMes; $d++) {
@@ -211,12 +210,14 @@ if ($dbConnected) {
                     $faltas,
                     $permisos,
                     $citt,
-                    round($horasEfectivas, 1)
+                    round($horasEfectivas, 1),
+                    empty($workerAsist) ? 'SIN_DATOS' : ($incompleto ? 'PENDIENTE' : null)
                 ];
             }
         }
     } catch (Exception $e) {
         error_log("Error en api/reportes/consolidado.php: " . $e->getMessage());
+        apiError(503, 'No se pudo consultar la información del reporte.');
     }
 }
 
@@ -253,7 +254,7 @@ foreach ($personalConsolidado as $p) {
         'permisos_con_goce'     => $p[12],
         'descansos_citt'        => $p[13],
         'horas_netas'           => $p[14],
-        'estado_planilla'       => ($p[11] > 0 || $p[10] > 60) ? 'CON_DESCUENTO' : 'CONFORME'
+        'estado_planilla'       => $p[15] ?? (($p[11] > 0 || $p[10] > 60) ? 'CON_DESCUENTO' : 'CONFORME')
     ];
 }
 

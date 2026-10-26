@@ -34,7 +34,7 @@ $snapAsist = null;
 $pdo = Database::getConnection();
 
 // 1. Intentar cargar del SnapshotStore
-if (SnapshotStore::has("asistencia_diaria_{$fecha}")) {
+if (!$pdo && SnapshotStore::has("asistencia_diaria_{$fecha}")) {
     $snap = SnapshotStore::get("asistencia_diaria_{$fecha}");
     $snapAsist = $snap['data'] ?? null;
 }
@@ -115,7 +115,7 @@ if (empty($snapAsist) && $pdo !== null) {
             $asistenciasCalculadas[] = procesarFilaAsistencia($row, $nombreCompleto, $fecha);
         }
 
-        if (!empty($asistenciasCalculadas)) {
+        if (is_array($asistenciasCalculadas)) {
             $snapAsist = $asistenciasCalculadas;
             SnapshotStore::set("asistencia_diaria_{$fecha}", $snapAsist, ['source' => 'SQL_SERVER_LIVE', 'fecha' => $fecha]);
         }
@@ -159,6 +159,7 @@ if ($pdo !== null) {
 
 // Si aún no hay datos de asistencia (ej: fecha futura o sin registros)
 if (empty($snapAsist)) {
+    if (!$pdo) apiError(503, 'No hay datos para la fecha solicitada y SQL Server no está disponible.');
     $data = [
         'ok'               => true,
         'fecha'            => $fecha,
@@ -172,7 +173,7 @@ if (empty($snapAsist)) {
             'faltas'       => 0,
             'justificados' => 0,
             'vacaciones'   => 0,
-            'efectividad_porcentaje' => 100.0
+            'efectividad_porcentaje' => null
         ],
         'distribucion' => [
             ['estado' => 'Presentes', 'clave' => 'presentes', 'cantidad' => 0, 'porcentaje' => 0, 'color' => 'var(--status-present-accent)', 'descripcion' => 'Marcación puntual'],
@@ -254,7 +255,7 @@ foreach ($snapAsist as $idx => $item) {
     }
 }
 
-$efectividad = $totProg > 0 ? round(($presentes / $totProg) * 100, 2) : 100;
+$efectividad = $totProg > 0 ? round(($presentes / $totProg) * 100, 2) : null;
 
 $data = [
     'ok'               => true,

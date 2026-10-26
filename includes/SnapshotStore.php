@@ -180,7 +180,7 @@ class SnapshotStore {
                 ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
             ";
             $personalList = $pdo->query($sqlPersonal)->fetchAll(PDO::FETCH_ASSOC);
-            if (!empty($personalList)) {
+            if (is_array($personalList)) {
                 self::set('personal_catalogo_completo', $personalList, ['source' => 'SQL_SERVER_SYNC']);
                 $results['personal'] = count($personalList);
             }
@@ -231,7 +231,7 @@ class SnapshotStore {
                     'estado'            => intval($r['Estado'])
                 ];
             }
-            if (!empty($turnos)) {
+            if (is_array($turnos)) {
                 self::set('turnos_catalogo_oficial', $turnos, ['source' => 'SQL_SERVER_SYNC']);
                 $results['turnos'] = count($turnos);
             }
@@ -256,7 +256,7 @@ class SnapshotStore {
                     per.NumeroDocumento AS DNI,
                     p.CodigoEmpleado,
                     ISNULL(c.Nombre, 'Sin Cargo') AS CargoNombre,
-                    ISNULL(s.Nombre, 'Sin Servicio') AS ServicioNombre
+                    s.ServicioID, ISNULL(s.Nombre, 'Sin Servicio') AS ServicioNombre
                 FROM rrhh.Horario h
                 INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
                 INNER JOIN rrhh.Personal p ON h.PersonalID = p.PersonalID
@@ -278,6 +278,7 @@ class SnapshotStore {
                         'dni'              => $r['DNI'],
                         'codigo_empleado'  => $r['CodigoEmpleado'],
                         'cargo_nombre'     => $r['CargoNombre'],
+                        'servicio_id'      => (int)$r['ServicioID'],
                         'servicio_nombre'  => $r['ServicioNombre'],
                         'tipo_patron'      => 'Pauta Semanal Asignada',
                         'dias'             => [1 => null, 2 => null, 3 => null, 4 => null, 5 => null, 6 => null, 7 => null],
@@ -315,7 +316,7 @@ class SnapshotStore {
                 $grouped[$pid]['total_horas_semana'] += $diff;
             }
             $horariosPersonal = array_values($grouped);
-            if (!empty($horariosPersonal)) {
+            if (is_array($horariosPersonal)) {
                 self::set('horarios_lista_completa', $horariosPersonal, ['source' => 'SQL_SERVER_SYNC']);
                 $results['horarios'] = count($horariosPersonal);
             }
@@ -360,62 +361,21 @@ class SnapshotStore {
                     LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
                     LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
                     LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-                    LEFT JOIN rrhh.Horario h ON p.PersonalID = h.PersonalID AND h.DiaSemana = DATEPART(WEEKDAY, :fechaSql) AND h.Estado = 1
+                    LEFT JOIN rrhh.Horario h ON p.PersonalID = h.PersonalID AND h.DiaSemana = :diaSemana AND h.Estado = 1 AND h.FechaInicio <= :desde AND (h.FechaFin IS NULL OR h.FechaFin >= :hasta)
                     LEFT JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
                     LEFT JOIN rrhh.Asistencia a ON p.PersonalID = a.PersonalID AND a.Fecha = :fechaAsist
                     WHERE p.Estado = 1
                     ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
                 ";
                 $stmtA = $pdo->prepare($sqlAsist);
-                $stmtA->execute([':fechaSql' => $f, ':fechaAsist' => $f]);
+                $stmtA->execute([':diaSemana'=>(int)date('N', strtotime($f)), ':desde'=>$f, ':hasta'=>$f, ':fechaAsist'=>$f]);
                 $asistRows = $stmtA->fetchAll(PDO::FETCH_ASSOC);
                 if (!empty($asistRows)) {
                     $asistFormatted = [];
                     foreach ($asistRows as $ar) {
                         $nombreCompleto = trim("{$ar['ApellidoPaterno']} {$ar['ApellidoMaterno']} {$ar['Nombres']}");
-                        $horaEntrada = !empty($ar['HoraEntrada']) ? substr($ar['HoraEntrada'], 0, 5) : null;
-                        $horaSalida = !empty($ar['HoraSalida']) ? substr($ar['HoraSalida'], 0, 5) : null;
-                        $progInicio = !empty($ar['HoraProgInicio']) ? substr($ar['HoraProgInicio'], 0, 5) : '07:00';
-                        $progFin = !empty($ar['HoraProgFin']) ? substr($ar['HoraProgFin'], 0, 5) : '13:00';
-                        
-                        $estadoEval = 'FALTA';
-                        $minTardanza = 0;
-                        if ($horaEntrada) {
-                            $tReal = strtotime($horaEntrada);
-                            $tProg = strtotime($progInicio);
-                            $diffMin = intval(($tReal - $tProg) / 60);
-                            if ($diffMin <= 5) {
-                                $estadoEval = 'PUNTUAL';
-                            } elseif ($diffMin <= 30) {
-                                $estadoEval = 'TARDANZA';
-                                $minTardanza = $diffMin;
-                            } else {
-                                $estadoEval = 'FALTA_ADMINISTRATIVA';
-                                $minTardanza = $diffMin;
-                            }
-                        }
-
-                        $asistFormatted[] = [
-                            'personal_id'      => intval($ar['PersonalID']),
-                            'dni'              => $ar['DNI'],
-                            'nombre_completo'  => $nombreCompleto,
-                            'cargo'            => $ar['NombreCargo'],
-                            'profesion'        => $ar['NombreProfesion'],
-                            'servicio_id'      => intval($ar['ServicioID'] ?? 0),
-                            'servicio_nombre'  => $ar['NombreServicio'],
-                            'condicion_laboral'=> $ar['CondicionLaboral'],
-                            'regimen_laboral'  => $ar['RegimenLaboral'],
-                            'turno_id'         => intval($ar['TurnoID'] ?? 1),
-                            'turno_nombre'     => $ar['NombreTurno'],
-                            'turno_codigo'     => 'M',
-                            'horario_programado'=> "$progInicio - $progFin",
-                            'asistencia_id'    => $ar['AsistenciaID'] ? intval($ar['AsistenciaID']) : null,
-                            'hora_ingreso'     => $horaEntrada,
-                            'hora_salida'      => $horaSalida,
-                            'estado_evaluado'  => $ar['EstadoAsistencia'] ?: $estadoEval,
-                            'minutos_tardanza' => $minTardanza,
-                            'observacion'      => $ar['Observacion'] ?? ''
-                        ];
+                        require_once __DIR__ . '/attendance_evaluator.php';
+                        $asistFormatted[] = procesarFilaAsistencia($ar, $nombreCompleto, $f);
                     }
                     self::set('asistencia_diaria_' . $f, $asistFormatted, ['source' => 'SQL_SERVER_SYNC', 'fecha' => $f]);
                     $totalAsistenciasSync += count($asistFormatted);
@@ -476,7 +436,7 @@ class SnapshotStore {
                     'fecha_solicitud'     => $r['FechaInicio']
                 ];
             }
-            if (!empty($permisos)) {
+            if (is_array($permisos)) {
                 self::set('permisos_lista_completa', $permisos, ['source' => 'SQL_SERVER_SYNC']);
                 $results['permisos'] = count($permisos);
             }

@@ -13,12 +13,16 @@ apiGuard('reportes', ['GET'], []);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
+require_once __DIR__ . '/../../includes/AttendanceSchedule.php';
+require_once __DIR__ . '/../../includes/AttendanceRules.php';
 
 $personalId = isset($_GET['personal_id']) ? intval($_GET['personal_id']) : 6;
 $mes        = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
 $anio       = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
 
-$pdo = Database::getConnection();
+apiRequirePersonalAccess($personalId);
+if ($personalId <= 0 || $mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Trabajador o periodo inválido.');
+$pdo = apiRequireDatabase();
 $dbConnected = ($pdo !== null);
 
 $nombresMeses = [
@@ -30,18 +34,7 @@ $nombresMeses = [
 $totalDias = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
 $diasSemanaAbrev = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-// Datos del trabajador por defecto (Dr. Luis Alberto Díaz Rojas - UCI)
-$trabajador = [
-    'personal_id'       => 6,
-    'dni'               => '45892106',
-    'nombre_completo'   => 'Díaz Rojas, Luis Alberto',
-    'cargo'             => 'Médico Especialista',
-    'servicio_id'       => 8,
-    'servicio_nombre'   => 'Unidad de Cuidados Intensivos (UCI)',
-    'regimen_laboral'   => 'ASISTENCIAL',
-    'condicion_laboral' => 'NOMBRADO',
-    'norma_horas'       => 150.0
-];
+$trabajador = [];
 
 if ($dbConnected) {
     try {
@@ -66,29 +59,7 @@ if ($dbConnected) {
         $stmt->execute([':pid' => $personalId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Si no se encontró por ese ID, tomar el primer trabajador real de la BD
-        if (!$row) {
-            $stmtFirst = $pdo->query("
-                SELECT TOP 1
-                    p.PersonalID, per.NumeroDocumento AS DNI,
-                    per.Nombres, per.ApellidoPaterno, per.ApellidoMaterno,
-                    ISNULL(c.Nombre, 'Personal Hospitalario') AS NombreCargo,
-                    s.ServicioID,
-                    ISNULL(s.Nombre, 'Emergencia y Cuidados Críticos') AS NombreServicio,
-                    CASE WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 'ADMINISTRATIVO' ELSE 'ASISTENCIAL' END AS RegimenLaboral,
-                    ISNULL(tc.Nombre, 'CAS') AS CondicionLaboral
-                FROM rrhh.Personal p
-                INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
-                LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-                LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-                LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
-                LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-                WHERE p.Estado = 1
-                ORDER BY CASE WHEN c.Nombre LIKE '%Médico%' THEN 1 ELSE 2 END, p.PersonalID
-            ");
-            $row = $stmtFirst->fetch(PDO::FETCH_ASSOC);
-        }
+        if (!$row) apiError(404, 'Trabajador no encontrado.');
 
         if ($row) {
             $personalId                      = intval($row['PersonalID']);
@@ -106,19 +77,8 @@ if ($dbConnected) {
             apiRequirePersonalAccess($personalId);
         }
     } catch (Exception $e) {
-        $dbConnected = false;
-    }
-}
-
-// Intentar leer el patrón del trabajador desde el snapshot del mes o desde rrhh.Horario
-$patronWorker = null;
-$snapGlob = SnapshotStore::get("programacion_serv_0_{$anio}_{$mes}");
-$snapServ = SnapshotStore::get("programacion_serv_{$trabajador['servicio_id']}_{$anio}_{$mes}");
-$pList = $snapGlob['data']['personal_servicio'] ?? ($snapServ['data']['personal_servicio'] ?? []);
-foreach ($pList as $pItem) {
-    if (intval($pItem['personal_id']) === $personalId) {
-        $patronWorker = $pItem['patron'] ?? null;
-        break;
+        error_log($e->getMessage());
+        apiError(503, 'No se pudo consultar el trabajador.');
     }
 }
 
@@ -127,40 +87,18 @@ $horarioSemanalDb = [];
 if ($dbConnected) {
     try {
         $stmtH = $pdo->prepare("
-            SELECT h.DiaSemana, t.TurnoID, t.Nombre AS TurnoNombre, t.HoraInicio, t.HoraFin
+            SELECT h.DiaSemana, h.FechaInicio, h.FechaFin, t.TurnoID, t.Nombre AS TurnoNombre,
+                   CONVERT(VARCHAR(8), t.HoraInicio, 108) AS HoraInicio, CONVERT(VARCHAR(8), t.HoraFin, 108) AS HoraFin
             FROM rrhh.Horario h
             INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
             WHERE h.PersonalID = :pid AND h.Estado = 1
         ");
         $stmtH->execute([':pid' => $personalId]);
         while ($hRow = $stmtH->fetch(PDO::FETCH_ASSOC)) {
-            $horarioSemanalDb[intval($hRow['DiaSemana'])] = $hRow;
+            $horarioSemanalDb[intval($hRow['DiaSemana'])][] = $hRow;
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) { error_log($e->getMessage()); apiError(503, 'No se pudo consultar la información del reporte.'); }
 }
-
-// Catálogo de turnos y equivalencias
-$catalogTurnos = [
-    'M'     => ['nombre' => 'Mañana Ordinario (6h)',     'inicio' => '07:00', 'fin' => '13:00', 'horas' => 6.0],
-    '1'     => ['nombre' => 'Turno 1 - Mañana (6h)',     'inicio' => '07:00', 'fin' => '13:00', 'horas' => 6.0],
-    'T'     => ['nombre' => 'Tarde Ordinario (6h)',      'inicio' => '13:00', 'fin' => '19:00', 'horas' => 6.0],
-    '2'     => ['nombre' => 'Turno 2 - Tarde (6h)',      'inicio' => '13:00', 'fin' => '19:00', 'horas' => 6.0],
-    'N'     => ['nombre' => 'Guardia Nocturna (12h)',    'inicio' => '19:00', 'fin' => '07:00', 'horas' => 12.0],
-    '3'     => ['nombre' => 'Turno 3 - Noche (12h)',     'inicio' => '19:00', 'fin' => '07:00', 'horas' => 12.0],
-    'GD'    => ['nombre' => 'Guardia Diurna (12h)',      'inicio' => '07:00', 'fin' => '19:00', 'horas' => 12.0],
-    'GN'    => ['nombre' => 'Guardia Nocturna (12h)',    'inicio' => '19:00', 'fin' => '07:00', 'horas' => 12.0],
-    '1/2'   => ['nombre' => 'Doble Turno M+T (12h)',     'inicio' => '07:00', 'fin' => '19:00', 'horas' => 12.0],
-    '2/3'   => ['nombre' => 'Turno Tarde+Noche (18h)',   'inicio' => '13:00', 'fin' => '07:00', 'horas' => 18.0],
-    'G24'   => ['nombre' => 'Guardia 24h (1/2/3)',       'inicio' => '07:00', 'fin' => '07:00', 'horas' => 24.0],
-    '1/2/3' => ['nombre' => 'Guardia 24h (1/2/3)',       'inicio' => '07:00', 'fin' => '07:00', 'horas' => 24.0],
-    'ADM'   => ['nombre' => 'Jornada Administrativa',    'inicio' => '08:00', 'fin' => '16:45', 'horas' => 8.0],
-    'VAC'   => ['nombre' => 'Vacaciones Programadas',    'inicio' => '08:00', 'fin' => '14:00', 'horas' => 6.0],
-    'VAC-1' => ['nombre' => 'Emergencia en Vacaciones (M)','inicio' => '07:00', 'fin' => '13:00', 'horas' => 6.0],
-    'VAC-2' => ['nombre' => 'Emergencia en Vacaciones (T)','inicio' => '13:00', 'fin' => '19:00', 'horas' => 6.0],
-    'VAC-3' => ['nombre' => 'Emergencia en Vacaciones (N)','inicio' => '19:00', 'fin' => '07:00', 'horas' => 12.0],
-    'DESC'  => ['nombre' => 'Descanso Médico CITT',      'inicio' => '08:00', 'fin' => '14:00', 'horas' => 6.0],
-    'LIB'   => ['nombre' => 'Descanso / Libre',          'inicio' => '',      'fin' => '',      'horas' => 0.0]
-];
 
 // Consultar registros efectivos de asistencia del trabajador en el mes desde rrhh.Asistencia
 $asistenciaEfectiva = [];
@@ -181,7 +119,7 @@ if ($dbConnected) {
         while ($ar = $stmtAsistWorker->fetch(PDO::FETCH_ASSOC)) {
             $asistenciaEfectiva[intval($ar['Dia'])] = $ar;
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) { error_log($e->getMessage()); apiError(503, 'No se pudo consultar la información del reporte.'); }
 }
 
 // Consultar permisos y licencias del trabajador en el mes desde rrhh.PermisoLaboral
@@ -197,14 +135,13 @@ if ($dbConnected) {
             FROM rrhh.PermisoLaboral pl
             INNER JOIN rrhh.TipoPermisoLaboral tpl ON pl.TipoPermisoLaboralID = tpl.TipoPermisoLaboralID
             WHERE pl.PersonalID = :pid AND pl.Estado = 'APROBADO'
-              AND ((MONTH(pl.FechaInicio) = :m1 AND YEAR(pl.FechaInicio) = :a1)
-                   OR (MONTH(pl.FechaFin) = :m2 AND YEAR(pl.FechaFin) = :a2))
+              AND pl.FechaInicio < :finExclusivo AND pl.FechaFin >= :inicioMes
         ");
-        $stmtPerm->execute([':pid' => $personalId, ':m1' => $mes, ':a1' => $anio, ':m2' => $mes, ':a2' => $anio]);
+        $stmtPerm->execute([':pid' => $personalId, ':inicioMes' => sprintf('%04d-%02d-01', $anio, $mes), ':finExclusivo' => date('Y-m-d', strtotime(sprintf('%04d-%02d-01 +1 month', $anio, $mes)))]);
         $rowsPerm = $stmtPerm->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rowsPerm as $pm) {
-            $fIni = new DateTime($pm['FechaInicio']);
-            $fFin = new DateTime($pm['FechaFin']);
+            $fIni = max(new DateTime($pm['FechaInicio']), new DateTime(sprintf('%04d-%02d-01', $anio, $mes)));
+            $fFin = min(new DateTime($pm['FechaFin']), new DateTime(sprintf('%04d-%02d-%02d', $anio, $mes, $totalDias)));
             $curr = clone $fIni;
             while ($curr <= $fFin) {
                 if (intval($curr->format('n')) === $mes && intval($curr->format('Y')) === $anio) {
@@ -214,7 +151,7 @@ if ($dbConnected) {
                 $curr->modify('+1 day');
             }
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) { error_log($e->getMessage()); apiError(503, 'No se pudo consultar la información del reporte.'); }
 }
 
 // Generación día a día del mes
@@ -232,34 +169,24 @@ for ($d = 1; $d <= $totalDias; $d++) {
     $diaSemanaNum = intval(date('w', $timestamp));
     $diaSemanaNombre = $diasSemanaAbrev[$diaSemanaNum];
 
-    // Obtener turno del patrón del trabajador o del horario semanal en BD
-    $diaIso = ($diaSemanaNum === 0) ? 7 : $diaSemanaNum; // 1=Lunes..7=Domingo
-    if ($patronWorker !== null && isset($patronWorker[$d - 1])) {
-        $turnoCodigo = $patronWorker[$d - 1];
-    } elseif (isset($horarioSemanalDb[$diaIso])) {
-        $tDb = $horarioSemanalDb[$diaIso];
-        $tId = intval($tDb['TurnoID']);
-        if ($tId === 1) $turnoCodigo = '1';
-        elseif ($tId === 2) $turnoCodigo = '2';
-        elseif ($tId === 3) $turnoCodigo = '3';
-        elseif ($tId === 4) $turnoCodigo = 'GD';
-        elseif ($tId === 5) $turnoCodigo = 'GN';
-        else $turnoCodigo = 'ADM';
-    } else {
-        if ($trabajador['regimen_laboral'] === 'ADMINISTRATIVO') {
-            $turnoCodigo = ($diaSemanaNum === 0 || $diaSemanaNum === 6) ? 'LIB' : 'ADM';
-        } else {
-            $turnoCodigo = 'LIB';
+    $diaIso = ($diaSemanaNum === 0) ? 7 : $diaSemanaNum;
+    $schedule = ['PersonalID'=>$personalId, 'ServicioID'=>$trabajador['servicio_id'], 'TurnoID'=>null];
+    foreach ($horarioSemanalDb[$diaIso] ?? [] as $weekly) {
+        if (substr($weekly['FechaInicio'], 0, 10) <= $fechaStr
+            && (empty($weekly['FechaFin']) || substr($weekly['FechaFin'], 0, 10) >= $fechaStr)) {
+            $schedule = array_replace($schedule, ['TurnoID'=>$weekly['TurnoID'], 'NombreTurno'=>$weekly['TurnoNombre'],
+                'HoraProgInicio'=>$weekly['HoraInicio'], 'HoraProgFin'=>$weekly['HoraFin']]);
         }
     }
-
-    $tInfo = $catalogTurnos[$turnoCodigo] ?? $catalogTurnos['LIB'];
-    $esLaborable = ($turnoCodigo !== 'LIB' && $turnoCodigo !== '0');
-    // Si no figuraba como laborable en el rol pero tiene asistencia registrada en BD, es una guardia o turno efectivamente registrado
-    if (!$esLaborable && isset($asistenciaEfectiva[$d]) && !empty($asistenciaEfectiva[$d]['HoraEntrada'])) {
-        $esLaborable = true;
-        $turnoCodigo = '3'; // Turno asignado
-        $tInfo = $catalogTurnos['3'];
+    try { $schedule = AttendanceSchedule::apply($schedule, $fechaStr); }
+    catch (RuntimeException $e) { apiError(503, $e->getMessage()); }
+    $esLaborable = !empty($schedule['TurnoID']);
+    $turnoCodigo = $schedule['TurnoCodigo'] ?? ($esLaborable ? 'TURNO' : 'LIB');
+    $tInfo = ['nombre'=>$schedule['NombreTurno'] ?? 'Descanso', 'inicio'=>$schedule['HoraProgInicio'] ?? '',
+        'fin'=>$schedule['HoraProgFin'] ?? '', 'horas'=>0.0];
+    if ($esLaborable) {
+        [$start, $end] = AttendanceRules::interval($fechaStr, $tInfo['inicio'], $tInfo['fin']);
+        $tInfo['horas'] = ($end - $start) / 3600;
     }
     $horasProg = $tInfo['horas'];
     $horaProgInicio = $tInfo['inicio'];
@@ -271,61 +198,51 @@ for ($d = 1; $d <= $totalDias; $d++) {
     $estado = 'DESCANSO';
     $obs = 'Día de descanso programado';
 
-    if ($esLaborable) {
-        $totalHorasProgramadas += $horasProg;
+    if ($esLaborable) $totalHorasProgramadas += $horasProg;
 
-        if (isset($permisosWorker[$d])) {
-            $pInfo = $permisosWorker[$d];
-            $estado = (stripos($pInfo['TipoNombre'], 'CITT') !== false || stripos($pInfo['TipoNombre'], 'Médico') !== false) ? 'CITT' : 'PERMISO';
-            $obs = $pInfo['TipoNombre'] . (!empty($pInfo['Motivo']) ? ': ' . $pInfo['Motivo'] : '');
+    if (isset($permisosWorker[$d])) {
+        $pInfo = $permisosWorker[$d];
+        $estado = (stripos($pInfo['TipoNombre'], 'CITT') !== false || stripos($pInfo['TipoNombre'], 'Médico') !== false) ? 'CITT' : 'PERMISO';
+        $obs = $pInfo['TipoNombre'] . (!empty($pInfo['Motivo']) ? ': ' . $pInfo['Motivo'] : '');
+        $totalPermisos++;
+        $totalHorasAsistidas += $horasProg;
+    } elseif (isset($asistenciaEfectiva[$d])) {
+        $asRec = $asistenciaEfectiva[$d];
+        $stUpper = strtoupper(trim((string)$asRec['Estado']));
+        $horaEntrada = !empty($asRec['HoraEntrada']) ? substr($asRec['HoraEntrada'], 0, 5) : null;
+        $horaSalida = !empty($asRec['HoraSalida']) ? substr($asRec['HoraSalida'], 0, 5) : null;
+        $obs = !empty($asRec['Observacion']) ? $asRec['Observacion'] : 'Conforme';
+
+        // Extraer minutos de tardanza si existen
+        if (preg_match('/Tardanza de (\d+) min/i', $obs, $m)) {
+            $minutosTardanza = intval($m[1]);
+        }
+
+        if (in_array($stUpper, ['PUNTUAL', 'ASISTIO'])) {
+            $estado = 'ASISTIO';
+            $totalDiasLaborados++;
+            $totalHorasAsistidas += $horasProg;
+        } elseif ($stUpper === 'TARDANZA') {
+            $estado = 'TARDANZA';
+            $totalDiasLaborados++;
+            $totalMinutosTardanza += $minutosTardanza;
+            $totalHorasAsistidas += $horasProg;
+        } elseif (strpos($stUpper, 'FALTA') !== false) {
+            $estado = 'FALTA';
+            $totalFaltas++;
+        } elseif (in_array($stUpper, ['PERMISO', 'LICENCIA'])) {
+            $estado = 'PERMISO';
             $totalPermisos++;
             $totalHorasAsistidas += $horasProg;
-        } elseif (isset($asistenciaEfectiva[$d])) {
-            $asRec = $asistenciaEfectiva[$d];
-            $stUpper = strtoupper(trim((string)$asRec['Estado']));
-            $horaEntrada = !empty($asRec['HoraEntrada']) ? substr($asRec['HoraEntrada'], 0, 5) : null;
-            $horaSalida = !empty($asRec['HoraSalida']) ? substr($asRec['HoraSalida'], 0, 5) : null;
-            $obs = !empty($asRec['Observacion']) ? $asRec['Observacion'] : 'Conforme';
-
-            // Extraer minutos de tardanza si existen
-            if (preg_match('/Tardanza de (\d+) min/i', $obs, $m)) {
-                $minutosTardanza = intval($m[1]);
-            }
-
-            if (in_array($stUpper, ['PUNTUAL', 'ASISTIO'])) {
-                $estado = 'ASISTIO';
-                $totalDiasLaborados++;
-                $totalHorasAsistidas += $horasProg;
-            } elseif ($stUpper === 'TARDANZA') {
-                $estado = 'TARDANZA';
-                $totalDiasLaborados++;
-                $totalMinutosTardanza += $minutosTardanza;
-                $totalHorasAsistidas += $horasProg;
-            } elseif (strpos($stUpper, 'FALTA') !== false) {
-                $estado = 'FALTA';
-                $totalFaltas++;
-            } elseif (in_array($stUpper, ['PERMISO', 'LICENCIA'])) {
-                $estado = 'PERMISO';
-                $totalPermisos++;
-                $totalHorasAsistidas += $horasProg;
-            } else {
-                $estado = $asRec['Estado'] ?: 'ASISTIO';
-                $totalDiasLaborados++;
-                $totalHorasAsistidas += $horasProg;
-            }
         } else {
-            // Día laborable sin registro de marcación
-            $isFuturo = (strtotime($fechaStr) > strtotime(date('Y-m-d')));
-            if ($isFuturo) {
-                $estado = 'PROGRAMADO';
-                $obs = 'Turno programado pendiente de marcación';
-            } else {
-                $estado = 'FALTA';
-                $obs = 'Inasistencia sin marcación en biométrico';
-                $totalFaltas++;
-            }
+            $estado = $asRec['Estado'] ?: 'SIN_DATOS';
         }
+    } elseif ($esLaborable) {
+        // La ausencia de un registro no demuestra una falta: puede faltar importar o conciliar.
+        $estado = AttendanceRules::missingState($fechaStr, $horaProgInicio, $horaProgFin);
+        $obs = $estado === 'SIN_DATOS' ? 'Sin asistencia conciliada; pendiente de verificación' : 'Jornada pendiente de cierre';
     }
+
 
     $dias[] = [
         'dia'               => $d,

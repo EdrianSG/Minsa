@@ -1,8 +1,11 @@
 <?php
+require_once __DIR__ . '/AttendanceRules.php';
+require_once __DIR__ . '/AttendanceSchedule.php';
 /**
  * Procesa y califica una fila de asistencia según las normas MINSA
  */
 function procesarFilaAsistencia($row, $nombreCompleto, $fecha) {
+    $row = AttendanceSchedule::apply($row, $fecha);
     $horaProgInicio = $row['HoraProgInicio'] ?? '08:00:00';
     $horaProgFin    = $row['HoraProgFin'] ?? '14:00:00';
     $horaEntrada    = $row['HoraEntrada'] ?? null;
@@ -21,32 +24,18 @@ function procesarFilaAsistencia($row, $nombreCompleto, $fecha) {
         $estadoEvaluado = 'DESCANSO';
         $observacionRegla = 'Día no laborable / Descanso programado';
     } elseif (empty($horaEntrada)) {
-        if ($estadoBd === 'PERMISO' || $estadoBd === 'LICENCIA') {
-            $estadoEvaluado = $estadoBd;
-            $observacionRegla = $row['Observacion'] ?: 'Permiso laboral con goce';
-        } else {
+        if (stripos((string)$estadoBd, 'FALTA') !== false) {
             $estadoEvaluado = 'FALTA';
-            $observacionRegla = 'Inasistencia sin marcación de ingreso en el biométrico';
+            $observacionRegla = $row['Observacion'] ?: 'Falta registrada';
+        } else {
+            $estadoEvaluado = AttendanceRules::missingState($fecha, $horaProgInicio, $horaProgFin);
+            $observacionRegla = 'Sin marcación conciliada; pendiente de verificación';
         }
     } else {
-        // Cálculo de diferencia de entrada
-        $segundosProg = strtotime("$fecha $horaProgInicio");
-        $segundosReal = strtotime("$fecha $horaEntrada");
-        $difMinutos = ($segundosReal - $segundosProg) / 60;
-
-        if ($difMinutos <= 5) {
-            $estadoEvaluado = 'ASISTIO';
-            $minutosTardanza = 0;
-            $observacionRegla = ($difMinutos <= 0) ? 'Ingreso puntual' : 'Dentro del rango de tolerancia reglamentaria (5 min)';
-        } elseif ($difMinutos <= 30) {
-            $estadoEvaluado = 'TARDANZA';
-            $minutosTardanza = round($difMinutos);
-            $observacionRegla = "Tardanza de {$minutosTardanza} minutos";
-        } else {
-            $estadoEvaluado = 'FALTA_ADMINISTRATIVA';
-            $minutosTardanza = round($difMinutos);
-            $observacionRegla = "Ingreso con {$minutosTardanza} minutos de retraso (>30 min). Falta administrativa sujeta a descuento";
-        }
+        $evaluation = AttendanceRules::evaluate($horaEntrada, $horaProgInicio, $fecha, $horaProgFin);
+        $estadoEvaluado = $evaluation['estado'];
+        $minutosTardanza = $evaluation['minutos'];
+        $observacionRegla = $estadoEvaluado === 'ASISTIO' ? 'Ingreso puntual o dentro de tolerancia' : "Tardanza de {$minutosTardanza} minutos";
 
         // Evaluación de salida
         if (!empty($horaSalida)) {
@@ -79,7 +68,7 @@ function procesarFilaAsistencia($row, $nombreCompleto, $fecha) {
         'condicion_laboral'        => $row['CondicionLaboral'] ?? 'NOMBRADO',
         'turno_id'                 => $row['TurnoID'] ? intval($row['TurnoID']) : null,
         'turno_nombre'             => $row['NombreTurno'] ?? 'Descanso',
-        'turno_codigo'             => $row['TurnoID'] ? 'M' : 'LIB',
+        'turno_codigo'             => $row['TurnoCodigo'] ?? ($row['TurnoID'] ? 'M' : 'LIB'),
         'hora_prog_inicio'         => substr($horaProgInicio, 0, 5),
         'hora_prog_fin'            => substr($horaProgFin, 0, 5),
         'asistencia_id'            => $row['AsistenciaID'] ? intval($row['AsistenciaID']) : null,

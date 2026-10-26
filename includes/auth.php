@@ -321,7 +321,7 @@ class Auth {
     }
 
     /**
-     * Retorna el ServicioID asignado al usuario si está restringido, o null si tiene alcance global.
+     * Retorna el ServicioID asignado, 0 si falta asignación, o null exclusivamente para alcance global.
      */
     public static function getAllowedServiceId(): ?int {
         if (!self::isAuthenticated()) {
@@ -331,7 +331,7 @@ class Auth {
         if (in_array($rol, ['ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH', 'OPERADOR_ASISTENCIA', 'AUDITOR_PLANILLAS'], true)) {
             return null; // Alcance global
         }
-        return isset($_SESSION['user']['servicio_id']) ? (int)$_SESSION['user']['servicio_id'] : null;
+        return max(0, (int)($_SESSION['user']['servicio_id'] ?? 0));
     }
 
     /**
@@ -347,7 +347,7 @@ class Auth {
         if ($allowedServId === null) {
             return true; // Alcance institucional global
         }
-        if ($personalId <= 0) {
+        if ($allowedServId <= 0 || $personalId <= 0) {
             return false;
         }
 

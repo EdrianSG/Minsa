@@ -42,6 +42,7 @@ if ($ext !== 'csv') {
 }
 
 $usuario = Auth::getCurrentUser();
+$usuarioId = (int)$usuario['usuario_id'];
 require_once __DIR__ . '/../../../includes/AttendanceReconciler.php';
 
 try {
@@ -56,6 +57,15 @@ try {
             $stmtFechas->execute([$importacionId]);
             $fechas = $stmtFechas->fetchAll(PDO::FETCH_COLUMN);
             $reconciliadas = 0;
+            $fechasJornada = [];
+            foreach ($fechas as $f) {
+                if ($f) {
+                    $fechasJornada[(string)$f] = true;
+                    $fechasJornada[date('Y-m-d', strtotime((string)$f . ' -1 day'))] = true;
+                }
+            }
+            $fechas = array_keys($fechasJornada);
+            sort($fechas);
             foreach ($fechas as $f) {
                 if ($f) {
                     AttendanceReconciler::conciliarFecha((string)$f, $pdo);

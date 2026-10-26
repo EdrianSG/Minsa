@@ -2,10 +2,10 @@
     "_meta": {
         "source": "SQL_SERVER_LIVE",
         "key": "turnos_catalogo_oficial",
-        "version": 19,
-        "saved_at": "2026-10-26 08:32:46",
-        "timestamp": 1793021566,
-        "hash": "b0acd44b7fcd57d4412eb0ae0a587ed3",
+        "version": 23,
+        "saved_at": "2026-10-26 12:24:53",
+        "timestamp": 1793035493,
+        "hash": "82410c37a1e954064efbc1b68b12fa0d",
         "is_snapshot": true
     },
     "data": [
@@ -13,92 +13,92 @@
             "turno_id": 1,
             "codigo": "M",
             "nombre": "Mañana Ordinario (07:00 - 13:00)",
-            "descripcion": "Turno institucional de 07:00 a 13:00",
-            "hora_inicio": "07:00",
-            "hora_fin": "13:00",
+            "hora_inicio": "07:00:00",
+            "hora_fin": "13:00:00",
             "horas_computables": 6,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 0,
             "es_guardia": 0,
-            "color": "#0284c7",
-            "estado": 1
+            "color": "#0284c7"
         },
         {
             "turno_id": 2,
             "codigo": "T",
             "nombre": "Tarde Ordinario (13:00 - 19:00)",
-            "descripcion": "Turno institucional de 13:00 a 19:00",
-            "hora_inicio": "13:00",
-            "hora_fin": "19:00",
+            "hora_inicio": "13:00:00",
+            "hora_fin": "19:00:00",
             "horas_computables": 6,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 0,
             "es_guardia": 0,
-            "color": "#0284c7",
-            "estado": 1
+            "color": "#0284c7"
         },
         {
             "turno_id": 3,
             "codigo": "N",
             "nombre": "Guardia Nocturna (19:00 - 07:00)",
-            "descripcion": "Turno institucional de 19:00 a 07:00",
-            "hora_inicio": "19:00",
-            "hora_fin": "07:00",
+            "hora_inicio": "19:00:00",
+            "hora_fin": "07:00:00",
             "horas_computables": 12,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 1,
             "es_guardia": 1,
-            "color": "#7c3aed",
-            "estado": 1
+            "color": "#7c3aed"
         },
         {
             "turno_id": 4,
-            "codigo": "G",
+            "codigo": "GD",
             "nombre": "Guardia Diurna (07:00 - 19:00)",
-            "descripcion": "Turno institucional de 07:00 a 19:00",
-            "hora_inicio": "07:00",
-            "hora_fin": "19:00",
+            "hora_inicio": "07:00:00",
+            "hora_fin": "19:00:00",
             "horas_computables": 12,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 0,
             "es_guardia": 1,
-            "color": "#0d9488",
-            "estado": 1
+            "color": "#7c3aed"
         },
         {
             "turno_id": 5,
             "codigo": "ADM",
             "nombre": "Jornada Administrativa (08:00 - 16:45)",
-            "descripcion": "Turno institucional de 08:00 a 16:45",
-            "hora_inicio": "08:00",
-            "hora_fin": "16:45",
+            "hora_inicio": "08:00:00",
+            "hora_fin": "16:45:00",
             "horas_computables": 8.75,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 0,
             "es_guardia": 0,
-            "color": "#0284c7",
-            "estado": 1
+            "color": "#0284c7"
         },
         {
             "turno_id": 6,
             "codigo": "RET",
             "nombre": "Retén de Emergencia (19:00 - 07:00)",
-            "descripcion": "Turno institucional de 19:00 a 07:00",
-            "hora_inicio": "19:00",
-            "hora_fin": "07:00",
+            "hora_inicio": "19:00:00",
+            "hora_fin": "07:00:00",
             "horas_computables": 12,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 1,
             "es_guardia": 1,
-            "color": "#7c3aed",
-            "estado": 1
+            "color": "#7c3aed"
         },
         {
             "turno_id": 7,
             "codigo": "TUR",
             "nombre": "Turno Especial Pediatría",
-            "descripcion": "Turno institucional de 07:30 a 13:30",
-            "hora_inicio": "07:30",
-            "hora_fin": "13:30",
+            "hora_inicio": "07:30:00",
+            "hora_fin": "13:30:00",
             "horas_computables": 6,
+            "estado": 1,
+            "descripcion": "Turno institucional",
             "cruza_medianoche": 0,
             "es_guardia": 0,
-            "color": "#0284c7",
-            "estado": 1
+            "color": "#0284c7"
         }
     ]
 }

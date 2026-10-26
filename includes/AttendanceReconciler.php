@@ -13,6 +13,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/AttendanceRules.php';
 require_once __DIR__ . '/SnapshotStore.php';
+require_once __DIR__ . '/AttendanceSchedule.php';
 
 class AttendanceReconciler {
 
@@ -29,12 +30,14 @@ class AttendanceReconciler {
             throw new RuntimeException("No hay conexión a la base de datos.");
         }
 
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $fecha) || date('Y-m-d', strtotime($fecha)) !== $fecha) throw new InvalidArgumentException('Fecha inválida.');
         $diaSemana = (int)date('N', strtotime($fecha)); // 1=Lunes .. 7=Domingo
 
         // 1. Obtener todo el personal activo con su horario programado para ese día de la semana
         $sqlPersonal = "
             SELECT 
                 p.PersonalID,
+                (SELECT TOP 1 ap.ServicioID FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = p.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1) AS ServicioID,
                 per.NumeroDocumento AS DNI,
                 per.Nombres,
                 per.ApellidoPaterno,
@@ -70,37 +73,16 @@ class AttendanceReconciler {
         ]);
         $personalList = $stmtPers->fetchAll(PDO::FETCH_ASSOC);
 
-        // 2. Obtener todas las marcaciones biométricas válidas del día (y madrugada del día siguiente para turnos nocturnos)
-        $fechaSiguiente = date('Y-m-d', strtotime("$fecha +1 day"));
-        $sqlMarcaciones = "
-            SELECT 
-                mb.PersonalID,
-                mb.BiostarUserID,
-                mb.FechaHora
-            FROM rrhh.MarcacionBiometrica mb
-            WHERE CAST(mb.FechaHora AS DATE) = :fecha
-               OR (CAST(mb.FechaHora AS DATE) = :fechaSiguiente AND DATEPART(hour, mb.FechaHora) <= 12)
-            ORDER BY mb.FechaHora ASC
-        ";
-        $stmtMarc = $pdo->prepare($sqlMarcaciones);
-        $stmtMarc->execute([':fecha' => $fecha, ':fechaSiguiente' => $fechaSiguiente]);
-        $rawMarc = $stmtMarc->fetchAll(PDO::FETCH_ASSOC);
-
-        // Agrupar marcaciones por PersonalID distinguiendo del día y de la mañana siguiente
-        $marcacionesDelDia = [];
-        $marcacionesMananaSiguiente = [];
-        foreach ($rawMarc as $m) {
-            $pid = (int)$m['PersonalID'];
-            if ($pid > 0) {
-                $fMarc = substr($m['FechaHora'], 0, 10);
-                if ($fMarc === $fecha) {
-                    if (!isset($marcacionesDelDia[$pid])) $marcacionesDelDia[$pid] = [];
-                    $marcacionesDelDia[$pid][] = $m['FechaHora'];
-                } elseif ($fMarc === $fechaSiguiente) {
-                    if (!isset($marcacionesMananaSiguiente[$pid])) $marcacionesMananaSiguiente[$pid] = [];
-                    $marcacionesMananaSiguiente[$pid][] = $m['FechaHora'];
-                }
-            }
+        // Leer un rango completo; cada trabajador se filtra después por su jornada.
+        $stmtMarc = $pdo->prepare("SELECT PersonalID, FechaHora FROM rrhh.MarcacionBiometrica
+            WHERE FechaHora >= :desde AND FechaHora < :hasta ORDER BY FechaHora ASC");
+        $stmtMarc->execute([
+            ':desde' => date('Y-m-d 22:00:00', strtotime("$fecha -1 day")),
+            ':hasta' => date('Y-m-d 02:00:00', strtotime("$fecha +2 days"))
+        ]);
+        $marcacionesPorPersonal = [];
+        foreach ($stmtMarc->fetchAll(PDO::FETCH_ASSOC) as $mark) {
+            $marcacionesPorPersonal[(int)$mark['PersonalID']][] = $mark['FechaHora'];
         }
 
         // 3. Preparar statements para INSERT / UPDATE en rrhh.Asistencia
@@ -133,6 +115,7 @@ class AttendanceReconciler {
         $actualizados = 0;
 
         foreach ($personalList as $p) {
+            $p = AttendanceSchedule::apply($p, $fecha);
             $personalId = (int)$p['PersonalID'];
             $asistenciaId = !empty($p['AsistenciaID']) ? (int)$p['AsistenciaID'] : null;
             $estadoActual = strtoupper(trim((string)($p['EstadoActual'] ?? '')));
@@ -149,40 +132,20 @@ class AttendanceReconciler {
                 continue;
             }
 
-            $horaProgInicio = $p['HoraProgInicio'] ?: '07:00:00';
-            $horaProgFin    = $p['HoraProgFin'] ?: '13:00:00';
-            $cruzaMedianoche = (strtotime("$fecha $horaProgFin") <= strtotime("$fecha $horaProgInicio"));
+            // Sin turno no se generan faltas para días de descanso.
+            if (empty($p['TurnoID'])) continue;
+            $horaProgInicio = $p['HoraProgInicio'];
+            $horaProgFin = $p['HoraProgFin'];
+            $window = AttendanceRules::punches($marcacionesPorPersonal[$personalId] ?? [], $fecha, $horaProgInicio, $horaProgFin);
+            $zone = new DateTimeZone('America/Lima');
+            $horaEntrada = $window['entry'] === null ? null : (new DateTimeImmutable('@' . $window['entry']))->setTimezone($zone)->format('H:i:s');
+            $horaSalida = $window['exit'] === null ? null : (new DateTimeImmutable('@' . $window['exit']))->setTimezone($zone)->format('H:i:s');
+            $estado = AttendanceRules::missingState($fecha, $horaProgInicio, $horaProgFin);
+            $observacion = 'Sin marcación conciliada; pendiente de verificación';
 
-            $punches = $marcacionesDelDia[$personalId] ?? [];
-            $punchesSig = $marcacionesMananaSiguiente[$personalId] ?? [];
-
-            $horaEntrada = null;
-            $horaSalida = null;
-            $estado = 'Falta';
-            $observacion = '';
-
-            if (!empty($punches)) {
+            if ($window['entry'] !== null) {
                 $totalConMarcacion++;
-                // Primera marcación = Entrada
-                $primera = reset($punches);
-                $horaEntrada = date('H:i:s', strtotime($primera));
-
-                // Para turnos nocturnos que cruzan la medianoche: buscar salida en la madrugada siguiente
-                if ($cruzaMedianoche && !empty($punchesSig)) {
-                    $salidaSig = end($punchesSig);
-                    $horaSalida = date('H:i:s', strtotime($salidaSig));
-                } elseif (count($punches) > 1) {
-                    $ultima = end($punches);
-                    $segDiff = strtotime($ultima) - strtotime($primera);
-                    if ($segDiff >= 1800) { // al menos 30 minutos
-                        $horaSalida = date('H:i:s', strtotime($ultima));
-                    }
-                }
-
-                // Cálculo según normas MINSA (tolerancia 5 min, tardanza <= 30 min, falta > 30 min)
-                $segProg = strtotime("$fecha $horaProgInicio");
-                $segReal = strtotime("$fecha $horaEntrada");
-                $difMinutos = ($segReal - $segProg) / 60;
+                $difMinutos = ($window['entry'] - $window['start']) / 60;
 
                 if ($difMinutos <= 5) {
                     $estado = 'Puntual';
@@ -204,12 +167,8 @@ class AttendanceReconciler {
 
                 // Verificación de salida
                 if (!empty($horaSalida)) {
-                    $segSalProg = strtotime("$fecha $horaProgFin");
-                    $segSalReal = strtotime("$fecha $horaSalida");
-                    if ($horaProgFin <= $horaProgInicio) { // turno trasnoche
-                        $segSalProg += 86400;
-                        if ($horaSalida < $horaProgInicio) $segSalReal += 86400;
-                    }
+                    $segSalProg = $window['end'];
+                    $segSalReal = $window['exit'];
                     if ($segSalReal < $segSalProg) {
                         $minAnt = (int)round(($segSalProg - $segSalReal) / 60);
                         $observacion .= " | Salida anticipada ({$minAnt} min antes)";
@@ -220,10 +179,9 @@ class AttendanceReconciler {
                     $observacion .= " | Salida no registrada";
                 }
             } else {
-                // Sin marcación
-                $totalFaltas++;
-                $estado = 'Falta';
-                $observacion = 'Inasistencia sin marcación en biométrico';
+                // La conciliación no prueba que el reloj haya sido importado por completo.
+                // Conservar faltas ya dictaminadas y no crear faltas a partir de datos ausentes.
+                if (strpos($estadoActual, 'FALTA') !== false) continue;
             }
 
             // Guardar en rrhh.Asistencia
@@ -259,6 +217,9 @@ class AttendanceReconciler {
 
         // 5. Invalidar/Actualizar SnapshotStore de esa fecha
         SnapshotStore::delete("asistencia_diaria_{$fecha}");
+        foreach (glob(SnapshotStore::directory() . "/asistencia_diaria_{$fecha}_serv_*.json") ?: [] as $file) {
+            SnapshotStore::delete(basename($file, '.json'));
+        }
 
         return [
             'fecha'                   => $fecha,

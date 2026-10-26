@@ -105,23 +105,23 @@ if ($dbConnected) {
 
         if (!empty($permisos)) {
             require_once __DIR__ . '/../../includes/SnapshotStore.php';
-            SnapshotStore::set('permisos_lista_completa', $permisos, ['source' => 'SQL_SERVER_LIVE']);
+            SnapshotStore::set('permisos_lista_completa' . ($userAllowedServ ? '_serv_' . $userAllowedServ : ''), $permisos, ['source' => 'SQL_SERVER_LIVE']);
         }
+        require_once __DIR__ . '/../../includes/SnapshotStore.php';
+        SnapshotStore::set('permisos_lista_completa' . ($userAllowedServ ? '_serv_' . $userAllowedServ : ''), $permisos, ['source'=>'SQL_SERVER_LIVE']);
     } catch (Exception $e) {
         $dbConnected = false;
     }
 }
 
-// Resiliencia local: solo si la BD está offline
-if (!$dbConnected && empty($permisos)) {
+if (!$dbConnected) {
     require_once __DIR__ . '/../../includes/SnapshotStore.php';
-    if (SnapshotStore::has('permisos_lista_completa')) {
-        $snap = SnapshotStore::get('permisos_lista_completa');
-        if (!empty($snap['data']) && is_array($snap['data'])) {
-            $permisos = $snap['data'];
-        }
-    }
+    $snap = $userAllowedServ ? SnapshotStore::get('permisos_lista_completa_serv_' . $userAllowedServ) : null;
+    $snap = $snap ?? SnapshotStore::get('permisos_lista_completa');
+    if (!$snap) apiError(503, 'SQL Server no está disponible y no existe un respaldo de permisos.');
+    $permisos = $snap['data'];
 }
+if ($userAllowedServ !== null) $permisos = array_values(array_filter($permisos, static fn($p)=>(int)($p['servicio_id'] ?? 0) === $userAllowedServ));
 
 // Resumen y KPIs globales calculados sobre el universo completo de la BD
 $totalSolicitudes = count($permisos);

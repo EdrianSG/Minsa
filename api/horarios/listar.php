@@ -43,7 +43,7 @@ if ($dbConnected) {
                 p.CodigoEmpleado,
                 per.NumeroDocumento AS DNI,
                 CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS NombreCompleto,
-                ISNULL(s.Nombre, 'Servicio General') AS ServicioNombre,
+                s.ServicioID, ISNULL(s.Nombre, 'Servicio General') AS ServicioNombre,
                 ISNULL(c.Nombre, 'Personal') AS CargoNombre
             FROM rrhh.Horario h
             INNER JOIN rrhh.Personal p ON h.PersonalID = p.PersonalID
@@ -71,6 +71,7 @@ if ($dbConnected) {
                         'dni'              => $r['DNI'],
                         'codigo_empleado'  => $r['CodigoEmpleado'],
                         'cargo_nombre'     => $r['CargoNombre'],
+                        'servicio_id'      => (int)$r['ServicioID'],
                         'servicio_nombre'  => $r['ServicioNombre'],
                         'tipo_patron'      => 'Pauta Semanal Asignada',
                         'dias'             => [1 => null, 2 => null, 3 => null, 4 => null, 5 => null, 6 => null, 7 => null],
@@ -111,110 +112,24 @@ if ($dbConnected) {
             $horariosPersonal = array_values($grouped);
             if (!empty($horariosPersonal)) {
                 require_once __DIR__ . '/../../includes/SnapshotStore.php';
-                SnapshotStore::set('horarios_lista_completa', $horariosPersonal, ['source' => 'SQL_SERVER_LIVE']);
+                SnapshotStore::set('horarios_lista_completa' . ($userAllowedServ ? '_serv_' . $userAllowedServ : ''), $horariosPersonal, ['source' => 'SQL_SERVER_LIVE']);
             }
         }
+        require_once __DIR__ . '/../../includes/SnapshotStore.php';
+        SnapshotStore::set('horarios_lista_completa' . ($userAllowedServ ? '_serv_' . $userAllowedServ : ''), $horariosPersonal, ['source'=>'SQL_SERVER_LIVE']);
     } catch (PDOException $e) {
         $dbConnected = false;
     }
 }
 
-// Resiliencia local: si la BD está offline o no retornó datos, usar el Snapshot de datos reales
-if (empty($horariosPersonal)) {
+if (!$dbConnected) {
     require_once __DIR__ . '/../../includes/SnapshotStore.php';
-    if (SnapshotStore::has('horarios_lista_completa')) {
-        $snap = SnapshotStore::get('horarios_lista_completa');
-        if (!empty($snap['data']) && is_array($snap['data'])) {
-            $horariosPersonal = $snap['data'];
-        }
-    }
+    $snap = $userAllowedServ ? SnapshotStore::get('horarios_lista_completa_serv_' . $userAllowedServ) : null;
+    $snap = $snap ?? SnapshotStore::get('horarios_lista_completa');
+    if (!$snap) apiError(503, 'SQL Server no está disponible y no existe un respaldo de horarios.');
+    $horariosPersonal = $snap['data'];
 }
-
-// Fallback desacoplado SOLO si nunca hubo conexión ni snapshot
-if (empty($horariosPersonal)) {
-    $horariosPersonal = [
-        [
-            'personal_id'      => 6,
-            'nombre_completo'  => 'Urcia Ventura, Carmen Rosa',
-            'dni'              => '47309642',
-            'codigo_empleado'  => 'EMP-00106',
-            'cargo_nombre'     => 'Especialista Administrativo',
-            'servicio_nombre'  => 'Unidad de Personal / RR.HH.',
-            'tipo_patron'      => 'Jornada Administrativa Fija (L-V)',
-            'dias' => [
-                1 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                2 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                3 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                4 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                5 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                6 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0],
-                7 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0]
-            ],
-            'total_horas_semana' => 40.0,
-            'vigencia' => 'Vigente desde 2026-01-01'
-        ],
-        [
-            'personal_id'      => 12,
-            'nombre_completo'  => 'Cortez García, Miguel Arturo',
-            'dni'              => '73291045',
-            'codigo_empleado'  => 'EMP-00112',
-            'cargo_nombre'     => 'Jefe de Informática y Estadística',
-            'servicio_nombre'  => 'Unidad de Informática y Estadística',
-            'tipo_patron'      => 'Jornada Administrativa Fija (L-V)',
-            'dias' => [
-                1 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                2 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                3 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                4 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                5 => ['codigo' => 'ADM', 'hora' => '07:30 - 15:30', 'horas' => 8.0],
-                6 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0],
-                7 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0]
-            ],
-            'total_horas_semana' => 40.0,
-            'vigencia' => 'Vigente desde 2026-01-01'
-        ],
-        [
-            'personal_id'      => 1,
-            'nombre_completo'  => 'Torres Benites, Ana María',
-            'dni'              => '45892104',
-            'codigo_empleado'  => 'EMP-00101',
-            'cargo_nombre'     => 'Enfermera Asistencial',
-            'servicio_nombre'  => 'Emergencia y Cuidados Críticos',
-            'tipo_patron'      => 'Pauta Base Asistencial Rotativa',
-            'dias' => [
-                1 => ['codigo' => 'M', 'hora' => '08:00 - 14:00', 'horas' => 6.0],
-                2 => ['codigo' => 'M', 'hora' => '08:00 - 14:00', 'horas' => 6.0],
-                3 => ['codigo' => 'T', 'hora' => '14:00 - 20:00', 'horas' => 6.0],
-                4 => ['codigo' => 'N', 'hora' => '20:00 - 08:00', 'horas' => 12.0],
-                5 => ['codigo' => 'LIB', 'hora' => 'Post Guardia', 'horas' => 0.0],
-                6 => ['codigo' => 'M', 'hora' => '08:00 - 14:00', 'horas' => 6.0],
-                7 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0]
-            ],
-            'total_horas_semana' => 36.0,
-            'vigencia' => 'Vigente Setiembre 2026'
-        ],
-        [
-            'personal_id'      => 2,
-            'nombre_completo'  => 'Díaz Rojas, Luis Alberto',
-            'dni'              => '70445708',
-            'codigo_empleado'  => 'EMP-00102',
-            'cargo_nombre'     => 'Médico Especialista',
-            'servicio_nombre'  => 'Unidad de Cuidados Intensivos',
-            'tipo_patron'      => 'Pauta Guardia UCI',
-            'dias' => [
-                1 => ['codigo' => 'GD', 'hora' => '08:00 - 20:00', 'horas' => 12.0],
-                2 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0],
-                3 => ['codigo' => 'GN', 'hora' => '20:00 - 08:00', 'horas' => 12.0],
-                4 => ['codigo' => 'LIB', 'hora' => 'Post Guardia', 'horas' => 0.0],
-                5 => ['codigo' => 'M', 'hora' => '08:00 - 14:00', 'horas' => 6.0],
-                6 => ['codigo' => 'LIB', 'hora' => 'Descanso', 'horas' => 0.0],
-                7 => ['codigo' => 'GD', 'hora' => '08:00 - 20:00', 'horas' => 12.0]
-            ],
-            'total_horas_semana' => 42.0,
-            'vigencia' => 'Vigente Setiembre 2026'
-        ]
-    ];
-}
+if ($userAllowedServ !== null) $horariosPersonal = array_values(array_filter($horariosPersonal, static fn($p)=>(int)($p['servicio_id'] ?? 0) === $userAllowedServ));
 
 echo json_encode([
     'ok'           => true,

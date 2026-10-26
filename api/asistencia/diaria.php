@@ -117,9 +117,9 @@ if ($dbConnected) {
             $nombreCompleto = trim("{$row['ApellidoPaterno']} {$row['ApellidoMaterno']} {$row['Nombres']}");
             $asistencias[] = procesarFilaAsistencia($row, $nombreCompleto, $fecha);
         }
-        if (!empty($asistencias)) {
+        if (is_array($asistencias)) {
             require_once __DIR__ . '/../../includes/SnapshotStore.php';
-            SnapshotStore::set('asistencia_diaria_' . $fecha, $asistencias, ['source' => 'SQL_SERVER_LIVE', 'fecha' => $fecha]);
+            SnapshotStore::set('asistencia_diaria_' . $fecha . ($servicioId ? '_serv_' . $servicioId : ''), $asistencias, ['source' => 'SQL_SERVER_LIVE', 'fecha' => $fecha]);
         }
     } catch (Exception $e) {
         $dbConnected = false;
@@ -127,10 +127,11 @@ if ($dbConnected) {
 }
 
 // Resiliencia local: si la BD está offline, intentar cargar el Snapshot de asistencia de esa fecha o la más reciente
-if (empty($asistencias)) {
+if (!$dbConnected && empty($asistencias)) {
     require_once __DIR__ . '/../../includes/SnapshotStore.php';
-    if (SnapshotStore::has('asistencia_diaria_' . $fecha)) {
-        $snap = SnapshotStore::get('asistencia_diaria_' . $fecha);
+    $snap = $servicioId ? SnapshotStore::get('asistencia_diaria_' . $fecha . '_serv_' . $servicioId) : null;
+    $snap = $snap ?? SnapshotStore::get('asistencia_diaria_' . $fecha);
+    if ($snap) {
         if (!empty($snap['data']) && is_array($snap['data'])) {
             $asistencias = $snap['data'];
         }
@@ -138,6 +139,7 @@ if (empty($asistencias)) {
 }
 
 if (empty($asistencias)) {
+    if (!$dbConnected) apiError(503, 'No hay datos de asistencia para la fecha solicitada y SQL Server no está disponible.');
     echo json_encode([
         'ok'              => true,
         'fecha'           => $fecha,
@@ -151,12 +153,16 @@ if (empty($asistencias)) {
             'faltas'                 => 0,
             'permisos'               => 0,
             'descansos'              => 0,
-            'porcentaje_asistencia'  => 100.0
+            'porcentaje_asistencia'  => null
         ],
         'total_registros' => 0,
         'asistencias'     => []
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+if ($servicioId !== null) {
+    $asistencias = array_values(array_filter($asistencias, static fn($item) => (int)($item['servicio_id'] ?? 0) === $servicioId));
 }
 
 // Filtros en memoria para búsqueda de texto, servicio y estado
@@ -197,12 +203,14 @@ $minutosTardanzaTotal = 0;
 $faltas = 0;
 $permisos = 0;
 $descansos = 0;
+$pendientes = 0;
 
 foreach ($asistencias as $item) {
-    if ($item['turno_codigo'] !== 'LIB' && $item['turno_codigo'] !== 'DESC') {
+    if ($item['estado_evaluado'] !== 'DESCANSO') {
         $totalProgramados++;
     }
 
+    if (in_array($item['estado_evaluado'], ['SIN_DATOS', 'PROGRAMADO', 'EN_CURSO'], true)) $pendientes++;
     switch ($item['estado_evaluado']) {
         case 'ASISTIO':
             $asistioPuntual++;
@@ -225,9 +233,9 @@ foreach ($asistencias as $item) {
     }
 }
 
-$porcentajeAsistencia = ($totalProgramados > 0) 
+$porcentajeAsistencia = ($totalProgramados > 0 && $pendientes === 0)
     ? round((($asistioPuntual + $tardanzas) / $totalProgramados) * 100, 1) 
-    : 100.0;
+    : null;
 
 echo json_encode([
     'ok'                   => true,
@@ -235,6 +243,7 @@ echo json_encode([
     'conexion_sql'         => $dbConnected,
     'resumen'              => [
         'total_evaluados'        => count($asistencias),
+        'pendientes'             => $pendientes,
         'total_programados'      => $totalProgramados,
         'asistio_puntual'        => $asistioPuntual,
         'tardanzas'              => $tardanzas,

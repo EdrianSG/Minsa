@@ -71,13 +71,13 @@ class Database
         }
 
         if (!extension_loaded('pdo_sqlsrv')) {
-            self::$lastError = "El driver 'pdo_sqlsrv' no está instalado en este entorno PHP. Se utilizará modo desacoplado / mock.";
+            self::$lastError = "El driver 'pdo_sqlsrv' no está instalado en este entorno PHP. Solo se podrán consultar respaldos disponibles.";
             return null;
         }
 
         // Circuit Breaker: Si recientemente falló la conexión (en los últimos 15 segundos),
         // no bloquear los hilos esperando timeouts de red; retornar null inmediatamente.
-        $cacheFile = sys_get_temp_dir() . '/sgh_db_offline.json';
+        $cacheFile = sys_get_temp_dir() . '/sgh_db_offline_' . hash('sha256', $config['host'] . ':' . $config['port'] . '/' . $config['database']) . '.json';
         if (!$forceFreshCheck && file_exists($cacheFile)) {
             $cached = @json_decode(file_get_contents($cacheFile), true);
             if ($cached && isset($cached['time']) && (time() - $cached['time']) < 15) {

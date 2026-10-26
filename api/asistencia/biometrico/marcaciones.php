@@ -31,6 +31,11 @@ $offset = ($page - 1) * $limit;
 try {
     $where = ["1=1"];
     $params = [];
+    $allowedService = Auth::getAllowedServiceId();
+    if ($allowedService !== null) {
+        $where[] = 'EXISTS (SELECT 1 FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = m.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1 AND ap.ServicioID = :servicioAutorizado)';
+        $params[':servicioAutorizado'] = $allowedService;
+    }
 
     if ($importacionId !== null && $importacionId > 0) {
         $where[] = "m.ImportacionID = :impId";

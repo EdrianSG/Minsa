@@ -2,9 +2,9 @@
     "_meta": {
         "source": "SQL_SERVER_LIVE",
         "key": "permisos_lista_completa",
-        "version": 8,
-        "saved_at": "2026-10-26 08:29:30",
-        "timestamp": 1793021370,
+        "version": 11,
+        "saved_at": "2026-10-26 12:25:00",
+        "timestamp": 1793035500,
         "hash": "7b4ed3fe9ffdce8a45d31c366d781d45",
         "is_snapshot": true
     },

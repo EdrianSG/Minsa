@@ -1,0 +1,394 @@
+/**
+ * Estilos del Módulo de Personal - Hospital Distrital de Pacasmayo
+ * ETAPA 2
+ */
+
+/* Encabezado del Módulo */
+.personal-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.personal-title-area h1 {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.personal-title-area p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+/* Mini KPIs de Personal */
+.personal-kpis-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.mini-kpi-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.mini-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-default);
+}
+
+.mini-kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mini-kpi-data {
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-kpi-val {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.mini-kpi-lbl {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+/* Barra de Filtros de Personal */
+.personal-filter-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.35rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr auto;
+  gap: 0.85rem;
+  align-items: flex-end;
+}
+
+@media (max-width: 1100px) {
+  .filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-item label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.filter-item .form-control,
+.filter-item .form-select {
+  height: 38px;
+  font-size: 0.85rem;
+}
+
+/* Tabla de Personal */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.staff-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.staff-table th {
+  background-color: var(--bg-surface-muted);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.staff-table td {
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast);
+}
+
+.staff-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-table tbody tr:hover td {
+  background-color: var(--bg-hover);
+}
+
+/* Celda del Trabajador con Avatar */
+.worker-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.worker-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-xs);
+}
+
+.worker-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.worker-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+.worker-meta {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.worker-dni {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+/* Badges Especiales del Personal */
+.badge-nombrado {
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-200);
+}
+
+html.dark .badge-nombrado {
+  background-color: rgba(2, 107, 199, 0.15);
+  color: var(--primary-300);
+  border-color: rgba(2, 107, 199, 0.3);
+}
+
+.badge-cas {
+  background-color: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+}
+
+html.dark .badge-cas {
+  background-color: rgba(13, 148, 136, 0.15);
+  color: var(--accent-500);
+  border-color: rgba(13, 148, 136, 0.3);
+}
+
+.badge-asistencial {
+  background-color: var(--status-justified-bg);
+  color: var(--status-justified-text);
+  border: 1px solid var(--status-justified-border);
+}
+
+.badge-tag-seti {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background-color: var(--status-present-accent);
+  color: #ffffff;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-xs);
+  margin-left: 0.25rem;
+}
+
+/* Barra de Paginación */
+.table-pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* =========================================================
+   ESTILOS DE LA FICHA DEL TRABAJADOR (MODAL)
+   ========================================================= */
+.ficha-header-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: linear-gradient(135deg, var(--primary-50), var(--bg-surface));
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+html.dark .ficha-header-card {
+  background: linear-gradient(135deg, rgba(2, 107, 199, 0.15), var(--bg-surface-elevated));
+  border-color: var(--border-default);
+}
+
+.ficha-avatar-lg {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-600), var(--accent-600));
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.ficha-headline h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.ficha-headline p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+.ficha-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .ficha-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ficha-group {
+  background-color: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+}
+
+.ficha-group-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary-700);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+html.dark .ficha-group-title {
+  color: #E0E0E0;
+}
+
+.ficha-field {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.82rem;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.ficha-field:last-child {
+  border-bottom: none;
+}
+
+.ficha-field-lbl {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ficha-field-val {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}

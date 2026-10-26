@@ -1,0 +1,406 @@
+/**
+ * Estilos Minimalistas: Inicio / Dashboard
+ * Hospital Distrital de Pacasmayo
+ */
+
+.dash-clean-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Encabezado */
+.dash-clean-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dash-main-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.dash-subtitle {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Selector de Fecha */
+.dash-date-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dash-btn-quick {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-btn-quick:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dash-btn-quick.active {
+  background-color: var(--primary-600);
+  border-color: var(--primary-600);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.dash-date-input-box {
+  display: flex;
+  align-items: center;
+}
+
+.dash-date-input {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 0.38rem 0.65rem;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dash-date-input:focus {
+  border-color: var(--primary-500);
+}
+
+/* Fila de 4 KPIs Sobrios */
+.dash-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .dash-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .dash-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-kpi-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-kpi-card:hover {
+  border-color: var(--border-default);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+}
+
+.dash-kpi-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  display: block;
+}
+
+.dash-kpi-number {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.15;
+  margin: 0.35rem 0 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-kpi-note {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.text-success { color: #059669; }
+.text-warning { color: #d97706; }
+.text-danger  { color: #dc2626; }
+
+html.dark .text-success { color: #34d399; }
+html.dark .text-warning { color: #fbbf24; }
+html.dark .text-danger  { color: #f87171; }
+
+/* Tarjeta Principal de la Tabla */
+.dash-table-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.dash-table-toolbar {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dash-search-box {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
+}
+
+.search-svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.dash-search-box input {
+  width: 100%;
+  height: 36px;
+  padding: 0 0.75rem 0 2.25rem;
+  background-color: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.dash-search-box input:focus {
+  background-color: var(--bg-surface);
+  border-color: var(--primary-500);
+}
+
+.dash-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.dash-pill-btn {
+  background-color: var(--bg-surface-muted);
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+
+.dash-pill-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dash-pill-btn.active {
+  background-color: var(--primary-50);
+  border-color: var(--primary-200);
+  color: var(--primary-700);
+  font-weight: 600;
+}
+
+html.dark .dash-pill-btn.active {
+  background-color: #333333;
+  border-color: #444444;
+  color: #E0E0E0;
+}
+
+.pill-count {
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+html.dark .pill-count {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Tabla Sobria */
+.dash-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dash-clean-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.dash-clean-table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  background-color: var(--bg-surface-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.dash-clean-table td {
+  padding: 0.8rem 1rem;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.dash-clean-table tbody tr:hover td {
+  background-color: var(--bg-hover);
+}
+
+.dash-clean-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.servidor-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.servidor-nombre {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.servidor-cargo {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+.hora-cell {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.hora-cell.presente {
+  color: #059669;
+  font-weight: 600;
+}
+
+.hora-cell.tarde {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.hora-cell.vacia {
+  color: var(--text-tertiary);
+}
+
+/* Badges Limpios y Sobrios */
+.badge-clean {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-clean.asistio {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
+.badge-clean.tardanza {
+  background-color: #fffbeb;
+  color: #92400e;
+}
+
+.badge-clean.falta {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+.badge-clean.permiso {
+  background-color: #f5f3ff;
+  color: #5b21b6;
+}
+
+html.dark .badge-clean.asistio {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+html.dark .badge-clean.tardanza {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+html.dark .badge-clean.falta {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+html.dark .badge-clean.permiso {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+}
+
+.dash-loading-cell {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-tertiary);
+  font-size: 0.88rem;
+}
+
+/* Pie de Tabla */
+.dash-table-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+}

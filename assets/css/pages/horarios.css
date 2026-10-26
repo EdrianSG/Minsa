@@ -1,0 +1,358 @@
+/**
+ * Estilos del Módulo de Horarios y Turnos - Hospital Distrital de Pacasmayo
+ * ETAPA 3
+ */
+
+/* Encabezado del Módulo */
+.horarios-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.horarios-title-area h1 {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.horarios-title-area p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+.horarios-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Pestañas de Navegación del Módulo */
+.horarios-tabs-nav {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--border-subtle);
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--primary-600);
+}
+
+.tab-btn.active {
+  color: var(--primary-600);
+  border-bottom-color: var(--primary-600);
+  background: rgba(37, 99, 235, 0.04);
+}
+
+html.dark .tab-btn.active {
+  color: #E0E0E0;
+  border-bottom-color: #888888;
+  background: #222222;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Cuadrícula del Catálogo de Turnos */
+.turnos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.turno-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.turno-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--turno-color, var(--primary-500));
+}
+
+.turno-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-default);
+}
+
+.turno-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.turno-code-box {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.turno-code-badge {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-md);
+  background-color: var(--turno-color-bg, var(--primary-50));
+  color: var(--turno-color, var(--primary-700));
+  border: 1px solid var(--turno-color-border, var(--primary-200));
+  line-height: 1;
+}
+
+.turno-title-info h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.turno-title-info p {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+
+.turno-schedule-block {
+  background-color: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.time-range {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hours-comp-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary-700);
+  background-color: var(--primary-50);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+html.dark .hours-comp-badge {
+  color: var(--primary-200);
+  background-color: rgba(2, 107, 199, 0.25);
+}
+
+.turno-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.badge-midnight {
+  background-color: var(--status-justified-bg);
+  color: var(--status-justified-text);
+  border: 1px solid var(--status-justified-border);
+  font-size: 0.7rem;
+}
+
+.badge-guardia {
+  background-color: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+  font-size: 0.7rem;
+}
+
+html.dark .badge-guardia {
+  background-color: rgba(13, 148, 136, 0.15);
+  color: var(--accent-500);
+}
+
+.turno-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* =========================================================
+   TABLA DE HORARIOS SEMANALES
+   ========================================================= */
+.weekly-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.weekly-table th {
+  background-color: var(--bg-surface-muted);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.weekly-table th:first-child,
+.weekly-table th:nth-child(2) {
+  text-align: left;
+}
+
+.weekly-table td {
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+  text-align: center;
+}
+
+.weekly-table td:first-child,
+.weekly-table td:nth-child(2) {
+  text-align: left;
+}
+
+.weekly-table tbody tr:hover td {
+  background-color: var(--bg-hover);
+}
+
+/* Chip de Turno en Celda Semanal */
+.shift-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.76rem;
+  font-weight: 700;
+  min-width: 54px;
+}
+
+.shift-chip-time {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.shift-chip.chip-m {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+.shift-chip.chip-t {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+  color: #d97706;
+}
+
+.shift-chip.chip-n {
+  background-color: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #7c3aed;
+}
+
+.shift-chip.chip-gd {
+  background-color: #f0fdfa;
+  border-color: #99f6e4;
+  color: #0d9488;
+}
+
+.shift-chip.chip-gn {
+  background-color: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+.shift-chip.chip-adm {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.shift-chip.chip-lib {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+}
+
+/* Indicador de Computo Horario en Modal */
+.hours-calc-preview {
+  background-color: var(--bg-surface-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 620px) {
+  .schedule-days-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

@@ -1,0 +1,187 @@
+/**
+ * Sistema de Diseño y Variables CSS - Hospital Distrital de Pacasmayo
+ * Estilo Institucional Moderno de Salud / Recursos Humanos
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Tipografía */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Paleta Primaria Institucional (Salud / MINSA / Pacasmayo) */
+  --primary-50: #f0f7ff;
+  --primary-100: #e0effe;
+  --primary-200: #bae0fd;
+  --primary-300: #7cc5fb;
+  --primary-400: #38a5f8;
+  --primary-500: #0e87ea;
+  --primary-600: #026bc7;
+  --primary-700: #0355a1;
+  --primary-800: #074884;
+  --primary-900: #0c3d6e;
+  --primary-950: #082749;
+
+  /* Acento Quirúrgico / Clínico (Teal / Turquesa) */
+  --accent-50: #f0fdfa;
+  --accent-100: #ccfbf1;
+  --accent-500: #14b8a6;
+  --accent-600: #0d9488;
+  --accent-700: #0f766e;
+
+  /* Estados de Asistencia y Semáforo Clínico */
+  /* Presentes / Efectividad (Esmeralda) */
+  --status-present-bg: #ecfdf5;
+  --status-present-border: #a7f3d0;
+  --status-present-text: #065f46;
+  --status-present-accent: #10b981;
+
+  /* Tardanzas / Alerta Media (Ámbar Cálido) */
+  --status-late-bg: #fffbeb;
+  --status-late-border: #fde68a;
+  --status-late-text: #92400e;
+  --status-late-accent: #f59e0b;
+
+  /* Faltas / Ausencias Críticas (Carmesí / Coral Intenso) */
+  --status-absent-bg: #fef2f2;
+  --status-absent-border: #fecaca;
+  --status-absent-text: #991b1b;
+  --status-absent-accent: #ef4444;
+
+  /* Justificaciones / Permisos (Púrpura Amatista) */
+  --status-justified-bg: #f5f3ff;
+  --status-justified-border: #ddd6fe;
+  --status-justified-text: #5b21b6;
+  --status-justified-accent: #8b5cf6;
+
+  /* Vacaciones / Descansos (Cian Glaciar) */
+  --status-vacation-bg: #ecfeff;
+  --status-vacation-border: #a5f3fc;
+  --status-vacation-text: #155e75;
+  --status-vacation-accent: #06b6d4;
+
+  /* Superficies y Fondos en Modo Claro */
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-muted: #f1f5f9;
+  --bg-hover: #f1f5f9;
+  --bg-active: #e2e8f0;
+
+  /* Bordes */
+  --border-subtle: #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-strong: #94a3b8;
+
+  /* Textos */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* Sombras y Elevaciones */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-glass: 0 8px 32px 0 rgba(2, 107, 199, 0.08);
+
+  /* Radios */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Transiciones */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Dimensiones del Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 68px;
+  --footer-height: 48px;
+}
+
+/* Modo Oscuro (Monochromatic Minimalism)
+   Background: #121212 (charcoal black)
+   Primary Text: #E0E0E0 (light gray)
+   Secondary Text: #B0B0B0 (medium gray)
+   Borders/Dividers: #444444 (dark gray)
+   Accent: #888888 (soft gray)
+*/
+html.dark,
+body.dark {
+  /* Fondos y Superficies Suaves (Tono Menos Contrastado / Calibrado a #3d3d41) */
+  --bg-app: #1e1e22;
+  --bg-surface: #27272b;
+  --bg-surface-elevated: #323237;
+  --bg-surface-muted: #2d2d32;
+  --bg-hover: #37373d;
+  --bg-active: #3d3d41;
+
+  /* Bordes y Divisores */
+  --border-subtle: #36363c;
+  --border-default: #484850;
+  --border-strong: #62626c;
+
+  /* Textos Equilibrados */
+  --text-primary: #E2E2E6;
+  --text-secondary: #B4B4BC;
+  --text-tertiary: #8A8A94;
+  --text-inverse: #1e1e22;
+
+  /* Paleta Primaria adaptada a escala monocromática refinada */
+  --primary-50: #1a1a1a;
+  --primary-100: #262626;
+  --primary-200: #383838;
+  --primary-300: #555555;
+  --primary-400: #777777;
+  --primary-500: #888888;
+  --primary-600: #B0B0B0;
+  --primary-700: #E0E0E0;
+  --primary-800: #EEEEEE;
+  --primary-900: #F5F5F5;
+
+  /* Acento Minimalista */
+  --accent-50: #1a1a1a;
+  --accent-100: #2a2a2a;
+  --accent-500: #888888;
+  --accent-600: #B0B0B0;
+  --accent-700: #E0E0E0;
+
+  /* Sombras sutiles y limpias */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 10px -1px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 12px 24px -3px rgba(0, 0, 0, 0.8);
+  --shadow-xl: 0 24px 36px -5px rgba(0, 0, 0, 0.9);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+
+  /* Adaptación de semáforos a contraste monocromático suave */
+  --status-present-bg: rgba(52, 211, 153, 0.12);
+  --status-present-border: rgba(52, 211, 153, 0.35);
+  --status-present-text: #6ee7b7;
+
+  --status-late-bg: rgba(251, 191, 36, 0.12);
+  --status-late-border: rgba(251, 191, 36, 0.35);
+  --status-late-text: #fde68a;
+
+  --status-absent-bg: rgba(248, 113, 113, 0.12);
+  --status-absent-border: rgba(248, 113, 113, 0.35);
+  --status-absent-text: #fca5a5;
+
+  --status-justified-bg: rgba(167, 139, 250, 0.12);
+  --status-justified-border: rgba(167, 139, 250, 0.35);
+  --status-justified-text: #c4b5fd;
+
+  --status-vacation-bg: rgba(56, 189, 248, 0.12);
+  --status-vacation-border: rgba(56, 189, 248, 0.35);
+  --status-vacation-text: #7dd3fc;
+}

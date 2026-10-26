@@ -1,0 +1,64 @@
+{
+    "_meta": {
+        "origen": "SQL_SERVER_LIVE",
+        "key": "importaciones_biometricas_historial",
+        "version": 2,
+        "saved_at": "2026-10-22 20:47:43",
+        "timestamp": 1792702063,
+        "hash": "8bebadf8d7b3d63267034c262bd120f9",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "ImportacionID": "3",
+            "NombreArchivo": "Report_20261015T070613_1.csv",
+            "HashSHA256": "07981d72e5dcb5d3eb57fc4833fa306ffc7b1538fe0b2043e8dbb09c69f75127",
+            "FechaHoraCarga": "2026-10-22 15:47:10.3124118",
+            "UsuarioID": "1",
+            "TotalRegistros": "50000",
+            "MarcacionesValidas": "41382",
+            "MarcacionesOmitidas": "8618",
+            "MarcacionesDuplicadas": "41382",
+            "PendientesVinculacion": "41382",
+            "Estado": "COMPLETADO",
+            "Observaciones": "Prueba de reimportacion idempotente",
+            "MarcacionesConsecutivas": "6461",
+            "VinculadosDirectos": "0",
+            "MensajeError": null
+        },
+        {
+            "ImportacionID": "2",
+            "NombreArchivo": "Report_20261015T070613_1.csv",
+            "HashSHA256": "07981d72e5dcb5d3eb57fc4833fa306ffc7b1538fe0b2043e8dbb09c69f75127",
+            "FechaHoraCarga": "2026-10-22 15:46:16.4031501",
+            "UsuarioID": "1",
+            "TotalRegistros": "50000",
+            "MarcacionesValidas": "41382",
+            "MarcacionesOmitidas": "8618",
+            "MarcacionesDuplicadas": "0",
+            "PendientesVinculacion": "41382",
+            "Estado": "COMPLETADO",
+            "Observaciones": "Prueba de validacion funcional automatizada",
+            "MarcacionesConsecutivas": "6461",
+            "VinculadosDirectos": "0",
+            "MensajeError": null
+        },
+        {
+            "ImportacionID": "1",
+            "NombreArchivo": "Report_20261015T070613_1.csv",
+            "HashSHA256": "07981d72e5dcb5d3eb57fc4833fa306ffc7b1538fe0b2043e8dbb09c69f75127",
+            "FechaHoraCarga": "2026-10-22 15:45:31.3963646",
+            "UsuarioID": "1",
+            "TotalRegistros": "0",
+            "MarcacionesValidas": "0",
+            "MarcacionesOmitidas": "0",
+            "MarcacionesDuplicadas": "0",
+            "PendientesVinculacion": "0",
+            "Estado": "FALLIDO",
+            "Observaciones": "Prueba de validacion funcional automatizada",
+            "MarcacionesConsecutivas": "0",
+            "VinculadosDirectos": "0",
+            "MensajeError": "SQLSTATE[IMSSP]: Tried to bind parameter number 2101.  SQL Server supports a maximum of 2100 parameters."
+        }
+    ]
+}

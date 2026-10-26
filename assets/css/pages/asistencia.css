@@ -1,0 +1,629 @@
+/**
+ * Estilos Específicos: Control Diario de Asistencia y ¿Quién faltó hoy?
+ * Hospital Distrital de Pacasmayo - ETAPA 5
+ */
+
+/* Barra Superior Minimalista de Control de Fecha y Acciones */
+.asist-clean-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding: 1.2rem 1.4rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.asist-toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.asist-title-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.asist-main-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.asist-sub-title {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.date-navigator-clean {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-surface-muted, #2d2d32);
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-date-step {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-date-step:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-date-tag {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-date-tag:hover {
+  color: var(--text-primary);
+}
+
+.btn-date-tag.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
+}
+
+.date-picker-clean {
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.asist-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* 4 Indicadores Limpios y Sobrios */
+.asist-kpi-clean-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.asist-kpi-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.asist-kpi-box:hover {
+  border-color: var(--border-default);
+  background: var(--bg-hover);
+}
+
+.asist-kpi-box.active-filter {
+  border-color: var(--primary-500, #38bdf8);
+  background: var(--bg-surface-elevated);
+}
+
+.asist-kpi-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.asist-kpi-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin: 0.2rem 0 0.15rem;
+}
+
+.asist-kpi-box.is-present .asist-kpi-num {
+  color: var(--status-present-accent, #34d399);
+}
+
+.asist-kpi-box.is-late .asist-kpi-num {
+  color: var(--status-late-accent, #fbbf24);
+}
+
+.asist-kpi-box.is-absent .asist-kpi-num {
+  color: var(--status-absent-accent, #f87171);
+}
+
+.asist-kpi-sub {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+/* Filtros y Buscador Compactos */
+.asist-filter-clean {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.filter-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.search-input-wrap {
+  position: relative;
+  min-width: 250px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.search-icon-muted {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.search-input-field {
+  width: 100%;
+  padding: 0.45rem 0.75rem 0.45rem 2.2rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.search-input-field:focus {
+  border-color: var(--primary-500);
+}
+
+.filter-select-field {
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.asist-counter-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Tabla del Parte Diario de Asistencia */
+.asist-table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.time-real {
+  font-family: monospace, monospace;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.time-sub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+}
+
+.punch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: monospace, monospace;
+}
+
+.punch-chip.punch-ok {
+  background-color: var(--status-present-subtle);
+  color: var(--status-present-accent);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.punch-chip.punch-late {
+  background-color: var(--status-late-subtle);
+  color: var(--status-late-accent);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.punch-chip.punch-none {
+  background-color: var(--status-absent-subtle);
+  color: var(--status-absent-accent);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.worker-cell-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.worker-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--primary-50);
+  color: var(--primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid var(--primary-200);
+  flex-shrink: 0;
+}
+
+/* Panel de Ausentes Críticos (Modal) */
+.urgent-worker-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-soft);
+  margin-bottom: 0.75rem;
+  transition: border-color var(--transition-fast);
+}
+
+.urgent-worker-card:hover {
+  border-color: var(--status-absent-accent);
+}
+
+.urgent-worker-card.priority-high {
+  border-left: 4px solid var(--status-absent-accent);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.urgent-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--status-present-accent);
+  color: #fff;
+  border: none;
+  transition: opacity var(--transition-fast);
+}
+
+.urgent-contact-btn:hover {
+  opacity: 0.9;
+}
+
+/* Vista Imprimible Oficial (Parte Diario RR.HH.) */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .sidebar,
+  .sidebar-backdrop,
+  .top-header,
+  .asist-toolbar,
+  .urgent-absence-banner,
+  .asist-filter-bar,
+  .btn,
+  .modal-overlay {
+    display: none !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .print-official-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.75rem;
+  }
+
+  .print-official-header h1 {
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .print-official-header h2 {
+    font-size: 11pt;
+    font-weight: normal;
+    margin: 0.2rem 0;
+  }
+
+  .asist-kpi-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+  }
+
+  .asist-kpi-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0.5rem !important;
+  }
+
+  .asist-table-card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+
+  .table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .table th, .table td {
+    border: 1px solid #999 !important;
+    padding: 4px 6px !important;
+    font-size: 9pt !important;
+  }
+
+  .print-signatures-row {
+    display: flex !important;
+    justify-content: space-around;
+    margin-top: 3.5rem;
+    page-break-inside: avoid;
+  }
+
+  .signature-box {
+    text-align: center;
+    width: 200px;
+    border-top: 1px solid #000;
+    padding-top: 0.35rem;
+    font-size: 9pt;
+  }
+}
+
+.print-official-header,
+.print-signatures-row {
+  display: none;
+}
+
+/* ==========================================================================
+   ESTILOS DE IMPORTACIÓN BIOMÉTRICA BIOSTAR 2 (FASE 3)
+   ========================================================================== */
+
+.asist-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.asist-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.asist-nav-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.asist-nav-tab.active {
+  background: var(--primary-accent, #0284c7);
+  color: #ffffff;
+  border-color: var(--primary-accent, #0284c7);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Zona Drag & Drop para CSV */
+.biostar-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  background: var(--bg-surface);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.biostar-dropzone:hover,
+.biostar-dropzone.dragover {
+  border-color: var(--primary-accent, #0284c7);
+  background: rgba(2, 132, 199, 0.04);
+}
+
+.biostar-drop-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.biostar-drop-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.biostar-drop-hint {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Fila de Archivo Seleccionado */
+.biostar-file-selected-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-surface-muted, #1e293b);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+}
+
+.biostar-file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+}
+
+/* Métricas de Previsualización */
+.biostar-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.biostar-preview-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-fast);
+}
+
+.biostar-preview-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-color);
+}
+
+.biostar-card-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-top: 0.2rem;
+}
+
+.biostar-card-lbl {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.biostar-card-sub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  margin-top: 0.25rem;
+}
+
+/* Badges específicos para BioStar */
+.badge-consecutiva {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.badge-vinculado {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.badge-pendiente {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+

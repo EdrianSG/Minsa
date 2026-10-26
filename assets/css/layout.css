@@ -1,0 +1,654 @@
+/**
+ * Layout Estructural General - Hospital Distrital de Pacasmayo
+ * Arquitectura de interfaz: Header Sticky + Sidebar Fijo + Main Viewport
+ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+body.theme-transitioning,
+body.theme-transitioning * {
+  transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal) !important;
+}
+
+/* Contenedor Principal de la App */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+/* =========================================================
+   BARRA LATERAL / SIDEBAR
+   ========================================================= */
+.app-sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  transition: transform var(--transition-normal), width var(--transition-normal);
+}
+
+.sidebar-header {
+  height: var(--header-height);
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-logo {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--primary-700);
+  white-space: nowrap;
+}
+
+html.dark .brand-title {
+  color: #E0E0E0;
+}
+
+.brand-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Navegación del Menú */
+.sidebar-nav {
+  flex: 1;
+  padding: 1.25rem 0.85rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.nav-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--primary-600);
+  transform: translateX(2px);
+}
+
+html.dark .nav-item:hover {
+  color: #FFFFFF;
+  background-color: #262626;
+}
+
+.nav-item.active {
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border-left: none;
+}
+
+.nav-item.active:hover {
+  background-color: var(--primary-100);
+  color: var(--primary-700);
+  transform: none;
+}
+
+html.dark .nav-item.active {
+  background-color: #262626;
+  color: #FFFFFF;
+  border: 1px solid #444444;
+  border-left: none;
+}
+
+html.dark .nav-item.active:hover {
+  background-color: #303030;
+  color: #FFFFFF;
+}
+
+.nav-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
+
+.nav-item.active .nav-icon {
+  opacity: 1;
+  color: var(--primary-600);
+}
+
+html.dark .nav-item.active .nav-icon {
+  color: #E0E0E0;
+}
+
+/* Pie del Sidebar Minimalista */
+.sidebar-footer-minimal {
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.db-status-pill {
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+/* Estado En Línea (Foco Verde) */
+.db-status-pill.online {
+  color: #059669;
+  background-color: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+html.dark .db-status-pill.online {
+  color: #34d399;
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.status-dot-active {
+  width: 7px;
+  height: 7px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  display: inline-block;
+}
+
+/* Estado Offline (Foco Rojo) */
+.db-status-pill.offline {
+  color: #dc2626;
+  background-color: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+html.dark .db-status-pill.offline {
+  color: #f87171;
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.status-dot-offline {
+  width: 7px;
+  height: 7px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  display: inline-block;
+}
+/* Fin Sidebar */
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL Y HEADER
+   ========================================================= */
+.app-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left var(--transition-normal), width var(--transition-normal);
+}
+
+/* Header Superior (Sticky) */
+.app-header {
+  height: var(--header-height);
+  background-color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+html.dark .app-header {
+  background-color: rgba(39, 39, 43, 0.95);
+  border-color: var(--border-subtle);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Título y Marca Institucional en Header */
+.header-title-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-hospital-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.header-system-tag {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* Controles Derecha */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.header-icon-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+/* Perfil de Usuario Minimalista */
+.user-profile-container {
+  position: relative;
+}
+
+.user-profile-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 0.25rem 0.65rem 0.25rem 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.user-profile-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.user-avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--primary-100);
+  color: var(--primary-700);
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html.dark .user-avatar-circle {
+  background-color: #333333;
+  color: #E0E0E0;
+  border: 1px solid #444444;
+}
+
+.user-profile-meta {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  line-height: 1.15;
+}
+
+.user-profile-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-profile-role {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+
+.chevron-icon {
+  color: var(--text-tertiary);
+  transition: transform var(--transition-fast);
+}
+
+.user-profile-container.active .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* Menú Desplegable Limpio */
+.user-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 270px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem;
+  z-index: 1000;
+  display: none;
+  animation: profileFadeIn 0.15s ease-out;
+}
+
+.user-profile-container.active .user-profile-dropdown {
+  display: block;
+}
+
+@keyframes profileFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-user-header {
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 0.5rem;
+}
+
+.dropdown-full-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dropdown-cargo-name {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.dropdown-extra-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+.dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background-color var(--transition-fast);
+}
+
+.dropdown-menu-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--primary-600);
+}
+
+.dropdown-menu-item.logout {
+  color: #dc2626;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.6rem;
+}
+
+.dropdown-menu-item.logout:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* =========================================================
+   CONTENIDO DE PÁGINA
+   ========================================================= */
+.app-content {
+  flex: 1;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Footer Institucional */
+.app-footer {
+  height: var(--footer-height);
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.75rem;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+.footer-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.footer-link {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--primary-600);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 900px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .app-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .header-mobile-toggle {
+    display: flex;
+  }
+
+  .app-content {
+    padding: 1.25rem;
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 95;
+  }
+
+  .sidebar-backdrop.active {
+    display: block;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-center {
+    display: none;
+  }
+
+  .user-info-text {
+    display: none;
+  }
+
+  .hospital-tag {
+    display: none;
+  }
+}
+
+/* =========================================================
+   REGLAS GLOBALES DE IMPRESIÓN OFICIAL (FICHA AISLADA)
+   ========================================================= */
+@media print {
+  /* Ocultar elementos estructurales de la web */
+  .app-sidebar,
+  .sidebar-backdrop,
+  .app-header,
+  .app-footer,
+  .btn,
+  .btn-sm,
+  .modal-backdrop,
+  .toast-container,
+  .header-search,
+  .header-mobile-toggle,
+  .user-dropdown,
+  nav,
+  aside {
+    display: none !important;
+  }
+
+  /* Resetear lienzo para papel blanco sin márgenes web */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 9pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-container,
+  .app-main,
+  .app-content {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+}
+

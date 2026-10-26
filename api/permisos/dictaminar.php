@@ -41,10 +41,20 @@ $diasAfectados = 0;
 if ($dbConnected) {
     try {
         $pdo->beginTransaction();
-        $lock = $pdo->prepare('SELECT Estado FROM rrhh.PermisoLaboral WITH (UPDLOCK, HOLDLOCK) WHERE PermisoLaboralID = ?');
+        $lock = $pdo->prepare('SELECT PersonalID, Estado FROM rrhh.PermisoLaboral WITH (UPDLOCK, HOLDLOCK) WHERE PermisoLaboralID = ?');
         $lock->execute([$permisoId]);
-        $previous = $lock->fetchColumn();
-        if ($previous === false) { $pdo->rollBack(); apiError(404, 'Permiso inexistente.'); }
+        $permRow = $lock->fetch(PDO::FETCH_ASSOC);
+        if (!$permRow) { $pdo->rollBack(); apiError(404, 'Permiso inexistente.'); }
+
+        $previous = $permRow['Estado'];
+        $personalIdPermiso = (int)$permRow['PersonalID'];
+
+        // Validar autorización por servicio
+        if (!Auth::checkPersonalAccess($personalIdPermiso)) {
+            $pdo->rollBack();
+            apiError(403, 'No tiene autorización para dictaminar permisos de personal de otro servicio.');
+        }
+
         // La reversión de un permiso aprobado necesita conservar el estado anterior de asistencia.
         if ($previous !== 'PENDIENTE') { $pdo->rollBack(); apiError(409, 'Solo se puede dictaminar una solicitud pendiente. La reversión de aprobaciones requiere revisión de RR.HH.'); }
         // Actualizar el estado en rrhh.PermisoLaboral

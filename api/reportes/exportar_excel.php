@@ -36,8 +36,19 @@ $tipo       = $_GET['tipo'] ?? 'rol'; // 'rol', 'individual', 'consolidado', 'se
 $mes        = max(1, min(12, intval($_GET['mes'] ?? 9)));
 $anio       = max(2020, min(2035, intval($_GET['anio'] ?? 2026)));
 $servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : 0;
+$allowedServiceId = Auth::getAllowedServiceId();
+if ($allowedServiceId !== null) {
+    $servicioId = $allowedServiceId;
+    $_GET['servicio_id'] = $servicioId;
+} elseif ($servicioId > 0) {
+    apiRequireServiceAccess($servicioId);
+}
 $regimen    = trim($_GET['regimen'] ?? '');
 $personalId = intval($_GET['personal_id'] ?? 1);
+
+if ($tipo === 'individual' && $personalId > 0) {
+    apiRequirePersonalAccess($personalId);
+}
 
 $nombresMeses = [
     1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL',

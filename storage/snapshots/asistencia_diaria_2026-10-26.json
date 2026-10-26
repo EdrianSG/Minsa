@@ -3,9 +3,9 @@
         "source": "SQL_SERVER_LIVE",
         "fecha": "2026-10-26",
         "key": "asistencia_diaria_2026-10-26",
-        "version": 4,
-        "saved_at": "2026-10-26 08:29:40",
-        "timestamp": 1793021380,
+        "version": 6,
+        "saved_at": "2026-10-26 11:26:32",
+        "timestamp": 1793031992,
         "hash": "c7db693a63c6d9e0d4e519f7a506f3e3",
         "is_snapshot": true
     },

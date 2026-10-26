@@ -36,6 +36,8 @@ if ($personalId <= 0) {
     exit;
 }
 
+apiRequirePersonalAccess($personalId);
+
 if (!apiValidDate($fecha) || ($horaEntrada !== null && !apiValidTime($horaEntrada))
     || ($horaSalida !== null && !apiValidTime($horaSalida))
     || !apiValidTime($data['hora_prog_inicio'] ?? '08:00')) {

@@ -2,9 +2,9 @@
     "_meta": {
         "source": "SQL_SERVER_LIVE",
         "key": "personal_catalogo_completo",
-        "version": 67,
-        "saved_at": "2026-10-26 08:32:46",
-        "timestamp": 1793021566,
+        "version": 70,
+        "saved_at": "2026-10-26 11:41:47",
+        "timestamp": 1793032907,
         "hash": "01128d10ecbd846963408957955ae745",
         "is_snapshot": true
     },

@@ -22,6 +22,8 @@ if ($personalId <= 0) {
     exit;
 }
 
+apiRequirePersonalAccess($personalId);
+
 $pdo = Database::getConnection();
 $dbConnected = ($pdo !== null);
 $detalle = null;

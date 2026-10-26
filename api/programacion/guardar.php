@@ -27,6 +27,7 @@ $usuario         = Auth::getCurrentUser()['username'];
 
 if ($servicioId < 0 || $mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100)
     apiError(400, 'Servicio o periodo inválido.');
+apiRequireServiceAccess($servicioId);
 if (!is_array($cambios) || !$cambios) apiError(400, 'Debe enviar cambios válidos.');
 if ($versionCliente === null || $versionCliente < 1) apiError(400, 'La versión base es obligatoria. Recargue el rol.');
 if ($forzar && !Auth::hasRole('ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH')) apiError(403, 'Solo RR.HH. puede forzar el guardado.');

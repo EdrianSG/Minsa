@@ -19,6 +19,16 @@ $mes        = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
 $anio       = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
 $servicioId = (isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' && intval($_GET['servicio_id']) > 0) ? intval($_GET['servicio_id']) : null;
 
+// Restricción estricta de autorización por servicio
+$userAllowedServ = Auth::getAllowedServiceId();
+if ($userAllowedServ !== null) {
+    if ($servicioId === null) {
+        $servicioId = $userAllowedServ;
+    } elseif ($servicioId !== $userAllowedServ) {
+        apiError(403, 'No tiene autorización para ver reportes de otro servicio.');
+    }
+}
+
 $nombresMeses = [
     1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
     5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
@@ -66,40 +76,101 @@ if ($dbConnected) {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (!empty($rows)) {
-            // Leer snapshot mensual para calcular desglose de guardias y horas computables
+            // Leer programación de la matriz para asociar tipos de turno
             $snapGlobal = SnapshotStore::get("programacion_serv_0_{$anio}_{$mes}");
             $servSnap = ($servicioId > 0) ? SnapshotStore::get("programacion_serv_{$servicioId}_{$anio}_{$mes}") : null;
             $listaSnap = $snapGlobal['data']['personal_servicio'] ?? ($servSnap['data']['personal_servicio'] ?? []);
 
-            $desglosePorPersonal = [];
+            $patronPorPersonal = [];
             foreach ($listaSnap as $sp) {
-                $pid = intval($sp['personal_id']);
-                $gd = 0; $gn = 0; $ord = 0; $totH = 0;
-                if (!empty($sp['patron']) && is_array($sp['patron'])) {
-                    foreach ($sp['patron'] as $cod) {
-                        if ($cod === 'GD') { $gd++; $totH += 12; }
-                        elseif (in_array($cod, ['GN', 'N', '3'])) { $gn++; $totH += 12; }
-                        elseif (in_array($cod, ['M', 'T', '1', '2'])) { $ord++; $totH += 6; }
-                        elseif ($cod === '1/2') { $ord += 2; $totH += 12; }
-                        elseif (in_array($cod, ['G24', '1/2/3'])) { $gd++; $gn++; $totH += 24; }
-                        elseif ($cod === '2/3') { $ord++; $gn++; $totH += 18; }
-                        elseif (in_array($cod, ['VAC', 'VAC-1', 'VAC-2', 'DESC'])) { $totH += 6; }
-                        elseif ($cod === 'VAC-3') { $totH += 12; }
-                    }
-                }
-                $desglosePorPersonal[$pid] = [
-                    'gd' => $gd, 'gn' => $gn, 'ord' => $ord, 'horas' => $totH
-                ];
+                $patronPorPersonal[intval($sp['personal_id'])] = $sp['patron'] ?? [];
             }
+
+            // Consultar asistencias efectivas del mes
+            $stmtAsist = $pdo->prepare("
+                SELECT a.PersonalID, DAY(a.Fecha) AS Dia, a.Estado, a.Observacion
+                FROM rrhh.Asistencia a
+                WHERE MONTH(a.Fecha) = :mes AND YEAR(a.Fecha) = :anio
+            ");
+            $stmtAsist->execute([':mes' => $mes, ':anio' => $anio]);
+            $asistMap = [];
+            while ($arow = $stmtAsist->fetch(PDO::FETCH_ASSOC)) {
+                $asistMap[intval($arow['PersonalID'])][intval($arow['Dia'])] = $arow;
+            }
+
+            // Consultar CITT desde rrhh.PermisoLaboral (parámetros distintos para evitar error de conteo ODBC)
+            $stmtCitt = $pdo->prepare("
+                SELECT pl.PersonalID, COUNT(*) AS CantCitt
+                FROM rrhh.PermisoLaboral pl
+                WHERE pl.TipoPermisoLaboralID = 1 AND pl.Estado = 'APROBADO'
+                  AND ((MONTH(pl.FechaInicio) = :m1 AND YEAR(pl.FechaInicio) = :a1)
+                       OR (MONTH(pl.FechaFin) = :m2 AND YEAR(pl.FechaFin) = :a2))
+                GROUP BY pl.PersonalID
+            ");
+            $stmtCitt->execute([':m1' => $mes, ':a1' => $anio, ':m2' => $mes, ':a2' => $anio]);
+            $cittMap = [];
+            while ($crow = $stmtCitt->fetch(PDO::FETCH_ASSOC)) {
+                $cittMap[intval($crow['PersonalID'])] = intval($crow['CantCitt']);
+            }
+
+            $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
 
             foreach ($rows as $r) {
                 $pid = intval($r['personal_id']);
-                $des = $desglosePorPersonal[$pid] ?? null;
-                $gd = $des ? $des['gd'] : 7;
-                $gn = $des ? $des['gn'] : 5;
-                $ord = $des ? $des['ord'] : 1;
-                $horas = ($des && $des['horas'] > 0) ? $des['horas'] : 150.0;
+                $patron = $patronPorPersonal[$pid] ?? [];
                 $cond = (stripos($r['condicion_laboral'], 'Nombrad') !== false ? 'NOMBRADO' : 'CAS');
+
+                $gd = 0;
+                $gn = 0;
+                $ord = 0;
+                $horasEfectivas = 0.0;
+                $inasistencias = 0;
+
+                $workerAsist = $asistMap[$pid] ?? [];
+
+                for ($d = 1; $d <= $diasEnMes; $d++) {
+                    $codTurno = $patron[$d - 1] ?? 'LIB';
+                    $as = $workerAsist[$d] ?? null;
+
+                    if ($as) {
+                        $st = strtoupper(trim((string)$as['Estado']));
+                        if (in_array($st, ['PUNTUAL', 'TARDANZA', 'ASISTIO'])) {
+                            // Contabilizar según el turno efectivamente cubierto
+                            if ($codTurno === 'GD') {
+                                $gd++;
+                                $horasEfectivas += 12.0;
+                            } elseif (in_array($codTurno, ['GN', 'N', '3'])) {
+                                $gn++;
+                                $horasEfectivas += 12.0;
+                            } elseif (in_array($codTurno, ['M', 'T', '1', '2'])) {
+                                $ord++;
+                                $horasEfectivas += 6.0;
+                            } elseif ($codTurno === '1/2') {
+                                $ord += 2;
+                                $horasEfectivas += 12.0;
+                            } elseif (in_array($codTurno, ['G24', '1/2/3'])) {
+                                $gd++; $gn++;
+                                $horasEfectivas += 24.0;
+                            } elseif ($codTurno === '2/3') {
+                                $ord++; $gn++;
+                                $horasEfectivas += 18.0;
+                            } else {
+                                $ord++;
+                                $horasEfectivas += 6.0;
+                            }
+                        } elseif (strpos($st, 'FALTA') !== false) {
+                            $inasistencias++;
+                        } elseif (strpos($st, 'PERMISO') !== false || strpos($st, 'LICENCIA') !== false) {
+                            // Turno cubierto por licencia o permiso justificado
+                            $horasEfectivas += 6.0;
+                        }
+                    }
+                }
+
+                $citt = $cittMap[$pid] ?? 0;
+                if ($citt > 0) {
+                    $horasEfectivas += ($citt * 6.0);
+                }
 
                 $asistenciales[] = [
                     $pid,
@@ -112,30 +183,15 @@ if ($dbConnected) {
                     $gd,
                     $gn,
                     $ord,
-                    $horas,
-                    0, // Inasistencias
-                    0  // CITT
+                    round($horasEfectivas, 1),
+                    $inasistencias,
+                    $citt
                 ];
             }
         }
-    } catch (Exception $e) {}
-}
-
-// Fallback asistencial real si la BD no respondiera
-if (empty($asistenciales)) {
-    $asistenciales = [
-        [6, '45892106', 'Díaz Rojas, Luis Alberto', 'Médico Especialista', 8, 'Unidad de Cuidados Intensivos (UCI)', 'NOMBRADO', 7, 5, 1, 150.0, 0, 0],
-        [8, '45892108', 'Mendoza Campos, Rosa Patricia', 'Médico Pediatra', 11, 'Pediatría y Neonatología', 'NOMBRADO', 0, 0, 25, 150.0, 0, 0],
-        [17, '45892117', 'Lamela Esta, José Ramirez', 'Médico Especialista', 14, 'Laboratorio Clínico', 'NOMBRADO', 7, 5, 1, 150.0, 0, 0],
-        [12, '45892112', 'Morales Quispe, Víctor Raúl', 'Médico General', 10, 'Consulta Externa', 'CAS', 0, 0, 25, 150.0, 0, 0],
-        [5, '45892104', 'Torres Benites, Ana María', 'Enfermera Asistencial', 7, 'Emergencia y Cuidados Críticos', 'CAS', 0, 0, 25, 150.0, 0, 0],
-        [15, '45892115', 'Vargas Cerna, Dora Inés', 'Enfermera Especialista', 13, 'Centro Quirúrgico', 'CAS', 0, 0, 25, 150.0, 0, 0],
-        [9, '45892109', 'Ramos Quispe, Elena Beatriz', 'Obstetra Asistencial', 12, 'Centro Obstétrico', 'CAS', 7, 5, 1, 150.0, 0, 0],
-        [14, '45892114', 'Silva Paredes, Manuel Alejandro', 'Obstetra Asistencial', 12, 'Centro Obstétrico', 'CAS', 7, 5, 1, 150.0, 0, 0],
-        [7, '18942301', 'Vega Morales, Carlos Eduardo', 'Técnico en Enfermería', 9, 'Hospitalización Medicina', 'CAS', 8, 4, 1, 150.0, 0, 0],
-        [11, '45892111', 'Saldaña Polo, Jorge Luis', 'Tecnólogo Médico', 14, 'Laboratorio Clínico', 'CAS', 7, 5, 1, 150.0, 0, 0],
-        [13, '45892113', 'Bazán Varas, Claudia Elena', 'Técnica en Farmacia', 15, 'Farmacia y Dosis Unitaria', 'CAS', 0, 0, 25, 150.0, 0, 0]
-    ];
+    } catch (Exception $e) {
+        error_log("Error en api/reportes/seti.php: " . $e->getMessage());
+    }
 }
 
 $nombrados = [];

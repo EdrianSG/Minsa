@@ -124,15 +124,6 @@ if ($msg === 'logout') {
           <span class="btn-text-content">Iniciar Sesión</span>
         </button>
       </form>
-
-      <div class="login-quick-helper">
-        <span>Cuentas de prueba (clic para completar):</span><br>
-        <a href="#" onclick="fillQuickAccount('admin', 'admin123'); return false;">admin / admin123</a><br>
-        <a href="#" onclick="fillQuickAccount('curcia', 'minsa2026'); return false;">curcia / minsa2026</a><br>
-        <a href="#" onclick="fillQuickAccount('atorres', 'minsa2026'); return false;">atorres / minsa2026</a>
-      </div>
-
-
     </div>
 
     <div class="login-footer-text">

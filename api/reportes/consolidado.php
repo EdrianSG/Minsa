@@ -17,6 +17,17 @@ require_once __DIR__ . '/../../includes/SnapshotStore.php';
 $mes            = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
 $anio           = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
 $servicioId     = (isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' && intval($_GET['servicio_id']) > 0) ? intval($_GET['servicio_id']) : null;
+
+// Restringir a jefaturas de servicio
+$userAllowedServ = Auth::getAllowedServiceId();
+if ($userAllowedServ !== null) {
+    if ($servicioId === null) {
+        $servicioId = $userAllowedServ;
+    } elseif ($servicioId !== $userAllowedServ) {
+        apiError(403, 'No tiene autorización para ver reportes de otro servicio.');
+    }
+}
+
 $condicionFiltro= isset($_GET['condicion']) && $_GET['condicion'] !== '' ? strtoupper(trim($_GET['condicion'])) : null;
 $regimenFiltro  = isset($_GET['regimen']) && $_GET['regimen'] !== '' ? strtoupper(trim($_GET['regimen'])) : null;
 
@@ -71,36 +82,120 @@ if ($dbConnected) {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (!empty($rows)) {
+            // Catálogo de duraciones oficiales de turnos
+            $duracionTurnos = [
+                '1' => 6.0, 'M' => 6.0, '2' => 6.0, 'T' => 6.0,
+                '3' => 12.0, 'N' => 12.0, 'GN' => 12.0, 'GD' => 12.0,
+                '1/2' => 12.0, '2/3' => 18.0, 'G24' => 24.0, '1/2/3' => 24.0,
+                'ADM' => 8.0, 'VAC' => 6.0, 'VAC-1' => 6.0, 'VAC-2' => 6.0, 'VAC-3' => 12.0,
+                'DESC' => 6.0, 'CITT' => 6.0, 'LIB' => 0.0, '0' => 0.0
+            ];
+
             // Leer snapshot para obtener horas programadas reales de la matriz
             $snapGlobal = SnapshotStore::get("programacion_serv_0_{$anio}_{$mes}");
             $servSnap = ($servicioId > 0) ? SnapshotStore::get("programacion_serv_{$servicioId}_{$anio}_{$mes}") : null;
 
-            $horasPorPersonal = [];
+            $patronPorPersonal = [];
+            $horasProgPorPersonal = [];
+            $diasProgPorPersonal = [];
             $listaSnap = $snapGlobal['data']['personal_servicio'] ?? ($servSnap['data']['personal_servicio'] ?? []);
             foreach ($listaSnap as $sp) {
                 $pid = intval($sp['personal_id']);
-                $totH = 0;
+                $patronPorPersonal[$pid] = $sp['patron'] ?? [];
+                $totH = 0.0;
+                $totD = 0;
                 if (!empty($sp['patron']) && is_array($sp['patron'])) {
                     foreach ($sp['patron'] as $cod) {
-                        if (in_array($cod, ['N', 'GD', 'GN', '1/2', '3'])) $totH += 12;
-                        elseif ($cod === 'ADM') $totH += 8;
-                        elseif (in_array($cod, ['G24', '1/2/3'])) $totH += 24;
-                        elseif ($cod === '2/3') $totH += 18;
-                        elseif (in_array($cod, ['LIB', '0'])) $totH += 0;
-                        else $totH += 6;
+                        $hCod = $duracionTurnos[$cod] ?? ($cod !== 'LIB' && $cod !== '0' ? 6.0 : 0.0);
+                        if ($hCod > 0) {
+                            $totH += $hCod;
+                            $totD++;
+                        }
                     }
                 }
-                $horasPorPersonal[$pid] = $totH;
+                $horasProgPorPersonal[$pid] = $totH;
+                $diasProgPorPersonal[$pid] = $totD;
             }
+
+            // Consultar datos de asistencia efectiva en rrhh.Asistencia para este mes y año
+            $stmtAsist = $pdo->prepare("
+                SELECT a.PersonalID, DAY(a.Fecha) AS Dia, a.Estado, a.Observacion
+                FROM rrhh.Asistencia a
+                WHERE MONTH(a.Fecha) = :mes AND YEAR(a.Fecha) = :anio
+            ");
+            $stmtAsist->execute([':mes' => $mes, ':anio' => $anio]);
+            $asistMap = [];
+            while ($arow = $stmtAsist->fetch(PDO::FETCH_ASSOC)) {
+                $asistMap[intval($arow['PersonalID'])][intval($arow['Dia'])] = $arow;
+            }
+
+            // Consultar descansos médicos CITT desde rrhh.PermisoLaboral (parámetros distintos para evitar error ODBC)
+            $stmtCitt = $pdo->prepare("
+                SELECT pl.PersonalID, COUNT(*) AS CantCitt
+                FROM rrhh.PermisoLaboral pl
+                WHERE pl.TipoPermisoLaboralID = 1 AND pl.Estado = 'APROBADO'
+                  AND ((MONTH(pl.FechaInicio) = :m1 AND YEAR(pl.FechaInicio) = :a1)
+                       OR (MONTH(pl.FechaFin) = :m2 AND YEAR(pl.FechaFin) = :a2))
+                GROUP BY pl.PersonalID
+            ");
+            $stmtCitt->execute([':m1' => $mes, ':a1' => $anio, ':m2' => $mes, ':a2' => $anio]);
+            $cittMap = [];
+            while ($crow = $stmtCitt->fetch(PDO::FETCH_ASSOC)) {
+                $cittMap[intval($crow['PersonalID'])] = intval($crow['CantCitt']);
+            }
+
+            $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
 
             foreach ($rows as $r) {
                 $pid = intval($r['personal_id']);
                 $reg = $r['regimen_laboral'];
-                $horas = isset($horasPorPersonal[$pid]) && $horasPorPersonal[$pid] > 0 
-                    ? $horasPorPersonal[$pid] 
-                    : ($reg === 'ADMINISTRATIVO' ? 176.0 : 150.0);
-                
-                $diasProg = ($reg === 'ADMINISTRATIVO') ? 22 : 25;
+                $patron = $patronPorPersonal[$pid] ?? null;
+
+                $diasProg = $diasProgPorPersonal[$pid] ?? 0;
+                $horasProg = $horasProgPorPersonal[$pid] ?? ($reg === 'ADMINISTRATIVO' ? 176.0 : 150.0);
+
+                $diasLab = 0;
+                $minTard = 0;
+                $faltas = 0;
+                $permisos = 0;
+                $horasEfectivas = 0.0;
+
+                $workerAsist = $asistMap[$pid] ?? [];
+
+                if (!empty($workerAsist)) {
+                    for ($d = 1; $d <= $diasEnMes; $d++) {
+                        $turno = ($patron !== null && isset($patron[$d - 1])) ? $patron[$d - 1] : 'LIB';
+                        $hTurno = $duracionTurnos[$turno] ?? 0.0;
+                        if ($hTurno <= 0 && $turno !== 'LIB' && $turno !== '0') {
+                            $hTurno = ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0);
+                        }
+
+                        $as = $workerAsist[$d] ?? null;
+                        if ($as) {
+                            $st = strtoupper(trim((string)$as['Estado']));
+                            $obs = (string)($as['Observacion'] ?? '');
+
+                            if (in_array($st, ['PUNTUAL', 'ASISTIO'])) {
+                                $diasLab++;
+                                $horasEfectivas += ($hTurno > 0 ? $hTurno : ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0));
+                            } elseif ($st === 'TARDANZA') {
+                                $diasLab++;
+                                $horasEfectivas += ($hTurno > 0 ? $hTurno : ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0));
+                                if (preg_match('/Tardanza de (\d+) min/i', $obs, $m)) {
+                                    $minTard += intval($m[1]);
+                                }
+                            } elseif (strpos($st, 'FALTA') !== false) {
+                                $faltas++;
+                            } elseif (strpos($st, 'PERMISO') !== false || strpos($st, 'LICENCIA') !== false) {
+                                $permisos++;
+                                $horasEfectivas += ($hTurno > 0 ? $hTurno : ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0));
+                            }
+                        }
+                    }
+                }
+
+                $citt = $cittMap[$pid] ?? 0;
+
                 $personalConsolidado[] = [
                     $pid,
                     $r['dni'],
@@ -111,35 +206,18 @@ if ($dbConnected) {
                     $reg,
                     (stripos($r['condicion_laboral'], 'Nombrad') !== false ? 'NOMBRADO' : 'CAS'),
                     $diasProg,
-                    $diasProg,
-                    0, // Tardanza en minutos
-                    0, // Faltas
-                    0, // Permisos
-                    0, // CITT
-                    $horas
+                    $diasLab,
+                    $minTard,
+                    $faltas,
+                    $permisos,
+                    $citt,
+                    round($horasEfectivas, 1)
                 ];
             }
         }
-    } catch (Exception $e) {}
-}
-
-// Fallback con el plantel completo real si la BD no estuviera disponible
-if (empty($personalConsolidado)) {
-    $personalConsolidado = [
-        [6, '45892106', 'Díaz Rojas, Luis Alberto', 'Médico Especialista', 8, 'Unidad de Cuidados Intensivos (UCI)', 'ASISTENCIAL', 'NOMBRADO', 13, 13, 0, 0, 0, 0, 150.0],
-        [8, '45892108', 'Mendoza Campos, Rosa Patricia', 'Médico Pediatra', 11, 'Pediatría y Neonatología', 'ASISTENCIAL', 'NOMBRADO', 25, 25, 0, 0, 0, 0, 150.0],
-        [12, '45892112', 'Morales Quispe, Víctor Raúl', 'Médico General', 10, 'Consulta Externa', 'ASISTENCIAL', 'CAS', 25, 25, 12, 0, 0, 0, 150.0],
-        [17, '45892117', 'Lamela Esta, José Ramirez', 'Médico Especialista', 14, 'Laboratorio Clínico', 'ASISTENCIAL', 'NOMBRADO', 13, 13, 0, 0, 0, 0, 150.0],
-        [5, '45892104', 'Torres Benites, Ana María', 'Enfermera Asistencial', 7, 'Emergencia y Cuidados Críticos', 'ASISTENCIAL', 'CAS', 25, 25, 0, 0, 0, 0, 150.0],
-        [15, '45892115', 'Vargas Cerna, Dora Inés', 'Enfermera Especialista', 13, 'Centro Quirúrgico', 'ASISTENCIAL', 'CAS', 25, 25, 0, 0, 0, 0, 150.0],
-        [9, '45892109', 'Ramos Quispe, Elena Beatriz', 'Obstetra Asistencial', 12, 'Centro Obstétrico', 'ASISTENCIAL', 'CAS', 13, 13, 0, 0, 0, 0, 150.0],
-        [14, '45892114', 'Silva Paredes, Manuel Alejandro', 'Obstetra Asistencial', 12, 'Centro Obstétrico', 'ASISTENCIAL', 'CAS', 13, 13, 0, 0, 0, 0, 150.0],
-        [7, '18942301', 'Vega Morales, Carlos Eduardo', 'Técnico en Enfermería', 9, 'Hospitalización Medicina', 'ASISTENCIAL', 'CAS', 13, 13, 0, 0, 0, 0, 150.0],
-        [11, '45892111', 'Saldaña Polo, Jorge Luis', 'Tecnólogo Médico', 14, 'Laboratorio Clínico', 'ASISTENCIAL', 'CAS', 13, 13, 0, 0, 0, 0, 150.0],
-        [13, '45892113', 'Bazán Varas, Claudia Elena', 'Técnica en Farmacia', 15, 'Farmacia y Dosis Unitaria', 'ASISTENCIAL', 'CAS', 25, 25, 0, 0, 0, 0, 150.0],
-        [10, '47309642', 'Urcia Ventura, Carmen Rosa', 'Especialista Administrativo', 16, 'Unidad de Personal / RR.HH.', 'ADMINISTRATIVO', 'NOMBRADO', 22, 22, 0, 0, 0, 0, 176.0],
-        [16, '45892116', 'Cortez García, Miguel Arturo', 'Jefe de Informática y Estadística', 17, 'Unidad de Informática y Estadística', 'ADMINISTRATIVO', 'CAS', 22, 22, 0, 0, 0, 0, 176.0]
-    ];
+    } catch (Exception $e) {
+        error_log("Error en api/reportes/consolidado.php: " . $e->getMessage());
+    }
 }
 
 $filas = [];

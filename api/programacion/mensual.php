@@ -18,6 +18,9 @@ require_once __DIR__ . '/../../includes/SnapshotStore.php';
 $mes        = max(1, min(12, intval($_GET['mes'] ?? date('n')))); // Setiembre por defecto
 $anio       = max(2020, min(2030, intval($_GET['anio'] ?? date('Y'))));
 $servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : 0;
+
+apiRequireServiceAccess($servicioId);
+
 $condicion  = trim($_GET['condicion'] ?? '');
 $regimen    = trim($_GET['regimen'] ?? '');
 $snapshotKey = "programacion_serv_{$servicioId}_{$anio}_{$mes}";

@@ -37,6 +37,18 @@ function apiGuard(string $module, array $methods = ['GET'], array $writeRoles = 
     header('Cache-Control: no-store');
 }
 
+function apiRequireServiceAccess(?int $servicioId): void {
+    if (!Auth::checkServiceAccess($servicioId)) {
+        apiError(403, 'No tiene autorización para acceder o modificar los datos de este servicio.');
+    }
+}
+
+function apiRequirePersonalAccess(int $personalId): void {
+    if (!Auth::checkPersonalAccess($personalId)) {
+        apiError(403, 'No tiene autorización para acceder o modificar los datos de este trabajador.');
+    }
+}
+
 function apiRequireDatabase(): PDO {
     $pdo = Database::getConnection();
     if (!$pdo) apiError(503, 'SQL Server no está disponible. No se guardaron cambios; vuelva a intentar al recuperar la conexión.');

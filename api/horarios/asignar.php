@@ -32,6 +32,8 @@ if ($personalId <= 0 || empty($dias)) {
     exit;
 }
 
+apiRequirePersonalAccess($personalId);
+
 // Validar formato de fecha YYYY-MM-DD
 $dateParts = explode('-', $fechaInicio);
 if (!apiValidDate($fechaInicio)) {

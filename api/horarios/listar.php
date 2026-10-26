@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/api_bootstrap.php';
-apiGuard('horarios', ['GET'], ['JEFE_RRHH']);
+apiGuard('horarios', ['GET'], ['JEFE_RRHH', 'SUPERVISOR', 'JEFE_SERVICIO']);
 
 /**
  * API Endpoint: /api/horarios/listar.php
@@ -13,12 +13,21 @@ apiGuard('horarios', ['GET'], ['JEFE_RRHH']);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
 
+$userAllowedServ = Auth::getAllowedServiceId();
+
 $pdo = Database::getConnection();
 $dbConnected = ($pdo !== null);
 $horariosPersonal = [];
 
 if ($dbConnected) {
     try {
+        $whereSql = "WHERE h.Estado = 1";
+        $params = [];
+        if ($userAllowedServ !== null) {
+            $whereSql .= " AND s.ServicioID = :servId";
+            $params[':servId'] = $userAllowedServ;
+        }
+
         $sql = "
             SELECT 
                 h.HorarioID,
@@ -43,10 +52,11 @@ if ($dbConnected) {
             LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            WHERE h.Estado = 1
+            {$whereSql}
             ORDER BY per.ApellidoPaterno, h.DiaSemana
         ";
-        $stmt = $pdo->query($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (!empty($rows)) {

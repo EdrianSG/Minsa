@@ -11,7 +11,48 @@ document.addEventListener('DOMContentLoaded', () => {
   initMobileSidebar();
   initModalHelpers();
   initDbStatusWatcher();
+  initServiceScopeLocks();
+  setTimeout(initServiceScopeLocks, 150);
 });
+
+/* =========================================================
+   BLOQUEO Y ENFOQUE AUTOMÁTICO DE SERVICIO PARA ROLES RESTRINGIDOS
+   ========================================================= */
+function initServiceScopeLocks() {
+  if (!window.currentUser || !window.currentUser.allowed_service_id) return;
+
+  const allowedServId = String(window.currentUser.allowed_service_id);
+  const servName = window.currentUser.servicio || 'Servicio Asignado';
+
+  const selectorIds = [
+    'progServiceSelect',
+    'asistServicioSelect',
+    'repServicioSelect',
+    'ausServicioSelect'
+  ];
+
+  selectorIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+
+    sel.value = allowedServId;
+    sel.disabled = true;
+    sel.title = `Acceso restringido a su servicio: ${servName}`;
+
+    if (!sel.parentNode.querySelector('.service-lock-badge')) {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-neutral service-lock-badge';
+      badge.style.marginLeft = '0.5rem';
+      badge.style.fontSize = '0.72rem';
+      badge.textContent = '🔒 Su servicio';
+      sel.parentNode.appendChild(badge);
+    }
+  });
+
+  if (typeof progState !== 'undefined') progState.servicioId = parseInt(allowedServId, 10);
+  if (typeof asistState !== 'undefined') asistState.servicioId = allowedServId;
+  if (typeof repState !== 'undefined') repState.servicioId = allowedServId;
+}
 
 /* =========================================================
    CONTROL DE TEMA (CLARO / OSCURO)

@@ -23,6 +23,17 @@ function calcularDias($fIni, $fFin) {
 $estadoFiltro  = isset($_GET['estado']) && $_GET['estado'] !== '' ? strtoupper(trim($_GET['estado'])) : 'TODOS';
 $tipoIdFiltro  = isset($_GET['tipo_id']) && $_GET['tipo_id'] !== '' ? intval($_GET['tipo_id']) : null;
 $servicioFiltro= isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : null;
+
+// Restricción por servicio para jefaturas y supervisores
+$userAllowedServ = Auth::getAllowedServiceId();
+if ($userAllowedServ !== null) {
+    if ($servicioFiltro === null) {
+        $servicioFiltro = $userAllowedServ;
+    } elseif ($servicioFiltro !== $userAllowedServ) {
+        apiError(403, 'No tiene autorización para ver permisos de otro servicio.');
+    }
+}
+
 $busqueda      = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
 
 $pdo = Database::getConnection();
@@ -101,8 +112,8 @@ if ($dbConnected) {
     }
 }
 
-// Resiliencia local: si la BD está offline o vacía, usar el Snapshot de datos reales
-if (empty($permisos)) {
+// Resiliencia local: solo si la BD está offline
+if (!$dbConnected && empty($permisos)) {
     require_once __DIR__ . '/../../includes/SnapshotStore.php';
     if (SnapshotStore::has('permisos_lista_completa')) {
         $snap = SnapshotStore::get('permisos_lista_completa');
@@ -110,11 +121,6 @@ if (empty($permisos)) {
             $permisos = $snap['data'];
         }
     }
-}
-
-// Fallback solo si nunca hubo datos en BD ni snapshots
-if (empty($permisos)) {
-    $permisos = generarPermisosInstitucionales();
 }
 
 // Resumen y KPIs globales calculados sobre el universo completo de la BD

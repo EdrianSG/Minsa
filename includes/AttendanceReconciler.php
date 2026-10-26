@@ -70,7 +70,8 @@ class AttendanceReconciler {
         ]);
         $personalList = $stmtPers->fetchAll(PDO::FETCH_ASSOC);
 
-        // 2. Obtener todas las marcaciones biométricas válidas del día
+        // 2. Obtener todas las marcaciones biométricas válidas del día (y madrugada del día siguiente para turnos nocturnos)
+        $fechaSiguiente = date('Y-m-d', strtotime("$fecha +1 day"));
         $sqlMarcaciones = "
             SELECT 
                 mb.PersonalID,
@@ -78,21 +79,27 @@ class AttendanceReconciler {
                 mb.FechaHora
             FROM rrhh.MarcacionBiometrica mb
             WHERE CAST(mb.FechaHora AS DATE) = :fecha
+               OR (CAST(mb.FechaHora AS DATE) = :fechaSiguiente AND DATEPART(hour, mb.FechaHora) <= 12)
             ORDER BY mb.FechaHora ASC
         ";
         $stmtMarc = $pdo->prepare($sqlMarcaciones);
-        $stmtMarc->execute([':fecha' => $fecha]);
+        $stmtMarc->execute([':fecha' => $fecha, ':fechaSiguiente' => $fechaSiguiente]);
         $rawMarc = $stmtMarc->fetchAll(PDO::FETCH_ASSOC);
 
-        // Agrupar marcaciones por PersonalID
-        $marcacionesPorPersonal = [];
+        // Agrupar marcaciones por PersonalID distinguiendo del día y de la mañana siguiente
+        $marcacionesDelDia = [];
+        $marcacionesMananaSiguiente = [];
         foreach ($rawMarc as $m) {
             $pid = (int)$m['PersonalID'];
             if ($pid > 0) {
-                if (!isset($marcacionesPorPersonal[$pid])) {
-                    $marcacionesPorPersonal[$pid] = [];
+                $fMarc = substr($m['FechaHora'], 0, 10);
+                if ($fMarc === $fecha) {
+                    if (!isset($marcacionesDelDia[$pid])) $marcacionesDelDia[$pid] = [];
+                    $marcacionesDelDia[$pid][] = $m['FechaHora'];
+                } elseif ($fMarc === $fechaSiguiente) {
+                    if (!isset($marcacionesMananaSiguiente[$pid])) $marcacionesMananaSiguiente[$pid] = [];
+                    $marcacionesMananaSiguiente[$pid][] = $m['FechaHora'];
                 }
-                $marcacionesPorPersonal[$pid][] = $m['FechaHora'];
             }
         }
 
@@ -144,8 +151,10 @@ class AttendanceReconciler {
 
             $horaProgInicio = $p['HoraProgInicio'] ?: '07:00:00';
             $horaProgFin    = $p['HoraProgFin'] ?: '13:00:00';
+            $cruzaMedianoche = (strtotime("$fecha $horaProgFin") <= strtotime("$fecha $horaProgInicio"));
 
-            $punches = $marcacionesPorPersonal[$personalId] ?? [];
+            $punches = $marcacionesDelDia[$personalId] ?? [];
+            $punchesSig = $marcacionesMananaSiguiente[$personalId] ?? [];
 
             $horaEntrada = null;
             $horaSalida = null;
@@ -158,8 +167,11 @@ class AttendanceReconciler {
                 $primera = reset($punches);
                 $horaEntrada = date('H:i:s', strtotime($primera));
 
-                // Si hay más de una marcación y la última tiene una diferencia >= 30 minutos de la primera
-                if (count($punches) > 1) {
+                // Para turnos nocturnos que cruzan la medianoche: buscar salida en la madrugada siguiente
+                if ($cruzaMedianoche && !empty($punchesSig)) {
+                    $salidaSig = end($punchesSig);
+                    $horaSalida = date('H:i:s', strtotime($salidaSig));
+                } elseif (count($punches) > 1) {
                     $ultima = end($punches);
                     $segDiff = strtotime($ultima) - strtotime($primera);
                     if ($segDiff >= 1800) { // al menos 30 minutos

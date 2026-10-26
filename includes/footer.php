@@ -188,6 +188,19 @@
     </div>
   </div>
 
+  <!-- Configuración del usuario en sesión para control de interfaz -->
+  <script>
+    window.currentUser = <?= json_encode([
+        'usuario_id'         => $currentUser['usuario_id'] ?? null,
+        'username'           => $currentUser['username'] ?? '',
+        'nombre'             => $currentUser['nombre_completo'] ?? '',
+        'rol'                => $currentUser['rol'] ?? '',
+        'servicio_id'        => $currentUser['servicio_id'] ?? null,
+        'servicio'           => $currentUser['servicio'] ?? '',
+        'allowed_service_id' => Auth::getAllowedServiceId()
+    ], JSON_UNESCAPED_UNICODE) ?>;
+  </script>
+
   <!-- Scripts Globales -->
   <script src="assets/js/api.js?v=<?= filemtime(__DIR__ . '/../assets/js/api.js') ?>"></script>
   <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/../assets/js/app.js') ?>"></script>

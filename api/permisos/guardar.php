@@ -34,6 +34,8 @@ if ($personalId <= 0) {
     exit;
 }
 
+apiRequirePersonalAccess($personalId);
+
 if (empty($fechaInicio) || empty($fechaFin)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'message' => 'Debe especificar el rango completo de fechas.'], JSON_UNESCAPED_UNICODE);

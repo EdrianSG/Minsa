@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/api_bootstrap.php';
-apiGuard('personal', ['GET'], ['JEFE_RRHH']);
+apiGuard('personal', ['GET'], ['JEFE_RRHH', 'JEFE_SERVICIO']);
 
 /**
  * API Endpoint: /api/personal/listar.php
@@ -17,6 +17,10 @@ require_once __DIR__ . '/../../config/database.php';
 
 $q         = trim($_GET['q'] ?? '');
 $servicio  = trim($_GET['servicio'] ?? '');
+$userAllowedServ = Auth::getAllowedServiceId();
+if ($userAllowedServ !== null) {
+    $servicio = (string)$userAllowedServ;
+}
 $condicion = trim($_GET['condicion'] ?? '');
 $regimen   = trim($_GET['regimen'] ?? '');
 $estado    = isset($_GET['estado']) && $_GET['estado'] !== '' ? intval($_GET['estado']) : null;
@@ -89,6 +93,16 @@ if ($dbConnected) {
         if ($condicion !== '') {
             $sql .= " AND tc.Nombre = :condicion";
             $params[':condicion'] = $condicion;
+        }
+
+        if ($servicio !== '') {
+            if (is_numeric($servicio)) {
+                $sql .= " AND s.ServicioID = :servId";
+                $params[':servId'] = intval($servicio);
+            } else {
+                $sql .= " AND s.Nombre LIKE :servNombre";
+                $params[':servNombre'] = "%$servicio%";
+            }
         }
 
         if ($q !== '') {

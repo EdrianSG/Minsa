@@ -14,6 +14,17 @@ $tipo       = $_GET['tipo'] ?? 'consolidado'; // 'consolidado', 'individual', 's
 $mes        = intval($_GET['mes'] ?? 9);
 $anio       = intval($_GET['anio'] ?? 2026);
 $personalId = intval($_GET['personal_id'] ?? 1);
+$servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : 0;
+$allowedServiceId = Auth::getAllowedServiceId();
+if ($allowedServiceId !== null) {
+    $_GET['servicio_id'] = $allowedServiceId;
+} elseif ($servicioId > 0) {
+    apiRequireServiceAccess($servicioId);
+}
+
+if ($tipo === 'individual' && $personalId > 0) {
+    apiRequirePersonalAccess($personalId);
+}
 
 $filename = "reporte_{$tipo}_{$mes}_{$anio}.csv";
 

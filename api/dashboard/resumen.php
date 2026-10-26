@@ -188,6 +188,14 @@ if (empty($snapAsist)) {
     exit;
 }
 
+// Restricción por servicio para jefaturas y supervisores
+$userAllowedServ = Auth::getAllowedServiceId();
+if ($userAllowedServ !== null) {
+    $snapAsist = array_values(array_filter($snapAsist, function($item) use ($userAllowedServ) {
+        return (int)($item['servicio_id'] ?? 0) === $userAllowedServ;
+    }));
+}
+
 // Procesar KPIs y distribución a partir de los datos consolidados
 $totProg = count($snapAsist);
 $presentes = 0;

@@ -23,6 +23,17 @@ require_once __DIR__ . '/../../includes/AttendanceReconciler.php';
 $fecha = $_GET['fecha'] ?? date('Y-m-d');
 if (!apiValidDate($fecha)) apiError(400, 'Fecha inválida.');
 $servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : null;
+
+// Restringir a jefes de servicio y supervisores a su servicio asignado
+$userAllowedServ = Auth::getAllowedServiceId();
+if ($userAllowedServ !== null) {
+    if ($servicioId === null || $servicioId === 0) {
+        $servicioId = $userAllowedServ;
+    } elseif ($servicioId !== $userAllowedServ) {
+        apiError(403, 'No tiene autorización para consultar la asistencia de otro servicio.');
+    }
+}
+
 $filtroEstado = isset($_GET['estado']) && $_GET['estado'] !== '' ? strtoupper(trim($_GET['estado'])) : null;
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
 

@@ -101,6 +101,7 @@ class Auth {
                         r.RolID,
                         r.Codigo AS RolCodigo,
                         r.Nombre AS RolNombre,
+                        s.ServicioID,
                         ISNULL(s.Nombre, 'Hospital Distrital de Pacasmayo') AS ServicioNombre,
                         ISNULL(c.Nombre, 'Servidor Público') AS CargoNombre
                     FROM seguridad.Usuario u
@@ -134,12 +135,8 @@ class Auth {
                     ];
                 }
 
-                // Credenciales de desarrollo además del hash configurado en SQL Server.
+                // Validación estricta con hash de contraseñas de Microsoft SQL Server (seguridad.Usuario)
                 $passwordValida = password_verify($password, $user['PasswordHash']);
-                if (!$passwordValida) {
-                    $passwordValida = ($user['NombreUsuario'] === 'admin' && $password === 'admin123')
-                        || ($user['NombreUsuario'] !== 'admin' && $password === 'minsa2026');
-                }
 
                 if (!$passwordValida) {
                     Auditoria::registrar((int)$user['UsuarioID'], 'SEGURIDAD', 'LOGIN_FALLIDO', 'seguridad.Usuario', (string)$user['UsuarioID'], "Contraseña incorrecta para el usuario: {$user['NombreUsuario']}");
@@ -182,6 +179,7 @@ class Auth {
                     'nombre_corto'    => $nombreCorto,
                     'nombre_completo' => $nombreCompleto,
                     'cargo'           => $user['CargoNombre'] ?? 'Servidor Público',
+                    'servicio_id'     => !empty($user['ServicioID']) ? (int)$user['ServicioID'] : null,
                     'area'            => $user['ServicioNombre'] ?? 'Hospital Distrital de Pacasmayo',
                     'servicio'        => $user['ServicioNombre'] ?? 'Hospital Distrital de Pacasmayo',
                     'hospital'        => 'Hospital Distrital de Pacasmayo',
@@ -214,29 +212,6 @@ class Auth {
             }
         }
 
-        // Acceso de contingencia para continuar el desarrollo sin SQL Server.
-        $accounts = [
-            'admin' => [1, 'admin123', 'Miguel Arturo Cortez García', 'Miguel C.', '73291045',
-                'Jefe de Informática y Estadística', 'Unidad de Informática y Estadística', 'ADMIN', 'Administrador del Sistema', 'MC'],
-            'curcia' => [2, 'minsa2026', 'Carmen Rosa Urcia Ventura', 'Carmen U.', '47309642',
-                'Especialista Administrativo', 'Unidad de Personal / RR.HH.', 'JEFE_RRHH', 'Jefatura de Personal', 'CU'],
-            'atorres' => [3, 'minsa2026', 'Ana María Torres Benites', 'Ana T.', '45892104',
-                'Operador de Control de Asistencia', 'Unidad de Personal / RR.HH.', 'OPERADOR_ASISTENCIA', 'Operador de Control de Asistencia', 'AT']
-        ];
-        $account = $accounts[$identificador] ?? null;
-        if ($account !== null && $account[1] === $password) {
-            session_regenerate_id(true);
-            $_SESSION['user'] = [
-                'usuario_id' => $account[0], 'persona_id' => 0, 'username' => $identificador,
-                'nombre_completo' => $account[2], 'nombre_corto' => $account[3], 'dni' => $account[4],
-                'cargo' => $account[5], 'area' => $account[6], 'servicio' => $account[6],
-                'rol' => $account[7], 'rol_nombre' => $account[8], 'iniciales' => $account[9],
-                'hospital' => 'Hospital Distrital de Pacasmayo', 'correo' => '', 'avatar' => null,
-                'ultimo_acceso' => date('Y-m-d H:i:s'), 'login_time' => time()
-            ];
-            return ['ok' => true, 'mensaje' => 'Inicio de sesión (Modo Contingencia). Redirigiendo...',
-                'usuario' => $_SESSION['user']];
-        }
         return ['ok' => false, 'mensaje' => 'Usuario o contraseña incorrectos.'];
     }
 
@@ -310,4 +285,88 @@ class Auth {
 
         return in_array($modulo, $matriz[$rol] ?? [], true);
     }
+
+    /**
+     * Verifica si el usuario actual tiene autorización para ver u operar un servicio específico.
+     * Los roles de administración o RR.HH. tienen alcance global (todos los servicios).
+     * Los jefes de servicio y supervisores están estrictamente limitados a su ServicioID asignado.
+     * 
+     * @param int|null $targetServicioId ID del servicio a consultar (0 o null = Todos los servicios)
+     * @return bool
+     */
+    public static function checkServiceAccess(?int $targetServicioId): bool {
+        if (!self::isAuthenticated()) {
+            return false;
+        }
+
+        $rol = $_SESSION['user']['rol'] ?? '';
+        // Roles institucionales con alcance global a todos los servicios
+        if (in_array($rol, ['ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH', 'OPERADOR_ASISTENCIA', 'AUDITOR_PLANILLAS'], true)) {
+            return true;
+        }
+
+        $userServicioId = isset($_SESSION['user']['servicio_id']) ? (int)$_SESSION['user']['servicio_id'] : null;
+
+        // Si la jefatura o supervisor no tiene servicio asignado, denegar por seguridad
+        if ($userServicioId === null || $userServicioId <= 0) {
+            return false;
+        }
+
+        // Una jefatura de servicio no puede consultar "Todos los servicios" (0 o null)
+        if ($targetServicioId === null || $targetServicioId === 0) {
+            return false;
+        }
+
+        return $targetServicioId === $userServicioId;
+    }
+
+    /**
+     * Retorna el ServicioID asignado al usuario si está restringido, o null si tiene alcance global.
+     */
+    public static function getAllowedServiceId(): ?int {
+        if (!self::isAuthenticated()) {
+            return null;
+        }
+        $rol = $_SESSION['user']['rol'] ?? '';
+        if (in_array($rol, ['ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH', 'OPERADOR_ASISTENCIA', 'AUDITOR_PLANILLAS'], true)) {
+            return null; // Alcance global
+        }
+        return isset($_SESSION['user']['servicio_id']) ? (int)$_SESSION['user']['servicio_id'] : null;
+    }
+
+    /**
+     * Verifica si el usuario actual tiene autorización para ver u operar un trabajador específico.
+     * Si el usuario tiene alcance global, retorna true.
+     * Si es supervisor o jefe de servicio, verifica que el trabajador pertenezca a su mismo ServicioID.
+     */
+    public static function checkPersonalAccess(int $personalId): bool {
+        if (!self::isAuthenticated()) {
+            return false;
+        }
+        $allowedServId = self::getAllowedServiceId();
+        if ($allowedServId === null) {
+            return true; // Alcance institucional global
+        }
+        if ($personalId <= 0) {
+            return false;
+        }
+
+        $pdo = Database::getConnection();
+        if ($pdo === null) return false;
+
+        try {
+            $stmt = $pdo->prepare("
+                SELECT ap.ServicioID
+                FROM rrhh.Personal p
+                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+                WHERE p.PersonalID = ?
+            ");
+            $stmt->execute([$personalId]);
+            $servId = $stmt->fetchColumn();
+            return ((int)$servId === (int)$allowedServId);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
 }
+

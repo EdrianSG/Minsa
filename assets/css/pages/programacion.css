@@ -444,3 +444,11 @@ html.dark .btn-edit-schedule:hover {
   border-color: var(--primary-400);
   color: var(--primary-300);
 }
+
+.palette-group-label {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}

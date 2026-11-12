@@ -13,22 +13,31 @@ class Database
     private static ?PDO $instance = null;
     private static ?string $lastError = null;
 
+    public static function sourceId(): string
+    {
+        $config = self::getConfig();
+        return hash('sha256', $config['host'] . ':' . $config['port'] . '/' . $config['database']);
+    }
+
     /**
      * Parámetros de conexión predeterminados (Servidor de pruebas)
      * Pueden sobreescribirse mediante variables de entorno en el servidor
      */
     public static function getConfig(): array
     {
+        $localFile = __DIR__ . '/database.local.php';
+        $local = is_file($localFile) ? require $localFile : [];
+        if (!is_array($local)) throw new RuntimeException('Configuración local de base de datos inválida.');
         return [
-            'host' => getenv('DB_HOST') ?: '192.168.11.20',
-            'port' => getenv('DB_PORT') ?: '1433',
-            'database' => getenv('DB_NAME') ?: 'BD_HOSPITAL',
-            'username' => getenv('DB_USER') ?: 'eduardo_dev',
-            'password' => getenv('DB_PASS') ?: '123456789',
+            'host' => getenv('DB_HOST') !== false ? getenv('DB_HOST') : ($local['host'] ?? '192.168.11.38'),
+            'port' => getenv('DB_PORT') !== false ? getenv('DB_PORT') : ($local['port'] ?? '1433'),
+            'database' => getenv('DB_NAME') !== false ? getenv('DB_NAME') : ($local['database'] ?? 'BD_HOSPITAL_V3'),
+            'username' => getenv('DB_USER') !== false ? getenv('DB_USER') : ($local['username'] ?? 'eduardo_dev'),
+            'password' => getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($local['password'] ?? '123456789'),
             'charset' => 'UTF-8',
-            'encrypt' => false, // En redes locales normalmente no se requiere forzar SSL
-            'trust_server_certificate' => true,
-            'timeout' => 3
+            'encrypt' => filter_var(getenv('DB_ENCRYPT') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+            'trust_server_certificate' => filter_var(getenv('DB_TRUST_SERVER_CERTIFICATE') === false ? 'true' : getenv('DB_TRUST_SERVER_CERTIFICATE'), FILTER_VALIDATE_BOOLEAN),
+            'timeout' => 8
         ];
     }
 
@@ -66,7 +75,7 @@ class Database
         $config = self::getConfig();
 
         if ($config['username'] === '' || $config['password'] === '') {
-            self::$lastError = 'Configure DB_USER y DB_PASS en el entorno del servidor.';
+            self::$lastError = 'Configure DB_USER y DB_PASS o config/database.local.php en el servidor.';
             return null;
         }
 
@@ -86,21 +95,8 @@ class Database
             }
         }
 
-        // Verificación rápida de disponibilidad de socket (timeout 0.4s) para no bloquear requests
-        $probe = @fsockopen($config['host'], (int) $config['port'], $errno, $errstr, 0.4);
-        if (!$probe) {
-            $msg = "El servidor SQL Server ({$config['host']}:{$config['port']}) no responde en la red.";
-            self::$lastError = $msg;
-            @file_put_contents($cacheFile, json_encode(['time' => time(), 'error' => $msg]));
-            return null;
-        }
-        fclose($probe);
-
-        // Si el socket respondió, borrar cualquier caché de error previo
-        if (file_exists($cacheFile)) {
-            @unlink($cacheFile);
-        }
-
+        // PDO comprueba la disponibilidad y autentica en una sola conexión.
+        // Un socket previo duplicaba la espera de red en cada solicitud PHP.
         try {
             $encryptStr = $config['encrypt'] ? 'yes' : 'no';
             $trustCertStr = $config['trust_server_certificate'] ? 'true' : 'false';
@@ -123,6 +119,9 @@ class Database
 
             self::$instance = new PDO($dsn, $config['username'], $config['password'], $options);
             self::$lastError = null;
+            if (file_exists($cacheFile)) {
+                @unlink($cacheFile);
+            }
             return self::$instance;
 
         } catch (PDOException $e) {

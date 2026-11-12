@@ -12,17 +12,21 @@ apiGuard('reportes', ['GET'], []);
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__.'/../../includes/WorkloadPolicy.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
 require_once __DIR__ . '/../../includes/AttendanceSchedule.php';
 require_once __DIR__ . '/../../includes/AttendanceRules.php';
 
-$personalId = isset($_GET['personal_id']) ? intval($_GET['personal_id']) : 6;
-$mes        = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
-$anio       = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
+$personalId = isset($_GET['personal_id']) ? intval($_GET['personal_id']) : 0;
+$mes        = isset($_GET['mes']) ? intval($_GET['mes']) : (int)date('n');
+$anio       = isset($_GET['anio']) ? intval($_GET['anio']) : (int)date('Y');
 
 apiRequirePersonalAccess($personalId);
 if ($personalId <= 0 || $mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Trabajador o periodo inválido.');
+$workloadSql=WorkloadPolicy::sql('p.PersonalID',date('Y-m-t',strtotime(sprintf('%04d-%02d-01',$anio,$mes))));
 $pdo = apiRequireDatabase();
+require_once __DIR__.'/../../includes/ReportAreaFilter.php';
+ReportAreaFilter::requirePersonal($pdo, $personalId, ReportAreaFilter::id());
 $dbConnected = ($pdo !== null);
 
 $nombresMeses = [
@@ -40,19 +44,18 @@ if ($dbConnected) {
     try {
         $stmt = $pdo->prepare("
             SELECT 
-                p.PersonalID, per.NumeroDocumento AS DNI,
-                per.Nombres, per.ApellidoPaterno, per.ApellidoMaterno,
+                p.PersonalID, p.NumeroDocumento AS DNI,
+                p.Nombres, p.ApellidoPaterno, p.ApellidoMaterno,
                 ISNULL(c.Nombre, 'Personal Hospitalario') AS NombreCargo,
                 s.ServicioID,
                 ISNULL(s.Nombre, 'Emergencia y Cuidados Críticos') AS NombreServicio,
-                CASE WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 'ADMINISTRATIVO' ELSE 'ASISTENCIAL' END AS RegimenLaboral,
-                ISNULL(tc.Nombre, 'CAS') AS CondicionLaboral
+                {$workloadSql} AS RegimenLaboral,
+                p.CondicionLaboral AS CondicionLaboral
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+            OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
             LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
             WHERE p.PersonalID = :pid
         ");
@@ -67,11 +70,11 @@ if ($dbConnected) {
             $trabajador['dni']               = $row['DNI'];
             $trabajador['nombre_completo']   = trim("{$row['ApellidoPaterno']} " . ($row['ApellidoMaterno'] ? "{$row['ApellidoMaterno']} " : "") . "{$row['Nombres']}");
             $trabajador['cargo']             = $row['NombreCargo'] ?? 'Personal Hospitalario';
-            $trabajador['servicio_id']       = intval($row['ServicioID'] ?? 8);
+            $trabajador['servicio_id']       = isset($row['ServicioID']) ? intval($row['ServicioID']) : null;
             $trabajador['servicio_nombre']   = $row['NombreServicio'] ?? 'Servicio Hospitalario';
-            $trabajador['regimen_laboral']   = $row['RegimenLaboral'] ?? 'ASISTENCIAL';
-            $trabajador['condicion_laboral'] = (stripos($row['CondicionLaboral'], 'Nombrad') !== false ? 'NOMBRADO' : 'CAS');
-            $trabajador['norma_horas']       = ($trabajador['regimen_laboral'] === 'ADMINISTRATIVO' ? 176.0 : 150.0);
+            $trabajador['regimen_laboral']   = $row['RegimenLaboral'] ?? null;
+            $trabajador['condicion_laboral'] = $row['CondicionLaboral'];
+            $trabajador['norma_horas']       = ($trabajador['regimen_laboral'] === 'ASISTENCIAL' ? 150.0 : null);
 
             // Validar acceso estricto por servicio para el usuario actual
             apiRequirePersonalAccess($personalId);
@@ -82,23 +85,8 @@ if ($dbConnected) {
     }
 }
 
-// Si no está en el snapshot, consultar la programación base de rrhh.Horario
+// Programación mensual resuelta mediante AttendanceSchedule
 $horarioSemanalDb = [];
-if ($dbConnected) {
-    try {
-        $stmtH = $pdo->prepare("
-            SELECT h.DiaSemana, h.FechaInicio, h.FechaFin, t.TurnoID, t.Nombre AS TurnoNombre,
-                   CONVERT(VARCHAR(8), t.HoraInicio, 108) AS HoraInicio, CONVERT(VARCHAR(8), t.HoraFin, 108) AS HoraFin
-            FROM rrhh.Horario h
-            INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
-            WHERE h.PersonalID = :pid AND h.Estado = 1
-        ");
-        $stmtH->execute([':pid' => $personalId]);
-        while ($hRow = $stmtH->fetch(PDO::FETCH_ASSOC)) {
-            $horarioSemanalDb[intval($hRow['DiaSemana'])][] = $hRow;
-        }
-    } catch (Exception $e) { error_log($e->getMessage()); apiError(503, 'No se pudo consultar la información del reporte.'); }
-}
 
 // Consultar registros efectivos de asistencia del trabajador en el mes desde rrhh.Asistencia
 $asistenciaEfectiva = [];
@@ -181,7 +169,8 @@ for ($d = 1; $d <= $totalDias; $d++) {
     try { $schedule = AttendanceSchedule::apply($schedule, $fechaStr); }
     catch (RuntimeException $e) { apiError(503, $e->getMessage()); }
     $esLaborable = !empty($schedule['TurnoID']);
-    $turnoCodigo = $schedule['TurnoCodigo'] ?? ($esLaborable ? 'TURNO' : 'LIB');
+    $turnoCodigo = $schedule['TurnoCodigo'] ?? null;
+    $explicitRest = in_array($turnoCodigo,['LIB','0','VAC','V','DESC','C','CITT','F','P','PER'],true);
     $tInfo = ['nombre'=>$schedule['NombreTurno'] ?? 'Descanso', 'inicio'=>$schedule['HoraProgInicio'] ?? '',
         'fin'=>$schedule['HoraProgFin'] ?? '', 'horas'=>0.0];
     if ($esLaborable) {
@@ -195,8 +184,8 @@ for ($d = 1; $d <= $totalDias; $d++) {
     $horaEntrada = null;
     $horaSalida = null;
     $minutosTardanza = 0;
-    $estado = 'DESCANSO';
-    $obs = 'Día de descanso programado';
+    $estado = $explicitRest ? 'DESCANSO' : 'SIN_DATOS';
+    $obs = $explicitRest ? 'Día de descanso o ausencia programada' : 'Sin programación confirmada';
 
     if ($esLaborable) $totalHorasProgramadas += $horasProg;
 
@@ -263,8 +252,8 @@ for ($d = 1; $d <= $totalDias; $d++) {
     ];
 }
 
-$horasFaltantes = max(0, $trabajador['norma_horas'] - $totalHorasAsistidas);
-$cumpleNorma = ($totalHorasAsistidas >= $trabajador['norma_horas']);
+$horasFaltantes = $trabajador['norma_horas'] !== null ? max(0, $trabajador['norma_horas'] - $totalHorasAsistidas) : null;
+$cumpleNorma = $trabajador['norma_horas'] !== null ? ($totalHorasAsistidas >= $trabajador['norma_horas']) : null;
 
 $totales = [
     'horas_programadas' => $totalHorasProgramadas,

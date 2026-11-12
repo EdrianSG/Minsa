@@ -37,7 +37,10 @@ try {
             apiError(400, 'La fecha de inicio no puede ser posterior a la fecha de fin.');
         }
 
+        if ((new DateTimeImmutable($fechaInicio))->diff(new DateTimeImmutable($fechaFin))->days > 366) apiError(400, 'El rango máximo es de 366 días.');
+        $pdo->beginTransaction();
         $res = AttendanceReconciler::conciliarRango($fechaInicio, $fechaFin, $pdo);
+        $pdo->commit();
         echo json_encode([
             'ok'         => true,
             'mensaje'    => "Conciliación completada exitosamente del {$fechaInicio} al {$fechaFin}.",
@@ -55,7 +58,9 @@ try {
         apiError(400, 'Fecha inválida. Formato esperado: YYYY-MM-DD.');
     }
 
+    $pdo->beginTransaction();
     $res = AttendanceReconciler::conciliarFecha($fecha, $pdo);
+    $pdo->commit();
 
     echo json_encode([
         'ok'         => true,
@@ -64,9 +69,11 @@ try {
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    error_log('Conciliación: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'ok'      => false,
-        'mensaje' => 'Error durante la conciliación: ' . $e->getMessage()
+        'mensaje' => 'No se pudo completar la conciliación. Consulte la bitácora del servidor.'
     ], JSON_UNESCAPED_UNICODE);
 }

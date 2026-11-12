@@ -1,0 +1,74 @@
+<?php
+/** Comprueba endpoints de lectura contra V3 sin mostrar sus datos ni emitir sesión web. */
+declare(strict_types=1);
+if (PHP_SAPI!=='cli') exit(1);
+$endpoints=['api/personal/detalle.php','api/personal/pendientes.php','api/reportes/individual.php','api/personal/listar.php','api/personal/opciones.php','api/personal/catalogos.php','api/turnos/listar.php','api/horarios/listar.php',
+    'api/asistencia/diaria.php','api/asistencia/ausentes.php','api/dashboard/resumen.php','api/dashboard/operativo.php',
+    'api/permisos/listar.php','api/permisos/tipos.php','api/programacion/mensual.php',
+    'api/administracion/usuarios.php','api/administracion/roles.php','api/administracion/auditoria.php',
+    'api/administracion/parametros.php','api/reportes/consolidado.php','api/reportes/seti.php',
+    'api/asistencia/biometrico/historial.php','api/asistencia/biometrico/marcaciones.php','api/asistencia/biometrico/incidencias.php','api/data_revision.php'];
+if (!isset($argv[1])) {
+    $tmp=sys_get_temp_dir().'/sgh-v3-read-'.bin2hex(random_bytes(6));
+    mkdir($tmp,0700);mkdir($tmp.'/sessions',0700);mkdir($tmp.'/snapshots',0700);
+    putenv('SNAPSHOT_PATH='.$tmp.'/snapshots');
+    $results=[]; $failed=false;
+    foreach ($endpoints as $endpoint) {
+        $proc=proc_open([PHP_BINARY,'-d','session.save_path='.$tmp.'/sessions',__FILE__,$endpoint],[1=>['pipe','w'],2=>['pipe','w']],$pipes);
+        if (!is_resource($proc)) throw new RuntimeException('No se pudo iniciar la prueba.');
+        $out=stream_get_contents($pipes[1]); $err=stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]); $exit=proc_close($proc);
+        $record=json_decode($out,true);
+        if (!$record || $exit!==0) $record=['endpoint'=>$endpoint,'error'=>'Fallo del proceso de prueba.'];
+        $results[]=$record;
+        if (($record['status']??500)!==200 || !($record['ok']??false)) $failed=true;
+    }
+    foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::CHILD_FIRST) as $item){$item->isDir()?rmdir($item->getPathname()):unlink($item->getPathname());}
+    rmdir($tmp);
+    echo json_encode(['modo'=>'LECTURA_SQL_V3_SIN_CARGA','resultados'=>$results],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE),PHP_EOL;
+    exit($failed?1:0);
+}
+$endpoint=$argv[1]; if (!in_array($endpoint,$endpoints,true)) exit(1);
+require_once __DIR__.'/../includes/auth.php';
+$pdo=Database::getConnection(true); if (!$pdo) { fwrite(STDERR,'SQL no disponible.'); exit(1); }
+if ($pdo->query('SELECT DB_NAME()')->fetchColumn()!=='BD_HOSPITAL_V3') exit(1);
+$s=$pdo->prepare("SELECT u.UsuarioID,u.PasswordHash,r.Codigo FROM seguridad.Usuario u JOIN seguridad.UsuarioRol ur ON ur.UsuarioID=u.UsuarioID JOIN seguridad.Rol r ON r.RolID=ur.RolID WHERE u.NombreUsuario=? AND r.Codigo='RRHH_ADMIN' AND r.SistemaID=?");
+$s->execute(['admin',SystemContext::id($pdo)]); $admin=$s->fetch(PDO::FETCH_ASSOC); if (!$admin) exit(1);
+$_SESSION['user']=['usuario_id'=>(int)$admin['UsuarioID'],'rol'=>$admin['Codigo'],'database_source'=>Database::sourceId(),
+    'system_code'=>SystemContext::code(),'auth_stamp'=>hash('sha256',$admin['PasswordHash'])];
+$_SERVER['REQUEST_METHOD']='GET'; $_SERVER['HTTP_HOST']='localhost';
+$_GET=['mes'=>'11','anio'=>'2026','fecha'=>'2026-11-03','servicio_id'=>'0','limit'=>'5','importacion_id'=>'1'];
+foreach (['V3_READ_AREA'=>'area', 'V3_READ_SERVICE'=>'servicio_id'] as $env=>$parameter) {
+    $value = getenv($env);
+    if ($value !== false && ctype_digit($value) && (int)$value > 0) $_GET[$parameter]=$value;
+}
+$testId=getenv('V3_READ_PERSONAL_ID');
+$realPerson=$testId!==false && ctype_digit($testId) && (int)$testId>0 ? (int)$testId : $pdo->query('SELECT TOP 1 PersonalID FROM rrhh.Personal ORDER BY PersonalID')->fetchColumn();
+if ($realPerson!==false) { $_GET['id']=(string)$realPerson; $_GET['personal_id']=(string)$realPerson; }
+$started=microtime(true);
+ob_start();
+register_shutdown_function(function() use ($endpoint,$started) {
+    $body=ob_get_clean(); $json=json_decode($body,true);
+    $result=['endpoint'=>$endpoint,'tiempo_endpoint_ms'=>round((microtime(true)-$started)*1000),'status'=>http_response_code()?:200,'ok'=>$json['ok']??$json['success']??false];
+    if (!$result['ok']) $result['mensaje']=$json['mensaje']??$json['message']??'Respuesta no JSON.';
+    if ($endpoint === 'api/dashboard/operativo.php' && $json) {
+        $result['secciones_disponibles'] = array_map(static fn($key) => isset($json[$key]), ['calidad','pendientes','biometrico']);
+        $result['ok'] = $result['ok'] && !in_array(false, $result['secciones_disponibles'], true);
+    }
+    if ($endpoint === 'api/personal/listar.php' && $json) {
+        $result['filas_devueltas'] = count($json['data'] ?? []);
+        $result['ok'] = $result['ok'] && $result['filas_devueltas'] <= ($json['limite'] ?? 0);
+    }
+    if ($endpoint === 'api/personal/opciones.php' && $json) {
+        $result['total_opciones'] = count($json['data'] ?? []);
+        $result['columnas_por_opcion'] = count($json['data'][0] ?? []);
+    }
+    if (isset($json['conexion_sql'])) $result['conexion_sql']=$json['conexion_sql'];
+    if (isset($json['total_registros'])) $result['total_registros']=$json['total_registros'];
+    echo json_encode($result,JSON_UNESCAPED_UNICODE),PHP_EOL;
+    $_SESSION=[];
+    if(session_status()===PHP_SESSION_ACTIVE)session_write_close();
+    $sessionFolder=session_save_path()?:sys_get_temp_dir();
+    $sessionFile=$sessionFolder.'/sess_'.session_id();
+    if(is_file($sessionFile))unlink($sessionFile); // Esta sesión fue creada por esta prueba CLI.
+});
+require __DIR__.'/../'.$endpoint;

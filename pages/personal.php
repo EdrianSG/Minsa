@@ -5,7 +5,7 @@
  * ETAPA 2
  * 
  * Reutiliza las entidades institucionales:
- * core.Persona, rrhh.Personal, rrhh.AsignacionPersonal, rrhh.Cargo,
+ * rrhh.Personal, rrhh.AsignacionPersonal, rrhh.Cargo,
  * rrhh.Profesion, organizacion.Area, organizacion.Servicio, rrhh.Contrato
  */
 
@@ -120,22 +120,16 @@ $pageScript = "personal.js";
         </div>
       </div>
 
+      <!-- Filtro por Área: catálogo independiente de los servicios -->
+      <div class="filter-item">
+        <label for="staffAreaFilter">Área</label>
+        <select class="form-select" id="staffAreaFilter"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::areaOptions(); ?></select>
+      </div>
+
       <!-- Filtro por Servicio -->
       <div class="filter-item">
         <label for="staffServiceFilter">Servicio Hospitalario</label>
-        <select class="form-select" id="staffServiceFilter">
-          <option value="">Todos los servicios</option>
-          <option value="Emergencia">Emergencia y Cuidados Críticos</option>
-          <option value="Cuidados Intensivos">Unidad de Cuidados Intensivos (UCI)</option>
-          <option value="Hospitalización">Hospitalización Medicina</option>
-          <option value="Obstétrico">Centro Obstétrico</option>
-          <option value="Quirúrgico">Centro Quirúrgico</option>
-          <option value="Pediatría">Pediatría y Neonatología</option>
-          <option value="Laboratorio">Laboratorio Clínico</option>
-          <option value="Farmacia">Farmacia y Dosis Unitaria</option>
-          <option value="Personal">Unidad de Personal / RR.HH.</option>
-          <option value="Admisión">Admisión y Archivo</option>
-        </select>
+        <select class="form-select" id="staffServiceFilter"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::options(''); ?></select>
       </div>
 
       <!-- Filtro por Condición Laboral -->
@@ -359,182 +353,110 @@ $pageScript = "personal.js";
      MODAL DE REGISTRO: NUEVO TRABAJADOR
      ========================================================= -->
 <div class="modal-backdrop" id="modalNewWorker">
-  <div class="modal-dialog modal-dialog-lg" style="max-width: 760px;">
+  <div class="modal-dialog modal-dialog-lg worker-editor-dialog">
     <div class="modal-header">
-      <div class="modal-title-wrap">
-        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          <span>Registrar Nuevo Trabajador</span>
-        </h3>
-        <p class="modal-subtitle" style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 2px;">
-          Ingresa los datos personales y contractuales para incorporarlo al rol de turnos y asistencias.
-        </p>
-      </div>
-      <button type="button" class="modal-close-btn modal-close" aria-label="Cerrar">&times;</button>
+      <div><h3 class="modal-title" id="workerEditorTitle">Registrar trabajador</h3><p class="modal-subtitle">Identidad, ubicación y perfil profesional con datos verificados.</p></div>
+      <button type="button" class="modal-close" aria-label="Cerrar">&times;</button>
     </div>
-
     <form id="formNewWorker">
-      <div class="modal-body" style="padding: 1.5rem; max-height: calc(85vh - 140px); overflow-y: auto;">
-        
-        <!-- Sección 1: Datos de Identidad -->
-        <div style="margin-bottom: 1.25rem;">
-          <h4 style="font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
-            <span>🪪</span> 1. Identificación Personal
-          </h4>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-            <div class="form-group">
-              <label for="newWorkerTipoDoc" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Tipo Documento *</label>
-              <select id="newWorkerTipoDoc" name="tipo_documento_id" class="form-select" required>
-                <option value="4">DNI - Documento Nacional de Identidad</option>
-                <option value="5">CE - Carné de Extranjería</option>
-                <option value="6">PAS - Pasaporte</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerDni" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Número Documento (DNI) *</label>
-              <input type="text" id="newWorkerDni" name="dni" class="form-control" placeholder="8 dígitos numéricos" maxlength="20" required autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerSexo" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Sexo</label>
-              <select id="newWorkerSexo" name="sexo_id" class="form-select">
-                <option value="">Seleccionar...</option>
-                <option value="3">Masculino</option>
-                <option value="4">Femenino</option>
-              </select>
-            </div>
+      <div class="modal-body worker-editor-body">
+        <div id="workerEditorError" class="worker-editor-error" role="alert" hidden></div>
+        <section class="worker-origin-card" id="workerOriginCard" hidden>
+          <strong>Datos conservados del padrón</strong>
+          <dl class="worker-origin-grid"><div><dt>Nombre original</dt><dd id="workerOriginName"></dd></div><div><dt>BioStar (no es documento)</dt><dd id="workerOriginBiostar"></dd></div><div><dt>Área de origen</dt><dd id="workerOriginArea"></dd></div><div><dt>Perfil de origen</dt><dd id="workerOriginProfile"></dd></div></dl>
+          <button type="button" id="workerUseOrigin" class="btn btn-outline btn-sm">Usar área y perfil de origen</button>
+          <small>Se propone una coincidencia exacta del catálogo. La profesión se confirma por separado.</small>
+        </section>
+        <fieldset class="worker-editor-section"><legend>Identificación y contacto</legend>
+          <div class="worker-editor-grid">
+            <label>Tipo de documento<select id="newWorkerTipoDoc" name="tipo_documento_id" class="form-select"></select></label>
+            <label>Documento<input id="newWorkerDni" name="dni" class="form-control" maxlength="20" autocomplete="off"></label>
+            <label>Nombre completo de origen<input name="nombre_completo_original" class="form-control" maxlength="250"></label>
+            <label>Nombres<input id="newWorkerNombres" name="nombres" class="form-control" maxlength="100"></label>
+            <label>Apellido paterno<input id="newWorkerPaterno" name="apellido_paterno" class="form-control" maxlength="100"></label>
+            <label>Apellido materno<input id="newWorkerMaterno" name="apellido_materno" class="form-control" maxlength="100"></label>
+            <label>Sexo<select id="newWorkerSexo" name="sexo_id" class="form-select"></select></label>
+            <label>Fecha de nacimiento<input id="newWorkerNacimiento" type="date" name="fecha_nacimiento" class="form-control"></label>
+            <label>Celular<input id="newWorkerCelular" name="celular" class="form-control" maxlength="30"></label>
+            <label>Teléfono<input name="telefono" class="form-control" maxlength="30"></label>
+            <label>Correo<input id="newWorkerCorreo" type="email" name="correo" class="form-control" maxlength="150"></label>
           </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.85rem;">
-            <div class="form-group">
-              <label for="newWorkerNombres" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Nombres *</label>
-              <input type="text" id="newWorkerNombres" name="nombres" class="form-control" placeholder="Ej: Juan Carlos" required autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerPaterno" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Apellido Paterno *</label>
-              <input type="text" id="newWorkerPaterno" name="apellido_paterno" class="form-control" placeholder="Ej: Pérez" required autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerMaterno" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Apellido Materno</label>
-              <input type="text" id="newWorkerMaterno" name="apellido_materno" class="form-control" placeholder="Ej: Rodríguez" autocomplete="off">
-            </div>
+        </fieldset>
+        <fieldset class="worker-editor-section"><legend>Área y cargo / perfil registrado</legend>
+          <div class="worker-editor-grid">
+            <label>Operación<select name="accion_asignacion" id="workerAssignmentAction" class="form-select"><option value="corregir">Registrar o corregir la relación actual</option><option value="trasladar">Registrar traslado con nueva vigencia</option><option value="finalizar">Finalizar la asignación actual</option><option value="conservar">Conservar la asignación sin cambios</option></select></label>
+            <label>Departamento formal<select id="newWorkerDepartamento" name="departamento_id" class="form-select"></select></label>
+            <label>Área funcional / institucional<select id="newWorkerArea" name="area_id" class="form-select"></select></label>
+            <label>Servicio del área (opcional)<select id="newWorkerServicio" name="servicio_id" class="form-select"></select></label>
+            <label>Cargo / perfil registrado<select id="newWorkerCargo" name="cargo_id" class="form-select"></select></label>
+            <label>Inicio de vigencia, si se conoce<input type="date" id="workerAssignmentStart" name="fecha_asignacion" class="form-control"></label>
+            <label id="workerAssignmentEndWrap" hidden>Fin de vigencia<input type="date" id="workerAssignmentEnd" name="fecha_fin_asignacion" class="form-control"></label>
+            <label>Motivo de la modificación<input name="motivo_asignacion" class="form-control" maxlength="200" placeholder="Requerido al cambiar una relación existente"></label>
           </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.85rem;">
-            <div class="form-group">
-              <label for="newWorkerNacimiento" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Fecha de Nacimiento</label>
-              <input type="date" id="newWorkerNacimiento" name="fecha_nacimiento" class="form-control">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerCelular" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Celular / Móvil</label>
-              <input type="tel" id="newWorkerCelular" name="celular" class="form-control" placeholder="Ej: 948123456" maxlength="20" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerCorreo" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Correo Electrónico</label>
-              <input type="email" id="newWorkerCorreo" name="correo" class="form-control" placeholder="ejemplo@minsa.gob.pe" autocomplete="off">
-            </div>
+          <label class="worker-check"><input type="checkbox" id="workerShowAllProfiles"> Mostrar también perfiles no observados en esta área</label>
+          <p class="worker-editor-hint" id="workerAreaHint"></p>
+          <p class="worker-editor-hint">Las áreas funcionales del mapa pueden no tener departamento formal documentado. Ese vínculo puede permanecer sin registrar.</p>
+          <input type="hidden" name="asignacion_actual_id" value="0">
+        </fieldset>
+        <fieldset class="worker-editor-section"><legend>Profesión y especialidad verificadas</legend>
+          <div class="worker-editor-grid">
+            <label>Profesión<select id="newWorkerProfesion" name="profesion_id" class="form-select"></select></label>
+            <label>Especialidad de esa profesión<select id="newWorkerEspecialidad" name="especialidad_id" class="form-select"></select></label>
           </div>
-        </div>
-
-        <!-- Sección 2: Asignación y Puesto -->
-        <div style="margin-bottom: 1.25rem;">
-          <h4 style="font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
-            <span>🏥</span> 2. Asignación Institucional
-          </h4>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-            <div class="form-group">
-              <label for="newWorkerArea" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Área Organizacional *</label>
-              <select id="newWorkerArea" name="area_id" class="form-select" required>
-                <option value="">Cargando áreas...</option>
+          <p class="worker-editor-hint" id="workerProfessionHint"></p>
+          <button type="button" id="workerApplyProfession" class="btn btn-outline btn-sm" hidden>Aplicar propuesta profesional para revisión</button>
+        </fieldset>
+        <fieldset class="worker-editor-section"><legend>Datos laborales</legend>
+          <div class="worker-editor-grid">
+            <label>Situación confirmada<select name="activo" class="form-select"><option value="">Por confirmar</option><option value="1">Activo</option><option value="0">Inactivo</option></select></label>
+            <label>Código de empleado<input id="newWorkerCodigo" name="codigo_empleado" class="form-control" maxlength="30"></label>
+            <label>Fecha real de ingreso<input id="newWorkerFechaIngreso" type="date" name="fecha_ingreso" class="form-control"></label>
+            <label>Grupo ocupacional<input name="grupo_ocupacional" class="form-control" maxlength="30"></label>
+            <label>Régimen laboral
+              <select name="regimen_laboral" id="newWorkerRegimen" class="form-select">
+                <option value="">Sin definir</option>
+                <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+                <option value="ASISTENCIAL">ASISTENCIAL (150h / SETI)</option>
               </select>
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerServicio" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Servicio Hospitalario</label>
-              <select id="newWorkerServicio" name="servicio_id" class="form-select">
-                <option value="">Seleccionar Servicio...</option>
+            </label>
+            <label>Condición laboral
+              <select name="condicion_laboral" id="newWorkerCondicion" class="form-select">
+                <option value="">Sin definir</option>
+                <option value="NOMBRADO">NOMBRADO</option>
+                <option value="CAS">CAS (D.L. 1057)</option>
+                <option value="DESTACADO">DESTACADO</option>
               </select>
-            </div>
+            </label>
           </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 0.85rem;">
-            <div class="form-group">
-              <label for="newWorkerCargo" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Cargo Funcional *</label>
-              <select id="newWorkerCargo" name="cargo_id" class="form-select" required>
-                <option value="">Cargando cargos...</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerProfesion" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Profesión</label>
-              <select id="newWorkerProfesion" name="profesion_id" class="form-select">
-                <option value="">Seleccionar Profesión...</option>
-              </select>
-            </div>
+        </fieldset>
+        <label class="worker-check"><input type="checkbox" name="registrar_contrato" id="workerEditContract" value="1"> Registrar o editar los datos del contrato</label>
+        <fieldset class="worker-editor-section" id="workerContractFields" disabled><legend>Contrato</legend>
+          <input type="hidden" name="contrato_id">
+          <div class="worker-editor-grid">
+            <label>Tipo de contrato<select id="newWorkerTipoContrato" name="tipo_contrato_id" class="form-select"></select></label>
+            <label>Número de contrato<input id="newWorkerNumContrato" name="numero_contrato" class="form-control" maxlength="50"></label>
+            <label>Inicio<input type="date" name="contrato_inicio" class="form-control"></label>
+            <label>Fin<input id="newWorkerContratoFin" type="date" name="contrato_fin" class="form-control"></label>
           </div>
-        </div>
-
-        <!-- Sección 3: Datos Laborales y Contrato -->
-        <div>
-          <h4 style="font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
-            <span>📄</span> 3. Contrato y Código
-          </h4>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-            <div class="form-group">
-              <label for="newWorkerCodigo" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Código de Empleado</label>
-              <input type="text" id="newWorkerCodigo" name="codigo_empleado" class="form-control" placeholder="Generación automática (EMP-XXXXX)" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerFechaIngreso" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Fecha de Ingreso *</label>
-              <input type="date" id="newWorkerFechaIngreso" name="fecha_ingreso" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerTipoContrato" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Régimen / Condición *</label>
-              <select id="newWorkerTipoContrato" name="tipo_contrato_id" class="form-select" required>
-                <option value="1">CAS (D.L. 1057)</option>
-                <option value="2">NOMBRADO (D.L. 276)</option>
-                <option value="3">REGIMEN 728</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.85rem;">
-            <div class="form-group">
-              <label for="newWorkerNumContrato" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Número de Contrato</label>
-              <input type="text" id="newWorkerNumContrato" name="numero_contrato" class="form-control" placeholder="Opcional: CONTRATO-2026-XXXX" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="newWorkerContratoFin" style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; display: block;">Vigencia Hasta</label>
-              <input type="date" id="newWorkerContratoFin" name="contrato_fin" class="form-control">
-            </div>
-          </div>
-        </div>
-
+        </fieldset>
       </div>
-
-      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border-subtle);">
-        <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btnSubmitNewWorker">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <span id="btnSubmitNewWorkerText">Guardar Trabajador</span>
-        </button>
-      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary modal-close">Cancelar</button><button type="submit" id="btnSubmitNewWorker" class="btn btn-primary"><span id="btnSubmitNewWorkerText">Guardar trabajador</span></button></div>
     </form>
   </div>
 </div>
 
+<?php if (Auth::hasRole('ADMIN','ADMIN_RRHH','JEFE_RRHH')): ?>
+<div class="report-table-card" style="margin-top:1rem;padding:1rem">
+  <h3>Identificadores BioStar pendientes de verificación</h3>
+  <p>Los datos de origen se conservan sin convertir el ID biométrico en documento de identidad.</p>
+  <div id="padronPendienteListado">Consultando registros pendientes…</div>
+  <form id="formVincularBiostar" style="display:grid;gap:.5rem;margin-top:1rem">
+    <label>ID BioStar exacto del origen <input name="biostar_user_id" class="form-control" maxlength="30" required></label>
+    <label>Trabajador de la ficha verificada <select name="personal_id" id="bioWorkerSelect" class="form-select" required><option value="">Seleccione el trabajador</option></select></label>
+    <label>Sustento de la verificación <input name="observacion" class="form-control" maxlength="200" required></label>
+    <label><input name="verificado" type="checkbox" required> Confirmé que el identificador pertenece al trabajador indicado.</label>
+    <button type="submit" class="btn btn-primary">Guardar vínculo verificado</button>
+  </form>
+</div>
+
+<?php endif; ?>

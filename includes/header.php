@@ -23,6 +23,13 @@ $currentUser = Auth::getCurrentUser();
 
   <!-- Controles a la Derecha: Tema y Perfil de Usuario -->
   <div class="header-right">
+    <?php if (Auth::isAuxiliarySession()): ?>
+      <div class="header-auxiliary-badge" title="Sesión activa en Modo Auxiliar (Sin Conexión BD obligatoria). Datos locales y snapshots disponibles.">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span>Modo Auxiliar (Sin Conexión BD)</span>
+      </div>
+    <?php endif; ?>
+
     <!-- Botón de Tema (Claro / Oscuro) -->
     <button type="button" class="header-icon-btn" id="themeToggleBtn" title="Cambiar tema visual">
       <span id="themeIcon">🌙</span>

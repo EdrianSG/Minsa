@@ -188,9 +188,17 @@ function renderTurnosGrid(turnos) {
 
         <div class="turno-card-footer">
           <span>Código: <strong>${escapeHtml(t.codigo)}</strong></span>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="editarTurno(${t.turno_id})">
-            Editar Parámetros
-          </button>
+          <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="editarTurno(${t.turno_id})">
+              Editar
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarTurno(${t.turno_id})" title="Eliminar turno del catálogo">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 2px; vertical-align: -1px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Eliminar</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -434,6 +442,9 @@ function abrirModalNuevoTurno() {
   document.getElementById('turnoEsGuardia').checked = false;
   document.getElementById('turnoColor').value = '#0284c7';
 
+  const btnEliminar = document.getElementById('btnEliminarTurnoModal');
+  if (btnEliminar) btnEliminar.style.display = 'none';
+
   openModal('modalTurno');
 }
 
@@ -451,7 +462,29 @@ function editarTurno(turnoId) {
   document.getElementById('turnoHorasComputables').value = t.horas_computables;
   document.getElementById('turnoCruzaMedianoche').checked = (intval(t.cruza_medianoche) === 1);
   document.getElementById('turnoEsGuardia').checked = (intval(t.es_guardia) === 1);
-  document.getElementById('turnoColor').value = t.color || '#0284c7';
+  
+  const colorSelect = document.getElementById('turnoColor');
+  if (colorSelect) {
+    const targetColor = (t.color || '#0284c7').toLowerCase().trim();
+    let optionFound = false;
+    for (let i = 0; i < colorSelect.options.length; i++) {
+      if (colorSelect.options[i].value.toLowerCase() === targetColor) {
+        colorSelect.selectedIndex = i;
+        optionFound = true;
+        break;
+      }
+    }
+    if (!optionFound && targetColor) {
+      const opt = document.createElement('option');
+      opt.value = targetColor;
+      opt.textContent = `Personalizado (${targetColor})`;
+      opt.selected = true;
+      colorSelect.appendChild(opt);
+    }
+  }
+
+  const btnEliminar = document.getElementById('btnEliminarTurnoModal');
+  if (btnEliminar) btnEliminar.style.display = 'inline-flex';
 
   openModal('modalTurno');
 }
@@ -462,6 +495,7 @@ function editarTurno(turnoId) {
 function initAssignScheduleForm() {
   const form = document.getElementById('formAsignarHorario');
   if (!form) return;
+  document.getElementById('assignTipoPersonal')?.addEventListener('change', recalculateModalWorkload);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -485,7 +519,8 @@ function initAssignScheduleForm() {
     try {
       const res = await API.post('horarios/asignar.php', {
         personal_id: workerId,
-        fecha_inicio: document.getElementById('assignFechaInicio').value || '2026-09-01',
+        fecha_inicio: document.getElementById('assignFechaInicio').value,
+        tipo_personal: document.getElementById('assignTipoPersonal').value,
         dias
       });
 
@@ -513,13 +548,7 @@ function populateShiftSelectOptions(turnos) {
           <option value="${t.turno_id}">${t.codigo} - ${t.nombre} (${t.horas_computables}h)</option>
         `).join('')}
       `;
-      // Por defecto L-V: Mañana (TurnoID 1) o Administrativo (TurnoID 5); Fin de semana: Libre (0)
-      if (i <= 5) {
-        sel.value = "1";
-      } else {
-        sel.value = "0";
-      }
-
+      sel.value = '0';
       // Escuchar cambios reactivos para recalcular carga horaria
       sel.addEventListener('change', recalculateModalWorkload);
     }
@@ -550,7 +579,7 @@ async function loadWorkersForScheduleAssign() {
   if (!select) return;
 
   try {
-    const res = await API.get('personal/listar.php', { limit: 100 });
+    const res = await API.get('personal/opciones.php', {contexto:'horarios'});
     if (res && res.ok && Array.isArray(res.data)) {
       horariosState.workers = res.data;
       select.innerHTML = '<option value="">Seleccione personal...</option>';
@@ -623,23 +652,12 @@ function recalculateModalWorkload() {
   const workerId = intval(workerSelect ? workerSelect.value : 0);
   const worker = (horariosState.workers || []).find(w => intval(w.personal_id) === workerId);
   
-  // Determinar régimen: ASISTENCIAL vs ADMINISTRATIVO
-  let isAdministrativo = false;
-  let regimeName = 'Personal Asistencial';
-  let maxSemanal = 48.0;
-  let targetMensual = 150.0;
-  let maxMensual = null; // NULL: No bloquea por superar 150h
-
-  if (worker) {
-    const rawRegimen = (worker.regimen_laboral || '').toUpperCase();
-    const cargo = (worker.cargo_nombre || '').toLowerCase();
-    if (rawRegimen === 'ADMINISTRATIVO' || cargo.includes('admin') || cargo.includes('informát') || cargo.includes('contab') || cargo.includes('secretar') || cargo.includes('rrhh') || cargo.includes('asistente')) {
-      isAdministrativo = true;
-      regimeName = 'Personal Administrativo';
-      maxSemanal = 44.0;
-      targetMensual = null; // Administrativo se rige por días laborables de su jornada
-    }
-  }
+  const selectedType = document.getElementById('assignTipoPersonal')?.value || '';
+  const isAdministrativo = selectedType === 'ADMINISTRATIVO';
+  const regimeName = selectedType ? (isAdministrativo ? 'Personal Administrativo' : 'Personal Asistencial') : 'Reglas pendientes';
+  const maxSemanal = selectedType ? (isAdministrativo ? 44.0 : 48.0) : null;
+  const targetMensual = selectedType === 'ASISTENCIAL' ? 150.0 : null;
+  const maxMensual = null;
 
   if (regimeBadge) {
     regimeBadge.textContent = `Tipo: ${regimeName}`;
@@ -658,10 +676,15 @@ function recalculateModalWorkload() {
   }
 
   weeklyText.textContent = `${totalHorasSemana.toFixed(1)} h`;
-  weeklyLimit.textContent = `Máx: ${maxSemanal.toFixed(0)}h`;
+  weeklyLimit.textContent = maxSemanal === null ? 'Sin reglas confirmadas' : `Máx: ${maxSemanal.toFixed(0)}h`;
 
   // 2. PROYECCIÓN MENSUAL REAL POR CALENDARIO (Día por día desde FechaInicio hasta Fin de Mes)
-  const fechaStr = (dateInput && dateInput.value) ? dateInput.value : '2026-09-01';
+  const fechaStr = dateInput?.value || '';
+  if (!fechaStr) {
+    if (statusMsg) statusMsg.textContent = 'Seleccione la fecha real de inicio de la pauta.';
+    if (submitBtn) submitBtn.disabled = true;
+    return;
+  }
   const parts = fechaStr.split('-');
   const year = intval(parts[0]) || 2026;
   const month = intval(parts[1]) || 9;
@@ -716,7 +739,7 @@ function recalculateModalWorkload() {
   let message = 'Programación válida dentro de los parámetros';
 
   // Regla BLOQUEO: Superar el máximo semanal configurado
-  if (totalHorasSemana > maxSemanal) {
+  if (maxSemanal !== null && totalHorasSemana > maxSemanal) {
     estado = 'BLOQUEO';
     icon = '🛑';
     message = `Bloqueo: Carga semanal (${totalHorasSemana.toFixed(1)}h) excede el máximo permitido (${maxSemanal.toFixed(0)}h)`;
@@ -740,6 +763,8 @@ function recalculateModalWorkload() {
     icon = 'ℹ️';
     message = `Cumple objetivo mensual de ${targetMensual.toFixed(0)}h (cuenta con +${(totalHorasMes - targetMensual).toFixed(1)}h proyectadas)`;
   }
+
+  if (!selectedType) { estado = 'BLOQUEO'; icon = '⚠️'; message = 'Seleccione las reglas aplicables para validar esta pauta.'; }
 
   // Aplicar Estilos del Estado
   if (statusBox && statusIcon && statusMsg) {
@@ -811,3 +836,44 @@ function limpiarTodosADescanso() {
 
 window.copiarLunesATodos = copiarLunesATodos;
 window.limpiarTodosADescanso = limpiarTodosADescanso;
+
+/**
+ * Elimina o retira un turno oficial del catálogo
+ */
+async function eliminarTurno(turnoId) {
+  turnoId = intval(turnoId);
+  if (turnoId <= 0) return;
+
+  const t = (horariosState.turnos || []).find(item => item.turno_id === turnoId);
+  const nombreTurno = t ? `${t.codigo} - ${t.nombre}` : `Turno #${turnoId}`;
+
+  const confirmMsg = `¿Está seguro de eliminar el turno "${nombreTurno}" del catálogo oficial?\n\nSi el turno cuenta con registros históricos asociados en programaciones o pautas, será retirado del catálogo activo preservando la trazabilidad institucional.`;
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+
+  try {
+    const res = await API.post('turnos/eliminar.php', { turno_id: turnoId });
+    if (res && (res.ok || res.success)) {
+      showToast(res.message || res.mensaje || 'Turno eliminado correctamente del catálogo.', 'success');
+      closeModal('modalTurno');
+      await loadTurnosCatalog();
+    } else {
+      showToast(res.message || res.mensaje || 'No se pudo eliminar el turno.', 'danger');
+    }
+  } catch (error) {
+    showToast(error.message || 'Error al eliminar el turno.', 'danger');
+  }
+}
+
+function eliminarTurnoDesdeModal() {
+  const turnoId = intval(document.getElementById('turnoId').value);
+  if (turnoId > 0) {
+    eliminarTurno(turnoId);
+  }
+}
+
+window.editarTurno = editarTurno;
+window.abrirModalNuevoTurno = abrirModalNuevoTurno;
+window.eliminarTurno = eliminarTurno;
+window.eliminarTurnoDesdeModal = eliminarTurnoDesdeModal;

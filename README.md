@@ -1,7 +1,45 @@
+# SIGH-MINSA · Recursos Humanos
+
+Hospital Distrital de Pacasmayo, PMYO.
+
+La aplicación administra personal, horarios, programación mensual, asistencia biométrica, ausencias, reportes y seguridad mediante PHP, JavaScript y Microsoft SQL Server. La base objetivo de la etapa actual es **`BD_HOSPITAL_V3`**. El trabajo inicial sobre V4 y los otros sistemas hospitalarios se describe en la documentación histórica.
+
+## Contexto y continuidad
+
+La referencia actual del proyecto está en [Contexto actual del proyecto](docs/CONTEXTO_ACTUAL_DEL_PROYECTO.md), actualizado el **12 de noviembre de 2026**.
+
+Ese documento reúne el objetivo, las reglas del usuario, los entornos, la carga de personal verificada, las mejoras de filtros y dashboard, las optimizaciones, los archivos de la última entrega, las pruebas y los pendientes.
+
+## Estado de la entrega
+
+- La carga verificada de noviembre añadió 450 trabajadores en pruebas y dejó 451 en total. Los documentos anteriores a esa carga conservan sus recuentos históricos.
+- El usuario confirmó la instalación de la optimización de selectores y paginación en el servidor del ingeniero.
+- La entrega más reciente añade caché verificable y skeletons en las cuatro pestañas de Reportes. Falta confirmar su instalación y la ejecución de `database/habilitar_cache_rrhh_v3.sql` en el ingeniero.
+- Persisten pendientes de integridad en el alta ordinaria de personal y compatibilidad de cuentas técnicas, detallados en el documento de contexto.
+
+## Configuración
+
+Conservar `config/database.local.php` propio de cada servidor. Las variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASS` tienen prioridad sobre ese archivo. El conector actual requiere `pdo_sqlsrv`.
+
+Las credenciales locales, los archivos de personal y las evidencias privadas deben mantenerse en sus ubicaciones protegidas. La instalación del usuario se ha realizado mediante copia de archivos.
+
+## Documentación histórica
+
+El contenido siguiente conserva el README previo para rastrear la evolución del proyecto. Incluye direcciones, bases, recuentos, funcionalidades propuestas y descripciones que ya cambiaron. Para instalar o continuar la versión actual, utilizar el documento de contexto y el código vigente.
+
+<details>
+<summary>Mostrar README histórico de etapas anteriores</summary>
+
+> **Personal PMYO:** catálogos reales y editor de relaciones actualizados conforme al mapa de 181/29/57: [edición, datos aplicados y pruebas](docs/PERSONAL_RELACIONES_PMYO.md).
+
+> **Estado V4 actualizado:** datos cargados, correspondencias conservadas y pruebas reales en SQL Server: [Conciliación V4](docs/CONCILIACION_V4.md). Las fichas incompletas y sus datos laborales pendientes se muestran sin completar información por inferencia.
+
+> **Adaptación V4 (2026-11-03):** este repositorio corresponde a RR. HH. Consulte el [inventario previo](docs/INVENTARIO_V4.md) y el [informe de adaptación y pendientes](docs/INFORME_ADAPTACION_V4.md). La base predeterminada es `BD_HOSPITAL_V4`; requiere `APP_SYSTEM_CODE` coincidente con un sistema real y habilitaciones por usuario. La documentación histórica inferior describe versiones anteriores y no debe utilizarse para instalar o poblar V4. Validación SQL e integración de Clínica/Laboratorio pendientes.
+
 # Sistema Integral de Gestión Hospitalaria y Control de Asistencia (SIGH-MINSA)
 ## Hospital Distrital de Pacasmayo — Red Integrada de Salud Pacasmayo / GERESA La Libertad
 
-> **Estado actual:** SQL Server es la fuente principal. La programación mensual cuenta con persistencia transaccional SQL y las vistas reutilizan caché de sesión mientras la revisión de datos siga vigente. Los snapshots quedan como respaldo de consulta ante emergencias. Consulte [instalación y funcionamiento SQL/caché](docs/SQL_Y_CACHE.md) y las [correcciones previas](docs/CORRECCIONES_2026-10-26.md). El login exige verificación de hash SQL; los reportes oficiales requieren conexión.
+> **Estado actual:** SQL Server es la fuente principal. La programación mensual cuenta con persistencia transaccional SQL y las vistas reutilizan caché de sesión mientras la revisión de datos siga vigente. Los snapshots quedan como respaldo de consulta ante emergencias. Consulte las [correcciones verificadas del 27 de octubre](docs/CORRECCIONES_2026-10-27.md), [instalación y funcionamiento SQL/caché](docs/SQL_Y_CACHE.md) y las [correcciones previas](docs/CORRECCIONES_2026-10-26.md). El login exige verificación de hash SQL; los reportes oficiales requieren conexión.
 
 ---
 
@@ -323,8 +361,8 @@ Los parámetros de conexión se configuran en [config/database.php](file:///home
 'host'                     => getenv('DB_HOST') ?: '192.168.10.190',
 'port'                     => getenv('DB_PORT') ?: '1433',
 'database'                 => getenv('DB_NAME') ?: 'BD_HOSPITAL',
-'username'                 => getenv('DB_USER') ?: 'eduardo_dev',
-'password'                 => getenv('DB_PASS') ?: '123456789',
+'username'                 => getenv('DB_USER') ?: '',
+'password'                 => getenv('DB_PASS') ?: '',
 'trust_server_certificate' => true,
 'timeout'                  => 3
 ```
@@ -332,7 +370,7 @@ Los parámetros de conexión se configuran en [config/database.php](file:///home
 ### Ejecución Local de Desarrollo:
 Para iniciar el servidor de desarrollo en la red local:
 ```bash
-php -S 0.0.0.0:8080
+scripts/serve-dev.sh 127.0.0.1:8080
 ```
 Acceso desde el navegador: `http://localhost:8080` (o la IP de la máquina en la red hospitalaria).
 
@@ -348,3 +386,6 @@ Acceso desde el navegador: `http://localhost:8080` (o la IP de la máquina en la
 
 ---
 *Hospital Distrital de Pacasmayo — Sistema de Gestión Hospitalaria y Control de Asistencia SIGH-MINSA.*
+
+
+</details>

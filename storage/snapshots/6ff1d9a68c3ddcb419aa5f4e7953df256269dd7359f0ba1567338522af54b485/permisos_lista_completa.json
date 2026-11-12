@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_SYNC",
+        "database_source": "6ff1d9a68c3ddcb419aa5f4e7953df256269dd7359f0ba1567338522af54b485",
+        "key": "permisos_lista_completa",
+        "version": 5,
+        "saved_at": "2026-11-05 17:07:20",
+        "timestamp": 1793916440,
+        "hash": "d751713988987e9331980363e24189ce",
+        "is_snapshot": true
+    },
+    "data": []
+}

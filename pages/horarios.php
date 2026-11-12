@@ -224,6 +224,7 @@ $pageScript = "horarios.js";
               <option value="#7c3aed">Púrpura Amatista (Noche)</option>
               <option value="#0d9488">Teal Quirúrgico (Guardia Diurna)</option>
               <option value="#4f46e5">Índigo Profundo (Guardia Nocturna)</option>
+              <option value="#b91c1c">Rojo Carmesí (Guardia 24h / Crítico)</option>
               <option value="#475569">Gris Pizarra (Administrativo)</option>
               <option value="#0891b2">Cian Glaciar (Vacaciones)</option>
             </select>
@@ -243,9 +244,17 @@ $pageScript = "horarios.js";
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar Turno en Catálogo</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-outline-danger btn-sm" id="btnEliminarTurnoModal" style="display: none;" onclick="eliminarTurnoDesdeModal()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 4px; vertical-align: -2px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Eliminar Turno</span>
+        </button>
+        <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+          <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Turno en Catálogo</button>
+        </div>
       </div>
     </form>
   </div>
@@ -279,7 +288,7 @@ $pageScript = "horarios.js";
 
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="assignFechaInicio">Fecha de Inicio *</label>
-            <input type="date" class="form-control" id="assignFechaInicio" value="2026-09-01" required>
+            <input type="date" class="form-control" id="assignFechaInicio" required>
           </div>
         </div>
 
@@ -336,6 +345,7 @@ $pageScript = "horarios.js";
         <!-- =========================================================
              RESUMEN DE CARGA HORARIA (REGLAS DE NEGOCIO MINSA)
              ========================================================= -->
+        <label for="assignTipoPersonal">Reglas confirmadas para esta pauta</label><select id="assignTipoPersonal" class="form-select" required><option value="">Seleccione las reglas aplicables</option><option value="ASISTENCIAL">Asistencial: referencia mensual 150 horas</option><option value="ADMINISTRATIVO">Administrativo: jornada semanal</option></select>
         <div id="scheduleWorkloadSummary" style="margin-top: 0.65rem; padding: 0.7rem 0.85rem; background: var(--bg-surface-muted, #1a1a1a); border: 1px solid var(--border-color, #333); border-radius: var(--radius-md, 8px);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
             <span style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">

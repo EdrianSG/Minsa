@@ -14,6 +14,7 @@ apiGuard('personal', ['GET'], ['JEFE_RRHH']);
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__.'/../../includes/PmyoCatalog.php';
 
 $pdo = Database::getConnection();
 
@@ -27,42 +28,39 @@ if (!$pdo) {
 
 try {
     // 1. Tipos de Documento
-    $stmtDoc = $pdo->query("SELECT TipoDocumentoID AS id, Codigo AS codigo, Nombre AS nombre FROM catalogo.TipoDocumento WHERE Estado = 1 ORDER BY TipoDocumentoID");
+    $stmtDoc = $pdo->query("SELECT TipoDocumentoID AS id, Codigo AS codigo, Nombre AS nombre, Activo AS activo FROM catalogo.TipoDocumento ORDER BY TipoDocumentoID");
     $tiposDocumento = $stmtDoc->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Sexos
-    $stmtSexo = $pdo->query("SELECT SexoID AS id, Codigo AS codigo, Nombre AS nombre FROM catalogo.Sexo WHERE Estado = 1 ORDER BY SexoID");
+    $stmtSexo = $pdo->query("SELECT SexoID AS id, Codigo AS codigo, Nombre AS nombre, Activo AS activo FROM catalogo.Sexo ORDER BY SexoID");
     $sexos = $stmtSexo->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Áreas
-    $stmtAreas = $pdo->query("SELECT AreaID AS id, Nombre AS nombre FROM organizacion.Area WHERE Estado = 1 ORDER BY Nombre");
+    $stmtAreas = $pdo->query("SELECT AreaID AS id, DepartamentoID AS departamento_id, Nombre AS nombre, Activo AS activo FROM organizacion.Area ORDER BY Nombre");
     $areas = $stmtAreas->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Servicios
-    $stmtServ = $pdo->query("SELECT ServicioID AS id, Nombre AS nombre, AreaID AS area_id FROM organizacion.Servicio WHERE Estado = 1 ORDER BY Nombre");
+    $stmtServ = $pdo->query("SELECT ServicioID AS id, Nombre AS nombre, AreaID AS area_id, Activo AS activo FROM organizacion.Servicio ORDER BY Nombre");
     $servicios = $stmtServ->fetchAll(PDO::FETCH_ASSOC);
 
     // 5. Cargos
-    $stmtCargos = $pdo->query("SELECT CargoID AS id, Nombre AS nombre FROM rrhh.Cargo WHERE Estado = 1 ORDER BY Nombre");
+    $stmtCargos = $pdo->query("SELECT CargoID AS id, Nombre AS nombre, Activo AS activo FROM rrhh.Cargo ORDER BY Nombre");
     $cargos = $stmtCargos->fetchAll(PDO::FETCH_ASSOC);
 
     // 6. Profesiones
-    $stmtProf = $pdo->query("SELECT ProfesionID AS id, Nombre AS nombre FROM rrhh.Profesion WHERE Estado = 1 ORDER BY Nombre");
+    $stmtProf = $pdo->query("SELECT ProfesionID AS id, Codigo AS codigo, Nombre AS nombre, Activo AS activo FROM rrhh.Profesion ORDER BY Nombre");
     $profesiones = $stmtProf->fetchAll(PDO::FETCH_ASSOC);
 
     // 7. Tipos de Contrato
-    $stmtCont = $pdo->query("SELECT TipoContratoID AS id, Nombre AS nombre FROM rrhh.TipoContrato WHERE Estado = 1 ORDER BY TipoContratoID");
+    $stmtCont = $pdo->query("SELECT TipoContratoID AS id, Nombre AS nombre, Activo AS activo FROM rrhh.TipoContrato ORDER BY TipoContratoID");
     $tiposContrato = $stmtCont->fetchAll(PDO::FETCH_ASSOC);
 
-    // 8. Sugerir siguiente código de empleado
-    $stmtMaxEmp = $pdo->query("SELECT MAX(CAST(SUBSTRING(CodigoEmpleado, 5, 10) AS INT)) FROM rrhh.Personal WHERE CodigoEmpleado LIKE 'EMP-%'");
-    $maxNum = $stmtMaxEmp->fetchColumn();
-    $nextNum = ($maxNum ? intval($maxNum) + 1 : 101);
-    $suggestedCode = 'EMP-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+    $especialidades = $pdo->query("SELECT EspecialidadID AS id, ProfesionID AS profesion_id, Nombre AS nombre, Activo AS activo FROM rrhh.Especialidad ORDER BY Nombre")->fetchAll(PDO::FETCH_ASSOC);
+    $departamentos = $pdo->query("SELECT DepartamentoID AS id, SedeID AS sede_id, Nombre AS nombre, Activo AS activo FROM organizacion.Departamento ORDER BY Nombre")->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         'success' => true,
-        'data' => [
+        'data' => PmyoCatalog::enrich([
             'tipos_documento' => $tiposDocumento,
             'sexos'           => $sexos,
             'areas'           => $areas,
@@ -70,8 +68,9 @@ try {
             'cargos'          => $cargos,
             'profesiones'     => $profesiones,
             'tipos_contrato'  => $tiposContrato,
-            'suggested_code'  => $suggestedCode
-        ]
+            'especialidades' => $especialidades,
+            'departamentos' => $departamentos
+        ])
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {

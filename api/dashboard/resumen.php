@@ -15,8 +15,10 @@ apiGuard('dashboard', ['GET'], []);
 
 header('Content-Type: application/json; charset=utf-8');
 
+require_once __DIR__.'/../../includes/WorkloadPolicy.php';
 $fecha = $_GET['fecha'] ?? date('Y-m-d');
 if (!apiValidDate($fecha)) apiError(400, 'Fecha inválida.');
+$workloadSql=WorkloadPolicy::sql('p.PersonalID',$fecha);
 
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
@@ -42,69 +44,45 @@ if (!$pdo && SnapshotStore::has("asistencia_diaria_{$fecha}")) {
 // 2. Si no hay snapshot, consultar directamente SQL Server
 if (empty($snapAsist) && $pdo !== null) {
     try {
-        // Verificar si rrhh.Asistencia tiene registros para esta fecha
-        $stmtChk = $pdo->prepare("SELECT COUNT(*) as cnt FROM rrhh.Asistencia WHERE Fecha = ?");
-        $stmtChk->execute([$fecha]);
-        $cntAsist = (int)($stmtChk->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
-
-        // Si no hay registros en rrhh.Asistencia, verificar si hay marcaciones biométricas para auto-conciliar
-        if ($cntAsist === 0) {
-            $stmtBio = $pdo->prepare("SELECT COUNT(*) as cnt FROM rrhh.MarcacionBiometrica WHERE CAST(FechaHora AS DATE) = ?");
-            $stmtBio->execute([$fecha]);
-            $cntBio = (int)($stmtBio->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
-
-            if ($cntBio > 0) {
-                // Auto-conciliación en vivo
-                AttendanceReconciler::conciliarFecha($fecha, $pdo);
-            }
-        }
-
         // Consultar personal y asistencia
         $sql = "
             SELECT 
                 p.PersonalID,
-                per.NumeroDocumento AS DNI,
-                per.Nombres,
-                per.ApellidoPaterno,
-                per.ApellidoMaterno,
-                per.Telefono,
-                per.Correo AS CorreoElectronico,
+                p.NumeroDocumento AS DNI,
+                p.Nombres,
+                p.ApellidoPaterno,
+                p.ApellidoMaterno,
+                p.Telefono,
+                p.Correo AS CorreoElectronico,
                 ISNULL(c.Nombre, 'Servidor Público') AS NombreCargo,
                 ISNULL(prof.Nombre, 'General') AS NombreProfesion,
                 s.ServicioID,
                 ISNULL(s.Nombre, 'Hospital Distrital de Pacasmayo') AS NombreServicio,
-                'ASISTENCIAL' AS RegimenLaboral,
-                ISNULL(tc.Nombre, 'CAS') AS CondicionLaboral,
-                t.TurnoID,
-                ISNULL(t.Nombre, 'Mañana Ordinario') AS NombreTurno,
-                ISNULL(CONVERT(VARCHAR(8), t.HoraInicio, 108), '07:00:00') AS HoraProgInicio,
-                ISNULL(CONVERT(VARCHAR(8), t.HoraFin, 108), '13:00:00') AS HoraProgFin,
+                {$workloadSql} AS RegimenLaboral,
+                p.CondicionLaboral AS CondicionLaboral,
+                NULL AS TurnoID,
+                NULL AS NombreTurno,
+                NULL AS HoraProgInicio,
+                NULL AS HoraProgFin,
                 a.AsistenciaID,
                 CONVERT(VARCHAR(8), a.HoraEntrada, 108) AS HoraEntrada,
                 CONVERT(VARCHAR(8), a.HoraSalida, 108) AS HoraSalida,
                 a.Estado AS EstadoAsistencia,
                 a.Observacion
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Profesion prof ON ap.ProfesionID = prof.ProfesionID
+            LEFT JOIN rrhh.Profesion prof ON p.ProfesionID = prof.ProfesionID
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+            OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
             LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-            LEFT JOIN rrhh.Horario h ON p.PersonalID = h.PersonalID AND h.DiaSemana = :diaSemana AND h.Estado = 1 AND h.FechaInicio <= :fechaInicio AND (h.FechaFin IS NULL OR h.FechaFin >= :fechaFin)
-            LEFT JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
             LEFT JOIN rrhh.Asistencia a ON p.PersonalID = a.PersonalID AND a.Fecha = :fechaAsist
-            WHERE p.Estado = 1
-            ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+            WHERE p.Activo = 1
+            ORDER BY p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
         ";
 
-        $diaSemana = (int)date('N', strtotime($fecha));
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            ':diaSemana'    => $diaSemana,
-            ':fechaInicio'  => $fecha,
-            ':fechaFin'     => $fecha,
             ':fechaAsist'   => $fecha
         ]);
         $rawRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -121,16 +99,17 @@ if (empty($snapAsist) && $pdo !== null) {
         }
     } catch (Throwable $e) {
         error_log("Error al consultar asistencia para dashboard: " . $e->getMessage());
+        apiError(503, 'No se pudo consultar el resumen en SQL Server.');
     }
 }
 
 // Estadísticas biométricas reales
 $bioStats = [
-    'estado'                => 'ONLINE',
-    'terminal_id'           => 'BIO-PUERTA-PRINCIPAL-01',
-    'ultima_sincronizacion' => date('H:i:s'),
+    'estado'                => 'SIN_MARCACIONES',
+    'terminal_id'           => null,
+    'ultima_sincronizacion' => null,
     'total_marcaciones_hoy' => 0,
-    'dispositivos_activos'  => 4
+    'dispositivos_activos'  => 0
 ];
 
 if ($pdo !== null) {
@@ -146,6 +125,7 @@ if ($pdo !== null) {
         $stmtBioStats->execute([$fecha]);
         $rowStats = $stmtBioStats->fetch(PDO::FETCH_ASSOC);
         if ($rowStats && $rowStats['TotalMarcaciones'] > 0) {
+            $bioStats['estado'] = 'CON_MARCACIONES';
             $bioStats['total_marcaciones_hoy'] = (int)$rowStats['TotalMarcaciones'];
             $bioStats['dispositivos_activos'] = max(1, (int)$rowStats['DispositivosActivos']);
             if (!empty($rowStats['UltimaMarcacion'])) {
@@ -212,7 +192,7 @@ foreach ($snapAsist as $idx => $item) {
         $presentes++;
     } elseif ($st === 'TARDANZA') {
         $tardanzas++;
-        $minTard = intval($item['minutos_tardanza'] ?? 10);
+        $minTard = intval($item['minutos_tardanza'] ?? 0);
         $casosPendientes[] = [
             'id'          => $idx + 1,
             'dni'         => $item['dni'],
@@ -250,8 +230,6 @@ foreach ($snapAsist as $idx => $item) {
         $justificados++;
     } elseif ($st === 'VACACIONES' || $st === 'VAC') {
         $vacaciones++;
-    } else {
-        $presentes++;
     }
 }
 

@@ -206,14 +206,14 @@ function poblarSelectTipos(tipos) {
  */
 async function cargarPersonalParaSelect() {
   try {
-    const res = await API.get('personal/listar.php', { limit: 100 });
+    const res = await API.get('personal/opciones.php', {contexto:'ausencias'});
     if (res && res.ok) {
-      ausState.personalCatalogo = res.personal || [];
+      ausState.personalCatalogo = res.data || [];
       const select = document.getElementById('solPersonalId');
       if (select) {
         select.innerHTML = '<option value="">-- Seleccione Trabajador --</option>' +
-          res.personal.map(p => `
-            <option value="${p.personal_id}">${escapeHtml(p.nombre_completo)} (DNI: ${p.dni} - ${escapeHtml(p.cargo)})</option>
+          ausState.personalCatalogo.map(p => `
+            <option value="${p.personal_id}">${escapeHtml(p.nombre_completo)} (DNI: ${escapeHtml(p.dni)} - ${escapeHtml(p.cargo_nombre || '')})</option>
           `).join('');
       }
     }
@@ -335,7 +335,7 @@ function renderTablaPermisos(items) {
               ${escapeHtml(p.nombre_completo)}
             </span>
             <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
-              DNI ${p.dni} &bull; ${escapeHtml(p.cargo)}
+              DNI ${escapeHtml(p.dni)} &bull; ${escapeHtml(p.cargo)}
             </span>
           </div>
         </td>
@@ -387,7 +387,7 @@ function renderTablaPermisos(items) {
               type="button" 
               class="btn btn-primary btn-sm"
               style="padding: 0.25rem 0.6rem; font-size: 0.76rem;"
-              onclick="abrirModalDictamen(${p.permiso_id}, '${escapeHtml(p.nombre_completo)}', '${escapeHtml(p.tipo_nombre)}', '${p.fecha_inicio}', '${p.fecha_fin}', '${escapeHtml(p.documento_sustento)}')"
+              data-dictamen="${escapeHtml(JSON.stringify([Number(p.permiso_id), p.nombre_completo, p.tipo_nombre, p.fecha_inicio, p.fecha_fin, p.documento_sustento]))}"
             >
               ⚖ Dictaminar
             </button>
@@ -618,3 +618,8 @@ function debounce(fn, wait) {
     timer = setTimeout(() => fn.apply(this, args), wait);
   };
 }
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-dictamen]');
+  if (button) abrirModalDictamen(...JSON.parse(button.dataset.dictamen));
+});

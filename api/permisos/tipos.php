@@ -18,7 +18,7 @@ $tipos = [];
 
 if ($dbConnected) {
     try {
-        $stmt = $pdo->query("SELECT TipoPermisoLaboralID, Nombre, Descripcion, Estado FROM rrhh.TipoPermisoLaboral WHERE Estado = 1 ORDER BY TipoPermisoLaboralID");
+        $stmt = $pdo->query("SELECT TipoPermisoLaboralID, Nombre, Descripcion, Activo, Activo AS Estado FROM rrhh.TipoPermisoLaboral WHERE Activo = 1 ORDER BY TipoPermisoLaboralID");
         $tipos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $dbConnected = false;

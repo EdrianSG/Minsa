@@ -43,6 +43,7 @@ if ($identificador === '' || $password === '') {
 $resultado = Auth::login($identificador, $password);
 
 if ($resultado['ok']) {
+    unset($resultado['usuario']['auth_stamp']);
     // Sanitizar URL de redirección interna
     if (!preg_match('/^index\.php(?:\?[^\r\n]*)?$/D', $redirect)) {
         $redirect = 'index.php';
@@ -52,12 +53,18 @@ if ($resultado['ok']) {
         'ok'           => true,
         'mensaje'      => $resultado['mensaje'],
         'redirect_url' => $redirect,
-        'usuario'      => $resultado['usuario']
+        'usuario'      => $resultado['usuario'],
+        'is_auxiliary' => !empty($resultado['is_auxiliary'])
     ], JSON_UNESCAPED_UNICODE);
 } else {
-    http_response_code(401);
-    echo json_encode([
+    http_response_code($resultado['status'] ?? 401);
+    if (($resultado['status'] ?? 401) === 429) header('Retry-After: 900');
+    $payload = [
         'ok'      => false,
         'mensaje' => $resultado['mensaje']
-    ], JSON_UNESCAPED_UNICODE);
+    ];
+    if (!empty($resultado['db_offline'])) {
+        $payload['db_offline'] = true;
+    }
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
 }

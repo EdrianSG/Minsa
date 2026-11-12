@@ -26,7 +26,7 @@ $limit = max(1, min(100, intval($_GET['limit'] ?? 20)));
 try {
     $sql = "
         SELECT TOP ($limit)
-            ib.ImportacionID,
+            ib.ImportacionBiometricaID AS ImportacionID,
             ib.NombreArchivo,
             ib.HashSHA256,
             CONVERT(VARCHAR(19), ib.FechaHoraCarga, 120) AS FechaHoraCarga,
@@ -44,7 +44,7 @@ try {
             ib.Observaciones
         FROM rrhh.ImportacionBiometrica ib
         LEFT JOIN seguridad.Usuario u ON ib.UsuarioID = u.UsuarioID
-        ORDER BY ib.ImportacionID DESC
+        ORDER BY ib.ImportacionBiometricaID DESC
     ";
 
     $stmt = $pdo->query($sql);

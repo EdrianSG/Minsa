@@ -46,15 +46,14 @@ $pdo = Database::getConnection();
 $dbConnected = ($pdo !== null);
 $ausentes = [];
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
+require_once __DIR__ . '/../../includes/AttendanceSchedule.php';
 $backupKey = 'ausentes_' . $fecha . '_serv_' . ($servicioId ?? 0);
 
 if ($dbConnected) {
     try {
-        $diaSemana = (int)date('N', strtotime($fecha)); // 1=Lunes..7=Domingo
-        $whereSql = "WHERE CAST(a.Fecha AS DATE) = :fecha AND a.Estado LIKE '%Falta%'";
+        $whereSql = "WHERE CAST(a.Fecha AS DATE) = :fecha AND a.Estado LIKE '%Falta%' AND p.Activo = 1";
         $params = [
-            ':fecha' => $fecha,
-            ':diaSemana' => $diaSemana
+            ':fecha' => $fecha
         ];
 
         if ($servicioId !== null && $servicioId > 0) {
@@ -65,33 +64,32 @@ if ($dbConnected) {
         $sql = "
             SELECT 
                 p.PersonalID AS personal_id,
-                per.NumeroDocumento AS dni,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS nombre_completo,
-                ISNULL(per.Celular, per.Telefono) AS telefono,
-                per.Correo AS correo,
+                p.PersonalID,
+                p.NumeroDocumento AS dni,
+                COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ' ', p.Nombres))), ''), p.NombreCompletoOriginal, p.CodigoEmpleado) AS nombre_completo,
+                p.Telefono AS telefono,
+                p.Correo AS correo,
                 ISNULL(c.Nombre, 'Personal Hospitalario') AS cargo,
                 ISNULL(s.ServicioID, 7) AS servicio_id,
+                s.ServicioID,
                 ISNULL(s.Nombre, 'Servicio Hospitalario') AS servicio_nombre,
-                ISNULL(tc.Nombre, 'CAS') AS condicion_laboral,
-                ISNULL(t.Nombre, 'Turno Asignado') AS turno_nombre,
-                CONVERT(VARCHAR(5), t.HoraInicio, 108) AS hora_prog_inicio,
-                CONVERT(VARCHAR(5), t.HoraFin, 108) AS hora_prog_fin,
+                p.CondicionLaboral AS condicion_laboral,
+                'Turno Asignado' AS turno_nombre,
+                '08:00' AS hora_prog_inicio,
+                '14:00' AS hora_prog_fin,
                 a.Estado AS tipo_ausencia,
                 CONVERT(VARCHAR(5), a.HoraEntrada, 108) AS hora_marcada,
                 'SIN_JUSTIFICAR' AS justificacion_estado,
                 a.Observacion AS motivo
             FROM rrhh.Asistencia a
             INNER JOIN rrhh.Personal p ON a.PersonalID = p.PersonalID
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+            OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
             LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-            LEFT JOIN rrhh.Horario h ON p.PersonalID = h.PersonalID AND h.DiaSemana = :diaSemana AND h.Estado = 1
-            LEFT JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
             {$whereSql}
-            ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+            ORDER BY p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
         ";
 
         $stmt = $pdo->prepare($sql);
@@ -99,6 +97,7 @@ if ($dbConnected) {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($rows as $r) {
+            $r = AttendanceSchedule::apply($r, $fecha);
             $servUpper = strtoupper(trim((string)$r['servicio_nombre']));
             $esCritico = false;
             foreach ($serviciosCriticos as $crit) {
@@ -121,9 +120,9 @@ if ($dbConnected) {
                 'servicio_id'          => intval($r['servicio_id']),
                 'servicio_nombre'      => $r['servicio_nombre'],
                 'condicion_laboral'    => (stripos($r['condicion_laboral'], 'Nombrad') !== false ? 'NOMBRADO' : 'CAS'),
-                'turno_nombre'         => $r['turno_nombre'],
-                'hora_prog_inicio'     => $r['hora_prog_inicio'] ?: '08:00',
-                'hora_prog_fin'        => $r['hora_prog_fin'] ?: '14:00',
+                'turno_nombre'         => $r['NombreTurno'] ?? $r['turno_nombre'],
+                'hora_prog_inicio'     => !empty($r['HoraProgInicio']) ? substr($r['HoraProgInicio'], 0, 5) : ($r['hora_prog_inicio'] ?: '08:00'),
+                'hora_prog_fin'        => !empty($r['HoraProgFin']) ? substr($r['HoraProgFin'], 0, 5) : ($r['hora_prog_fin'] ?: '14:00'),
                 'tipo_ausencia'        => $esFaltaAdmin ? 'FALTA_ADMINISTRATIVA' : 'FALTA_TOTAL',
                 'hora_marcada'         => $r['hora_marcada'],
                 'justificacion_estado' => 'SIN_JUSTIFICAR',
@@ -133,9 +132,9 @@ if ($dbConnected) {
             ];
         }
         SnapshotStore::set($backupKey, $ausentes, ['source'=>'SQL_SERVER_LIVE']);
-    } catch (Exception $e) {
-        $dbConnected = false;
+    } catch (Throwable $e) {
         error_log("Error en api/asistencia/ausentes.php: " . $e->getMessage());
+        apiError(503, 'No se pudo consultar las ausencias en SQL Server. No se muestran respaldos anteriores.');
     }
 }
 

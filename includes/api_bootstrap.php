@@ -35,6 +35,30 @@ function apiGuard(string $module, array $methods = ['GET'], array $writeRoles = 
                 apiError(403, 'Origen de solicitud no permitido.');
         }
     }
+    $now = time();
+    if (isset($_SESSION['user']['login_time']) &&
+        ($now - (int)$_SESSION['user']['login_time'] > 43200 ||
+         $now - (int)($_SESSION['last_activity'] ?? $now) > 1800)) {
+        unset($_SESSION['user']);
+        apiError(401, 'Su sesión venció. Inicie sesión nuevamente.');
+    }
+    if (!Auth::isAuxiliarySession()) {
+        $pdo = Database::getConnection();
+        if ($pdo) {
+            try {
+                if (!Auth::validateSession($pdo)) apiError(401, 'La cuenta o sus permisos cambiaron. Inicie sesión nuevamente.');
+            } catch (PDOException $e) {
+                error_log('Revalidación de sesión: ' . $e->getMessage());
+                apiError(503, 'No se pudo verificar su sesión en SQL Server.');
+            }
+        }
+    }
+    $_SESSION['last_activity'] = $now;
+    // Las lecturas conservan los datos de sesión, pero liberan su bloqueo antes
+    // de ejecutar consultas e informes. Las escrituras mantienen el bloqueo.
+    if ($method === 'GET' && session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
     header('Cache-Control: no-store');
 }
 

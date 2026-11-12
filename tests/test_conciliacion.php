@@ -42,7 +42,7 @@ assert($res['tardanzas'] === 3, "Deben haber 3 tardanzas el 2026-10-15");
 // 2. Probar preservación pericial de regularizaciones manuales
 echo "\n2. Probando preservación de regularizaciones manuales (No Sobrescritura)...\n";
 // Insertar o actualizar un registro con sustento manual de prueba
-$stmtFindAny = $pdo->query("SELECT TOP 1 PersonalID FROM rrhh.Personal WHERE Estado = 1 ORDER BY PersonalID DESC");
+$stmtFindAny = $pdo->query("SELECT TOP 1 PersonalID FROM rrhh.Personal WHERE Activo = 1 ORDER BY PersonalID DESC");
 $testPersonalId = (int)$stmtFindAny->fetch(PDO::FETCH_ASSOC)['PersonalID'];
 $testFecha = '2026-10-15';
 

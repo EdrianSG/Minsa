@@ -1,3 +1,5 @@
+> Documento histórico. Para el estado actual y los comandos de verificación, consulte [las correcciones del 27 de octubre](CORRECCIONES_2026-10-27.md).
+
 # Verificación funcional — 20 de octubre de 2026
 
 > Documento histórico. El estado más reciente está en [SQL y caché](SQL_Y_CACHE.md). Consulte las [correcciones verificadas del 26 de octubre](CORRECCIONES_2026-10-26.md) para el estado actual de autenticación, autorización, asistencia, biométrico y reportes.

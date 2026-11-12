@@ -29,9 +29,9 @@ if ($pdo === null) {
 try {
     $stmt = $pdo->prepare("
         SELECT TOP 100
-            IncidenciaID,
-            ImportacionID,
-            MarcacionID,
+            IncidenciaBiometricaID AS IncidenciaID,
+            ImportacionBiometricaID AS ImportacionID,
+            MarcacionBiometricaID AS MarcacionID,
             BiostarUserID,
             TipoIncidencia,
             Nivel,
@@ -39,8 +39,8 @@ try {
             CONVERT(VARCHAR(19), FechaHoraEvento, 120) AS FechaHoraEvento,
             CONVERT(VARCHAR(19), FechaHoraRegistro, 120) AS FechaHoraRegistro
         FROM rrhh.IncidenciaBiometrica
-        WHERE ImportacionID = :id
-        ORDER BY IncidenciaID ASC
+        WHERE ImportacionBiometricaID = :id
+        ORDER BY IncidenciaBiometricaID ASC
     ");
     $stmt->execute([':id' => $importacionId]);
     $incidencias = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -345,6 +345,35 @@ html.dark .app-header {
   gap: 0.75rem;
 }
 
+.header-auxiliary-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 9999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.header-auxiliary-badge svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+html.dark .header-auxiliary-badge {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+html.dark .header-auxiliary-badge svg {
+  color: #fbbf24;
+}
+
 .header-icon-btn {
   width: 36px;
   height: 36px;

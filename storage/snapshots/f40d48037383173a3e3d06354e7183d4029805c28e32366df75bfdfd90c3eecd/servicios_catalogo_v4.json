@@ -1,0 +1,70 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "f40d48037383173a3e3d06354e7183d4029805c28e32366df75bfdfd90c3eecd",
+        "key": "servicios_catalogo_v4",
+        "version": 1,
+        "saved_at": "2026-11-09 14:06:11",
+        "timestamp": 1794233171,
+        "hash": "7d943c600a2a1f5c7e00efe81b8a4f95",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "id": "10",
+            "codigo": "SERV_CIR",
+            "nombre": "CIRUGIA",
+            "area_id": "4",
+            "departamento_id": "4"
+        },
+        {
+            "id": "4",
+            "codigo": "SERV_CONS",
+            "nombre": "CONSULTA EXTERNA",
+            "area_id": "4",
+            "departamento_id": "4"
+        },
+        {
+            "id": "5",
+            "codigo": "SERV_EMERG",
+            "nombre": "EMERGENCIA",
+            "area_id": "5",
+            "departamento_id": "5"
+        },
+        {
+            "id": "9",
+            "codigo": "SERV_GIN",
+            "nombre": "GINECO-OBSTETRICIA",
+            "area_id": "4",
+            "departamento_id": "4"
+        },
+        {
+            "id": "6",
+            "codigo": "SERV_HOSP",
+            "nombre": "HOSPITALIZACION",
+            "area_id": "4",
+            "departamento_id": "4"
+        },
+        {
+            "id": "7",
+            "codigo": "SERV_MED",
+            "nombre": "MEDICINA GENERAL",
+            "area_id": "4",
+            "departamento_id": "4"
+        },
+        {
+            "id": "8",
+            "codigo": "SERV_PED",
+            "nombre": "PEDIATRIA",
+            "area_id": "4",
+            "departamento_id": "4"
+        },
+        {
+            "id": "3",
+            "codigo": "SERV_LAB",
+            "nombre": "UPSS PATOLOGIA CLINICA Y ANATOMIA PATOLOGICA",
+            "area_id": "3",
+            "departamento_id": "3"
+        }
+    ]
+}

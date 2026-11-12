@@ -7,12 +7,14 @@ apiGuard('personal', ['GET'], ['JEFE_RRHH']);
  * Hospital Distrital de Pacasmayo - ETAPA 2
  * 
  * Retorna la ficha integral del trabajador consultando el modelo institucional:
- * core.Persona, rrhh.Personal, rrhh.AsignacionPersonal, rrhh.Cargo,
+ * rrhh.Personal, rrhh.AsignacionPersonal, rrhh.Cargo,
  * rrhh.Profesion, rrhh.Especialidad, organizacion.Area, organizacion.Servicio, rrhh.Contrato
  */
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__.'/../../includes/WorkloadPolicy.php';
+$workloadSql=WorkloadPolicy::sql();
 
 $personalId = intval($_GET['id'] ?? 0);
 
@@ -33,22 +35,37 @@ if ($dbConnected) {
         $sql = "
             SELECT 
                 p.PersonalID AS personal_id,
-                p.PersonaID AS persona_id,
+                (SELECT COALESCE(MAX(ev.EventoAuditoriaID),0) FROM auditoria.EventoAuditoria ev JOIN seguridad.Sistema sis ON sis.SistemaID=ev.SistemaID WHERE sis.Codigo=:sistema_codigo AND sis.Activo=1 AND ev.TablaAfectada=N'rrhh.Personal' AND ev.RegistroID=CAST(p.PersonalID AS VARCHAR(100)) AND ev.Accion IN ('INSERT','UPDATE')) AS version_ficha,
                 p.CodigoEmpleado AS codigo_empleado,
                 p.FechaIngreso AS fecha_ingreso,
                 p.FechaCese AS fecha_cese,
-                p.Estado AS estado,
+                p.Activo AS estado,
                 
-                per.NumeroDocumento AS dni,
-                per.Nombres AS nombres,
-                per.ApellidoPaterno AS apellido_paterno,
-                per.ApellidoMaterno AS apellido_materno,
-                per.FechaNacimiento AS fecha_nacimiento,
-                per.SexoID AS sexo_id,
-                per.EstadoCivilID AS estado_civil_id,
-                per.Telefono AS telefono,
-                per.Celular AS celular,
-                per.Correo AS correo,
+                p.NumeroDocumento AS dni,
+                p.Activo AS activo,
+                CAST(NULL AS NVARCHAR(150)) AS departamento_origen,
+                CAST(NULL AS NVARCHAR(150)) AS cargo_origen,
+                CAST(NULL AS DATETIME2) AS fecha_alta_biometrica,
+                (SELECT TOP 1 vb.BiostarUserID FROM rrhh.VinculacionBiometrica vb WHERE vb.PersonalID=p.PersonalID ORDER BY vb.VinculacionBiometricaID) AS biostar_user_id,
+                p.TipoDocumentoID AS tipo_documento_id,
+                CAST(NULL AS NVARCHAR(250)) AS nombre_completo_original,
+                sx.Nombre AS sexo_nombre,
+                p.Nombres AS nombres,
+                p.ApellidoPaterno AS apellido_paterno,
+                p.ApellidoMaterno AS apellido_materno,
+                LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ', ', p.Nombres))) AS nombre_completo,
+                p.FechaNacimiento AS fecha_nacimiento,
+                p.SexoID AS sexo_id,
+                p.EstadoCivilID AS estado_civil_id,
+                p.Telefono AS telefono,
+                p.Celular AS celular,
+                p.Correo AS correo,
+                p.ColegioProfesional AS colegio_profesional,
+                p.NumeroColegiatura AS numero_colegiatura,
+                p.NumeroRNE AS numero_rne,
+                p.RegimenLaboral AS regimen_laboral,
+                p.GrupoOcupacional AS grupo_ocupacional,
+                p.RegimenLaboral AS tipo_personal,
                 
                 c.CargoID AS cargo_id,
                 c.Nombre AS cargo_nombre,
@@ -61,32 +78,39 @@ if ($dbConnected) {
                 esp.EspecialidadID AS especialidad_id,
                 esp.Nombre AS especialidad_nombre,
                 
+                ap.AsignacionPersonalID AS asignacion_actual_id,
+                ap.FechaFin AS fecha_fin_asignacion,
                 a.AreaID AS area_id,
                 a.Nombre AS area_nombre,
+                dep.DepartamentoID AS departamento_id,
+                dep.Nombre AS departamento_nombre,
                 
                 s.ServicioID AS servicio_id,
                 s.Nombre AS servicio_nombre,
                 
                 tc.TipoContratoID AS tipo_contrato_id,
-                tc.Nombre AS condicion_laboral,
+                p.CondicionLaboral AS condicion_laboral,
+                con.ContratoID AS contrato_id,
+                ap.FechaInicio AS fecha_asignacion,
                 con.NumeroContrato AS numero_contrato,
                 con.FechaInicio AS contrato_inicio,
                 con.FechaFin AS contrato_fin
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+            LEFT JOIN catalogo.Sexo sx ON sx.SexoID=p.SexoID
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Profesion prof ON ap.ProfesionID = prof.ProfesionID
-            LEFT JOIN rrhh.Especialidad esp ON ap.EspecialidadID = esp.EspecialidadID
+            LEFT JOIN rrhh.Profesion prof ON p.ProfesionID = prof.ProfesionID
+            LEFT JOIN rrhh.Especialidad esp ON p.ProfesionID = esp.ProfesionID AND p.EspecialidadID = esp.EspecialidadID
             LEFT JOIN organizacion.Area a ON ap.AreaID = a.AreaID
+            LEFT JOIN organizacion.Departamento dep ON dep.DepartamentoID=a.DepartamentoID
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+            OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
             LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
             WHERE p.PersonalID = :id
         ";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':id' => $personalId]);
+        $stmt->execute([':id' => $personalId, ':sistema_codigo'=>SystemContext::code()]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
@@ -97,65 +121,10 @@ if ($dbConnected) {
     }
 }
 
-// Fallback estructurado en memoria si no está en la BD aún
-if (!$detalle) {
-    // Buscar en el endpoint listado para armar la ficha
-    $isAsist = ($personalId <= 62);
-    $nombresEjemplo = [
-        1 => ['Ana María', 'Torres', 'Benites', '45892104', 'Enfermera Asistencial', 'Enfermería', 'Cuidados Intensivos', 'Emergencia y Cuidados Críticos', 'CAS', '1992-04-12'],
-        2 => ['Luis Alberto', 'Díaz', 'Rojas', '70445708', 'Médico Especialista', 'Medicina Humana', 'Medicina Intensiva', 'Unidad de Cuidados Intensivos', 'NOMBRADO', '1985-09-24'],
-        3 => ['Carlos Eduardo', 'Vega', 'Morales', '18942301', 'Técnico en Enfermería', 'Técnico de Salud', null, 'Hospitalización Medicina', 'CAS', '1994-11-05'],
-        4 => ['Rosa Patricia', 'Mendoza', 'Campos', '41209845', 'Médico Pediatra', 'Medicina Humana', 'Pediatría', 'Pediatría y Neonatología', 'NOMBRADO', '1982-01-30'],
-        5 => ['Elena Beatriz', 'Ramos', 'Quispe', '43920194', 'Obstetra Asistencial', 'Obstetricia', 'Monitoreo Materno Perinatal', 'Centro Obstétrico', 'CAS', '1990-08-17'],
-        6 => ['Carmen Rosa', 'Urcia', 'Ventura', '47309642', 'Especialista Administrativo', 'Administración', null, 'Unidad de Personal / RR.HH.', 'NOMBRADO', '1980-06-14']
-    ];
-
-    $info = $nombresEjemplo[$personalId] ?? [
-        'Servidor ' . $personalId, 'Personal', 'Hospital', 
-        str_pad(strval(40000000 + $personalId * 1237), 8, '0', STR_PAD_LEFT),
-        $isAsist ? 'Licenciada en Enfermería' : 'Técnico Administrativo',
-        $isAsist ? 'Enfermería' : 'Administración',
-        $isAsist ? 'Salud General' : null,
-        $isAsist ? 'Emergencia y Cuidados Críticos' : 'Unidad de Personal / RR.HH.',
-        $personalId % 2 === 0 ? 'NOMBRADO' : 'CAS',
-        '1991-03-21'
-    ];
-
-    $detalle = [
-        'personal_id'      => $personalId,
-        'persona_id'       => 100 + $personalId,
-        'codigo_empleado'  => sprintf('EMP-%05d', $personalId),
-        'fecha_ingreso'    => '2020-03-01',
-        'fecha_cese'       => null,
-        'estado'           => 1,
-        'dni'              => $info[3],
-        'nombres'          => $info[0],
-        'apellido_paterno' => $info[1],
-        'apellido_materno' => $info[2],
-        'fecha_nacimiento' => $info[9],
-        'sexo_nombre'      => 'Femenino',
-        'estado_civil'     => 'Soltero(a)',
-        'celular'          => '948' . str_pad(strval($personalId * 1234), 6, '0', STR_PAD_LEFT),
-        'telefono'         => '044-521400',
-        'correo'           => strtolower(substr($info[0], 0, 1) . $info[1]) . '@hospitalpacasmayo.gob.pe',
-        'cargo_nombre'     => $info[4],
-        'profesion_nombre' => $info[5],
-        'especialidad_nombre' => $info[6],
-        'area_nombre'      => $isAsist ? 'Dirección de Servicios de Salud' : 'Oficina de Administración',
-        'servicio_nombre'  => $info[7],
-        'condicion_laboral'=> $info[8],
-        'numero_contrato'  => sprintf('CONTR-2026-%04d', $personalId),
-        'contrato_inicio'  => '2026-01-01',
-        'contrato_fin'     => '2026-12-31',
-        'regimen_laboral'  => $isAsist ? 'ASISTENCIAL' : 'ADMINISTRATIVO',
-        'aplica_seti'      => $isAsist ? 1 : 0,
-        'horas_mensuales'  => $isAsist ? 150 : 160
-    ];
-}
-
-$detalle['nombre_completo'] = trim($detalle['apellido_paterno'] . ' ' . ($detalle['apellido_materno'] ?? '') . ', ' . $detalle['nombres']);
-$detalle['regimen_laboral'] = (isset($detalle['aplica_seti']) && $detalle['aplica_seti'] == 1) ? 'ASISTENCIAL' : 'ADMINISTRATIVO';
-$detalle['horas_mensuales'] = ($detalle['regimen_laboral'] === 'ASISTENCIAL') ? 150 : 160;
+if (!$dbConnected) apiError(503, 'No se pudo consultar la ficha en SQL Server.');
+if (!$detalle) apiError(404, 'Trabajador inexistente.');
+$detalle['nombre_completo'] = trim(implode(' ', array_filter([$detalle['apellido_paterno'], $detalle['apellido_materno'], $detalle['nombres']]))) ?: $detalle['nombre_completo_original'];
+$detalle['horas_mensuales'] = strtoupper($detalle['tipo_personal'] ?? '') === 'ASISTENCIAL' ? 150 : null;
 
 echo json_encode([
     'ok'   => true,

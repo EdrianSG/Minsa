@@ -33,12 +33,12 @@ try {
     $params = [];
     $allowedService = Auth::getAllowedServiceId();
     if ($allowedService !== null) {
-        $where[] = 'EXISTS (SELECT 1 FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = m.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1 AND ap.ServicioID = :servicioAutorizado)';
+        $where[] = 'EXISTS (SELECT 1 FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = m.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1 AND ap.ServicioID = :servicioAutorizado)';
         $params[':servicioAutorizado'] = $allowedService;
     }
 
     if ($importacionId !== null && $importacionId > 0) {
-        $where[] = "m.ImportacionID = :impId";
+        $where[] = "m.ImportacionBiometricaID = :impId";
         $params[':impId'] = $importacionId;
     }
 
@@ -66,8 +66,8 @@ try {
     // Registros paginados
     $sqlData = "
         SELECT 
-            m.MarcacionID,
-            m.ImportacionID,
+            m.MarcacionBiometricaID AS MarcacionID,
+            m.ImportacionBiometricaID AS ImportacionID,
             m.BiostarUserID,
             ISNULL(m.BiostarUserName, '(Sin nombre)') AS BiostarUserName,
             CONVERT(VARCHAR(19), m.FechaHora, 120) AS FechaHora,
@@ -82,7 +82,7 @@ try {
             m.Advertencia
         FROM rrhh.MarcacionBiometrica m
         WHERE {$whereSql}
-        ORDER BY m.FechaHora DESC, m.MarcacionID DESC
+        ORDER BY m.FechaHora DESC, m.MarcacionBiometricaID DESC
         OFFSET {$offset} ROWS FETCH NEXT {$limit} ROWS ONLY
     ";
 

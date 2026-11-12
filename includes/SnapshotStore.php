@@ -12,7 +12,8 @@ class SnapshotStore {
     private static string $storagePath = __DIR__ . '/../storage/snapshots';
 
     public static function directory(): string {
-        return getenv('SNAPSHOT_PATH') ?: self::$storagePath;
+        require_once __DIR__ . '/../config/database.php';
+        return getenv('SNAPSHOT_PATH') ?: self::$storagePath . '/' . Database::sourceId();
     }
 
     /**
@@ -32,6 +33,8 @@ class SnapshotStore {
      * @param array $extraMeta Metadatos adicionales (ej: servicio_id, usuario_id)
      */
     public static function set(string $key, $data, array $extraMeta = []): bool {
+        require_once __DIR__ . '/../config/database.php';
+        $extraMeta['database_source'] = Database::sourceId();
         self::ensureDirectory();
 
         $safeKey = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $key);
@@ -42,7 +45,7 @@ class SnapshotStore {
         $temp = false;
         try {
             if (!flock($lock, LOCK_EX)) return false;
-            $existing = is_file($filePath) ? json_decode(file_get_contents($filePath), true) : null;
+            $existing = self::get($key);
             $payload = [
                 '_meta' => array_merge($extraMeta, [
                     'key' => $key,
@@ -79,7 +82,12 @@ class SnapshotStore {
         $filePath = self::directory() . '/' . $safeKey . '.json';
 
         if (!file_exists($filePath)) {
-            return null;
+            $rootFallback = self::$storagePath . '/' . $safeKey . '.json';
+            if (file_exists($rootFallback)) {
+                $filePath = $rootFallback;
+            } else {
+                return null;
+            }
         }
 
         $content = @file_get_contents($filePath);
@@ -92,6 +100,10 @@ class SnapshotStore {
             return null;
         }
 
+        require_once __DIR__ . '/../config/database.php';
+        $isAux = class_exists('Auth', false) && Auth::isAuxiliarySession();
+        if (!$isAux && ($decoded['_meta']['database_source'] ?? null) !== Database::sourceId()) return null;
+
         return $decoded;
     }
 
@@ -100,7 +112,7 @@ class SnapshotStore {
      */
     public static function has(string $key): bool {
         $safeKey = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $key);
-        return file_exists(self::directory() . '/' . $safeKey . '.json');
+        return self::get($key) !== null;
     }
 
     /**
@@ -131,6 +143,8 @@ class SnapshotStore {
      */
     public static function syncAllFromDatabase(PDO $pdo): array
     {
+        require_once __DIR__.'/WorkloadPolicy.php';
+        $workloadSql=WorkloadPolicy::sql();
         $results = [];
 
         // 1. Personal Completo
@@ -138,50 +152,53 @@ class SnapshotStore {
             $sqlPersonal = "
                 SELECT 
                     p.PersonalID AS personal_id,
-                    p.PersonaID AS persona_id,
                     p.CodigoEmpleado AS codigo_empleado,
                     p.FechaIngreso AS fecha_ingreso,
                     p.FechaCese AS fecha_cese,
-                    p.Estado AS estado,
-                    per.NumeroDocumento AS dni,
-                    per.Nombres AS nombres,
-                    per.ApellidoPaterno AS apellido_paterno,
-                    per.ApellidoMaterno AS apellido_materno,
-                    CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS nombre_completo,
-                    per.Celular AS celular,
-                    per.Correo AS correo,
-                    per.Telefono AS telefono,
+                    p.Activo AS estado,
+                    p.NumeroDocumento AS dni,
+                    p.NombreCompletoOriginal AS nombre_completo_original,
+                    p.DepartamentoOrigen AS departamento_origen,
+                    p.CargoOrigen AS cargo_origen,
+                    p.GrupoOcupacional AS grupo_ocupacional,
+                    {$workloadSql} AS tipo_personal,
+                    (SELECT TOP 1 v.BiostarUserID FROM rrhh.VinculacionBiometrica v WHERE v.PersonalID=p.PersonalID ORDER BY v.VinculacionBiometricaID) AS biostar_user_id,
+                    p.Nombres AS nombres,
+                    p.ApellidoPaterno AS apellido_paterno,
+                    p.ApellidoMaterno AS apellido_materno,
+                    COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ' ', p.Nombres))), ''), p.NombreCompletoOriginal, p.CodigoEmpleado) AS nombre_completo,
+                    p.Celular AS celular,
+                    p.Correo AS correo,
+                    p.Telefono AS telefono,
                     c.CargoID AS cargo_id,
                     ISNULL(c.Nombre, 'Sin Cargo') AS cargo_nombre,
                     prof.ProfesionID AS profesion_id,
-                    ISNULL(prof.Nombre, 'General') AS profesion_nombre,
+                    prof.Nombre AS profesion_nombre,
                     esp.EspecialidadID AS especialidad_id,
                     esp.Nombre AS especialidad_nombre,
                     a.AreaID AS area_id,
-                    ISNULL(a.Nombre, 'General') AS area_nombre,
+                    a.Nombre AS area_nombre,
                     s.ServicioID AS servicio_id,
-                    ISNULL(s.Nombre, 'Servicio General') AS servicio_nombre,
+                    s.Nombre AS servicio_nombre,
                     tc.TipoContratoID AS tipo_contrato_id,
-                    ISNULL(tc.Nombre, 'CAS') AS condicion_laboral,
+                    p.CondicionLaboral AS condicion_laboral,
                     con.NumeroContrato AS numero_contrato,
-                    CASE WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 'ADMINISTRATIVO' ELSE 'ASISTENCIAL' END AS regimen_laboral,
-                    CASE WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 0 ELSE 1 END AS aplica_seti
+                    {$workloadSql} AS regimen_laboral,
+                    CASE WHEN {$workloadSql} = 'ASISTENCIAL' THEN 1 ELSE NULL END AS aplica_seti
                 FROM rrhh.Personal p
-                INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
                 LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-                LEFT JOIN rrhh.Profesion prof ON ap.ProfesionID = prof.ProfesionID
-                LEFT JOIN rrhh.Especialidad esp ON ap.EspecialidadID = esp.EspecialidadID
+                LEFT JOIN rrhh.Profesion prof ON p.ProfesionID = prof.ProfesionID
+                LEFT JOIN rrhh.Especialidad esp ON p.EspecialidadID = esp.EspecialidadID
                 LEFT JOIN organizacion.Area a ON ap.AreaID = a.AreaID
                 LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-                LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+                OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
                 LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-                WHERE 1=1
-                ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+                ORDER BY p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
             ";
             $personalList = $pdo->query($sqlPersonal)->fetchAll(PDO::FETCH_ASSOC);
             if (is_array($personalList)) {
-                self::set('personal_catalogo_completo', $personalList, ['source' => 'SQL_SERVER_SYNC']);
+                if (!self::set('personal_catalogo_completo', $personalList, ['source' => 'SQL_SERVER_SYNC'])) throw new RuntimeException('No se pudo escribir el respaldo actualizado.');
                 $results['personal'] = count($personalList);
             }
         } catch (Throwable $e) {
@@ -190,49 +207,10 @@ class SnapshotStore {
 
         // 2. Turnos Parametrizados Oficiales
         try {
-            $sqlTurnos = "SELECT TurnoID, Nombre, HoraInicio, HoraFin, Estado FROM rrhh.Turno ORDER BY TurnoID";
-            $rawTurnos = $pdo->query($sqlTurnos)->fetchAll(PDO::FETCH_ASSOC);
-            $turnos = [];
-            foreach ($rawTurnos as $r) {
-                $inicio = substr($r['HoraInicio'], 0, 5);
-                $fin = substr($r['HoraFin'], 0, 5);
-                $time1 = strtotime($inicio);
-                $time2 = strtotime($fin);
-                $cruza = ($time2 < $time1);
-                $diffHours = $cruza ? ((strtotime('24:00') - $time1 + $time2 - strtotime('00:00')) / 3600) : (($time2 - $time1) / 3600);
-                
-                if (stripos($r['Nombre'], 'Mañana') !== false) {
-                    $codigo = 'M';
-                } elseif (stripos($r['Nombre'], 'Tarde') !== false) {
-                    $codigo = 'T';
-                } elseif (stripos($r['Nombre'], 'Nocturna') !== false || stripos($r['Nombre'], 'Noche') !== false) {
-                    $codigo = 'N';
-                } elseif (stripos($r['Nombre'], 'Diurna') !== false) {
-                    $codigo = 'GD';
-                } elseif (stripos($r['Nombre'], 'Admin') !== false) {
-                    $codigo = 'ADM';
-                } elseif (stripos($r['Nombre'], 'Retén') !== false) {
-                    $codigo = 'RET';
-                } else {
-                    $codigo = strtoupper(mb_substr($r['Nombre'], 0, 3, 'UTF-8'));
-                }
-                $esGuardia = ($diffHours >= 11.5) ? 1 : 0;
-                $turnos[] = [
-                    'turno_id'          => intval($r['TurnoID']),
-                    'codigo'            => $codigo,
-                    'nombre'            => $r['Nombre'],
-                    'descripcion'       => "Turno institucional de $inicio a $fin",
-                    'hora_inicio'       => $inicio,
-                    'hora_fin'          => $fin,
-                    'horas_computables' => round($diffHours, 2),
-                    'cruza_medianoche'  => $cruza ? 1 : 0,
-                    'es_guardia'        => $esGuardia,
-                    'color'             => $cruza ? '#7c3aed' : ($diffHours >= 11 ? '#0d9488' : '#0284c7'),
-                    'estado'            => intval($r['Estado'])
-                ];
-            }
+            require_once __DIR__ . '/TurnoCatalog.php';
+            $turnos = TurnoCatalog::load($pdo);
             if (is_array($turnos)) {
-                self::set('turnos_catalogo_oficial', $turnos, ['source' => 'SQL_SERVER_SYNC']);
+                if (!self::set('turnos_catalogo_oficial', $turnos, ['source' => 'SQL_SERVER_SYNC'])) throw new RuntimeException('No se pudo escribir el respaldo actualizado.');
                 $results['turnos'] = count($turnos);
             }
         } catch (Throwable $e) {
@@ -241,85 +219,8 @@ class SnapshotStore {
 
         // 3. Horarios y Pautas Semanales
         try {
-            $sqlHorarios = "
-                SELECT 
-                    h.HorarioID,
-                    h.PersonalID,
-                    h.DiaSemana,
-                    h.FechaInicio,
-                    h.FechaFin,
-                    t.TurnoID,
-                    t.Nombre AS TurnoNombre,
-                    CONVERT(VARCHAR(5), t.HoraInicio, 108) AS HoraInicio,
-                    CONVERT(VARCHAR(5), t.HoraFin, 108) AS HoraFin,
-                    CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS NombreCompleto,
-                    per.NumeroDocumento AS DNI,
-                    p.CodigoEmpleado,
-                    ISNULL(c.Nombre, 'Sin Cargo') AS CargoNombre,
-                    s.ServicioID, ISNULL(s.Nombre, 'Sin Servicio') AS ServicioNombre
-                FROM rrhh.Horario h
-                INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
-                INNER JOIN rrhh.Personal p ON h.PersonalID = p.PersonalID
-                INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1
-                LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-                LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-                WHERE h.Estado = 1 AND p.Estado = 1
-                ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres, h.DiaSemana
-            ";
-            $rawHorarios = $pdo->query($sqlHorarios)->fetchAll(PDO::FETCH_ASSOC);
-            $grouped = [];
-            foreach ($rawHorarios as $r) {
-                $pid = intval($r['PersonalID']);
-                if (!isset($grouped[$pid])) {
-                    $grouped[$pid] = [
-                        'personal_id'      => $pid,
-                        'nombre_completo'  => $r['NombreCompleto'],
-                        'dni'              => $r['DNI'],
-                        'codigo_empleado'  => $r['CodigoEmpleado'],
-                        'cargo_nombre'     => $r['CargoNombre'],
-                        'servicio_id'      => (int)$r['ServicioID'],
-                        'servicio_nombre'  => $r['ServicioNombre'],
-                        'tipo_patron'      => 'Pauta Semanal Asignada',
-                        'dias'             => [1 => null, 2 => null, 3 => null, 4 => null, 5 => null, 6 => null, 7 => null],
-                        'total_horas_semana' => 0
-                    ];
-                }
-                $inicio = $r['HoraInicio'];
-                $fin = $r['HoraFin'];
-                $t1 = strtotime($inicio);
-                $t2 = strtotime($fin);
-                $diff = ($t2 < $t1) ? ((strtotime('24:00') - $t1 + $t2 - strtotime('00:00')) / 3600) : (($t2 - $t1) / 3600);
-                $diff = round($diff, 1);
-
-                if (stripos($r['TurnoNombre'], 'Mañana') !== false) {
-                    $codigo = 'M';
-                } elseif (stripos($r['TurnoNombre'], 'Tarde') !== false) {
-                    $codigo = 'T';
-                } elseif (stripos($r['TurnoNombre'], 'Nocturna') !== false || stripos($r['TurnoNombre'], 'Noche') !== false) {
-                    $codigo = 'N';
-                } elseif (stripos($r['TurnoNombre'], 'Diurna') !== false) {
-                    $codigo = 'GD';
-                } elseif (stripos($r['TurnoNombre'], 'Admin') !== false) {
-                    $codigo = 'ADM';
-                } else {
-                    $codigo = strtoupper(mb_substr($r['TurnoNombre'], 0, 3, 'UTF-8'));
-                }
-
-                $grouped[$pid]['dias'][$r['DiaSemana']] = [
-                    'turno_id'    => $r['TurnoID'],
-                    'turno_nombre'=> $r['TurnoNombre'],
-                    'codigo'      => $codigo,
-                    'hora'        => "$inicio - $fin",
-                    'horas'       => $diff
-                ];
-                $grouped[$pid]['total_horas_semana'] += $diff;
-            }
-            $horariosPersonal = array_values($grouped);
-            if (is_array($horariosPersonal)) {
-                self::set('horarios_lista_completa', $horariosPersonal, ['source' => 'SQL_SERVER_SYNC']);
-                $results['horarios'] = count($horariosPersonal);
-            }
+            // En V3 la programación mensual reside en rrhh.ProgramacionMensual y Detalle
+            $results['horarios'] = 0;
         } catch (Throwable $e) {
             $results['horarios_error'] = $e->getMessage();
         }
@@ -332,43 +233,40 @@ class SnapshotStore {
                 $sqlAsist = "
                     SELECT 
                         p.PersonalID,
-                        per.NumeroDocumento AS DNI,
-                        per.Nombres,
-                        per.ApellidoPaterno,
-                        per.ApellidoMaterno,
-                        per.Telefono,
-                        per.Correo AS CorreoElectronico,
+                        p.NumeroDocumento AS DNI,
+                        p.Nombres,
+                        p.ApellidoPaterno,
+                        p.ApellidoMaterno,
+                        p.Telefono,
+                        p.Correo AS CorreoElectronico,
                         ISNULL(c.Nombre, 'Servidor Público') AS NombreCargo,
                         ISNULL(prof.Nombre, 'General') AS NombreProfesion,
                         s.ServicioID,
                         ISNULL(s.Nombre, 'Hospital Distrital de Pacasmayo') AS NombreServicio,
-                        'ASISTENCIAL' AS RegimenLaboral,
-                        ISNULL(tc.Nombre, 'CAS') AS CondicionLaboral,
-                        t.TurnoID,
-                        ISNULL(t.Nombre, 'Mañana Ordinario') AS NombreTurno,
-                        ISNULL(CONVERT(VARCHAR(8), t.HoraInicio, 108), '07:00:00') AS HoraProgInicio,
-                        ISNULL(CONVERT(VARCHAR(8), t.HoraFin, 108), '13:00:00') AS HoraProgFin,
+                        {$workloadSql} AS RegimenLaboral,
+                        p.CondicionLaboral AS CondicionLaboral,
+                        NULL AS TurnoID,
+                        NULL AS NombreTurno,
+                        NULL AS HoraProgInicio,
+                        NULL AS HoraProgFin,
                         a.AsistenciaID,
                         CONVERT(VARCHAR(8), a.HoraEntrada, 108) AS HoraEntrada,
                         CONVERT(VARCHAR(8), a.HoraSalida, 108) AS HoraSalida,
                         a.Estado AS EstadoAsistencia,
                         a.Observacion
                     FROM rrhh.Personal p
-                    INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-                    LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1
+                    LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
                     LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-                    LEFT JOIN rrhh.Profesion prof ON ap.ProfesionID = prof.ProfesionID
+                    LEFT JOIN rrhh.Profesion prof ON p.ProfesionID = prof.ProfesionID
                     LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-                    LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+                    OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
                     LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-                    LEFT JOIN rrhh.Horario h ON p.PersonalID = h.PersonalID AND h.DiaSemana = :diaSemana AND h.Estado = 1 AND h.FechaInicio <= :desde AND (h.FechaFin IS NULL OR h.FechaFin >= :hasta)
-                    LEFT JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
                     LEFT JOIN rrhh.Asistencia a ON p.PersonalID = a.PersonalID AND a.Fecha = :fechaAsist
-                    WHERE p.Estado = 1
-                    ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+                    WHERE p.Activo = 1
+                    ORDER BY p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
                 ";
                 $stmtA = $pdo->prepare($sqlAsist);
-                $stmtA->execute([':diaSemana'=>(int)date('N', strtotime($f)), ':desde'=>$f, ':hasta'=>$f, ':fechaAsist'=>$f]);
+                $stmtA->execute([':fechaAsist'=>$f]);
                 $asistRows = $stmtA->fetchAll(PDO::FETCH_ASSOC);
                 if (!empty($asistRows)) {
                     $asistFormatted = [];
@@ -377,7 +275,7 @@ class SnapshotStore {
                         require_once __DIR__ . '/attendance_evaluator.php';
                         $asistFormatted[] = procesarFilaAsistencia($ar, $nombreCompleto, $f);
                     }
-                    self::set('asistencia_diaria_' . $f, $asistFormatted, ['source' => 'SQL_SERVER_SYNC', 'fecha' => $f]);
+                    if (!self::set('asistencia_diaria_' . $f, $asistFormatted, ['source' => 'SQL_SERVER_SYNC', 'fecha' => $f])) throw new RuntimeException('No se pudo escribir el respaldo actualizado.');
                     $totalAsistenciasSync += count($asistFormatted);
                 }
             }
@@ -390,22 +288,22 @@ class SnapshotStore {
         try {
             $sqlPermisos = "
                 SELECT 
-                    pl.PermisoLaboralID, pl.PersonalID, per.NumeroDocumento AS DNI,
-                    per.Nombres, per.ApellidoPaterno, per.ApellidoMaterno,
+                    pl.PermisoLaboralID, pl.PersonalID, p.NumeroDocumento AS DNI,
+                    p.Nombres, p.ApellidoPaterno, p.ApellidoMaterno,
                     ISNULL(c.Nombre, 'Servidor Público') AS NombreCargo,
                     s.ServicioID, ISNULL(s.Nombre, 'Servicio General') AS NombreServicio,
-                    ISNULL(tc.Nombre, 'CAS') AS CondicionLaboral,
+                    p.CondicionLaboral AS CondicionLaboral,
                     tpl.TipoPermisoLaboralID, tpl.Nombre AS TipoPermisoNombre,
                     pl.FechaInicio, pl.FechaFin, pl.Motivo, pl.Estado
                 FROM rrhh.PermisoLaboral pl
                 INNER JOIN rrhh.Personal p ON pl.PersonalID = p.PersonalID
-                INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
                 INNER JOIN rrhh.TipoPermisoLaboral tpl ON pl.TipoPermisoLaboralID = tpl.TipoPermisoLaboralID
-                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1
+                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
                 LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
                 LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-                LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+                OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
                 LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
+                WHERE p.Activo = 1
                 ORDER BY pl.PermisoLaboralID DESC
             ";
             $rawPermisos = $pdo->query($sqlPermisos)->fetchAll(PDO::FETCH_ASSOC);
@@ -421,7 +319,7 @@ class SnapshotStore {
                     'dni'                 => $r['DNI'],
                     'nombre_completo'     => $nombreCompleto,
                     'cargo'               => $r['NombreCargo'],
-                    'servicio_id'         => intval($r['ServicioID'] ?? 1),
+                    'servicio_id'         => isset($r['ServicioID']) ? intval($r['ServicioID']) : null,
                     'servicio_nombre'     => $r['NombreServicio'],
                     'condicion_laboral'   => $r['CondicionLaboral'],
                     'tipo_id'             => intval($r['TipoPermisoLaboralID']),
@@ -430,14 +328,14 @@ class SnapshotStore {
                     'fecha_fin'           => $r['FechaFin'],
                     'dias_solicitados'    => $dias,
                     'motivo'              => $r['Motivo'] ?? '',
-                    'documento_sustento'  => 'Papeleta N° ' . str_pad($r['PermisoLaboralID'], 4, '0', STR_PAD_LEFT),
-                    'goce_haber'          => 1,
+                    'documento_sustento'  => preg_match('/^Sustento: (.*?)\. Motivo:/us', (string)$r['Motivo'], $sustento) ? ($sustento[1] ?: null) : null,
+                    'goce_haber'          => null,
                     'estado'              => $r['Estado'],
                     'fecha_solicitud'     => $r['FechaInicio']
                 ];
             }
             if (is_array($permisos)) {
-                self::set('permisos_lista_completa', $permisos, ['source' => 'SQL_SERVER_SYNC']);
+                if (!self::set('permisos_lista_completa', $permisos, ['source' => 'SQL_SERVER_SYNC'])) throw new RuntimeException('No se pudo escribir el respaldo actualizado.');
                 $results['permisos'] = count($permisos);
             }
         } catch (Throwable $e) {

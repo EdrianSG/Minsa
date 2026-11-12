@@ -1,0 +1,18 @@
+.env
+storage/audit/
+storage/**/*.lock
+
+/config/database.local.php
+
+# Entregas privadas con datos operativos o credenciales.
+/private-delivery/
+
+/storage/compatibilidad_v4.json
+
+/private-audits/
+
+/padron_personal_con_turnos.txt
+
+/Report_20261015T070613_1.csv
+
+/personal_limpio_asistencia.txt

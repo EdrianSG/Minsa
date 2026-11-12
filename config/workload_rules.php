@@ -45,21 +45,8 @@ class WorkloadRules {
      * Determina el régimen a partir de la información del cargo, profesión o área del trabajador
      */
     public static function detectRegime($cargoNombre = '', $servicioNombre = '', $areaNombre = '') {
-        $text = mb_strtolower($cargoNombre . ' ' . $servicioNombre . ' ' . $areaNombre, 'UTF-8');
-        
-        $adminKeywords = [
-            'admin', 'contab', 'informát', 'sistemas', 'secretar', 'recursos humanos',
-            'rrhh', 'asistente', 'abogado', 'legal', 'logística', 'tesorería', 'caja',
-            'estadística', 'digitador', 'planeamiento', 'director'
-        ];
-
-        foreach ($adminKeywords as $kw) {
-            if (mb_strpos($text, $kw) !== false) {
-                return 'ADMINISTRATIVO';
-            }
-        }
-
-        return 'ASISTENCIAL';
+        $regime = strtoupper(trim((string)$cargoNombre));
+        return in_array($regime, ['ASISTENCIAL','ADMINISTRATIVO'],true) ? $regime : null;
     }
 
     /**
@@ -70,6 +57,9 @@ class WorkloadRules {
         if ($regime === 'ADMINISTRATIVO') {
             return self::getAdministrativoRules();
         }
-        return self::getAsistencialRules();
+        if ($regime === 'ASISTENCIAL') return self::getAsistencialRules();
+        return ['tipo'=>null,'nombre'=>'Personal sin clasificación confirmada','horas_semanales_objetivo'=>null,
+            'horas_semanales_maximas'=>null,'horas_mensuales_objetivo'=>null,'horas_mensuales_maximas'=>null,
+            'descanso_minimo_horas'=>null,'max_turnos_consecutivos'=>null,'max_turnos_nocturnos'=>null];
     }
 }

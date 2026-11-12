@@ -5,9 +5,9 @@ apiGuard('horarios', ['GET'], ['JEFE_RRHH', 'SUPERVISOR', 'JEFE_SERVICIO']);
 /**
  * API Endpoint: /api/horarios/listar.php
  * Hospital Distrital de Pacasmayo - ETAPA 3
- * 
+ *
  * Consulta las asignaciones semanales de horarios del personal
- * Reutiliza: rrhh.Horario, rrhh.Personal, core.Persona, rrhh.Turno
+ * Reutiliza: rrhh.Horario, rrhh.Personal, rrhh.Turno
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -21,44 +21,42 @@ $horariosPersonal = [];
 
 if ($dbConnected) {
     try {
-        $whereSql = "WHERE h.Estado = 1";
+        $whereSql = "WHERE h.Activo=1 AND (h.FechaInicio IS NULL OR h.FechaInicio <= CAST(GETDATE() AS DATE)) AND (h.FechaFin IS NULL OR h.FechaFin >= CAST(GETDATE() AS DATE))";
         $params = [];
         if ($userAllowedServ !== null) {
             $whereSql .= " AND s.ServicioID = :servId";
             $params[':servId'] = $userAllowedServ;
         }
 
-        $sql = "
-            SELECT 
-                h.HorarioID,
-                h.PersonalID,
-                h.TurnoID,
-                h.DiaSemana,
-                h.FechaInicio,
-                h.FechaFin,
-                h.Estado,
-                t.Nombre AS TurnoNombre,
-                t.HoraInicio,
-                t.HoraFin,
-                p.CodigoEmpleado,
-                per.NumeroDocumento AS DNI,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS NombreCompleto,
-                s.ServicioID, ISNULL(s.Nombre, 'Servicio General') AS ServicioNombre,
-                ISNULL(c.Nombre, 'Personal') AS CargoNombre
-            FROM rrhh.Horario h
-            INNER JOIN rrhh.Personal p ON h.PersonalID = p.PersonalID
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
-            LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-            LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            {$whereSql}
-            ORDER BY per.ApellidoPaterno, h.DiaSemana
-        ";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+            $sql = "
+                SELECT
+                    h.HorarioID,
+                    h.PersonalID,
+                    h.TurnoID,
+                    h.DiaSemana,
+                    h.FechaInicio,
+                    h.FechaFin,
+                    t.Nombre AS TurnoNombre,
+                    t.Codigo AS TurnoCodigo,
+                    t.HoraInicio,
+                    t.HoraFin,
+                    p.CodigoEmpleado,
+                    p.NumeroDocumento AS DNI,
+                    COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ' ', p.Nombres))), ''), p.NombreCompletoOriginal, p.CodigoEmpleado) AS NombreCompleto,
+                    s.ServicioID, ISNULL(s.Nombre, 'Servicio General') AS ServicioNombre,
+                    ISNULL(c.Nombre, 'Personal') AS CargoNombre
+                FROM rrhh.Horario h
+                INNER JOIN rrhh.Personal p ON h.PersonalID = p.PersonalID
+                INNER JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
+                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
+                LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
+                LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
+                {$whereSql}
+                ORDER BY p.ApellidoPaterno, h.DiaSemana
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if (!empty($rows)) {
             // Agrupar por PersonalID
             $grouped = [];
@@ -86,19 +84,7 @@ if ($dbConnected) {
                 $diff = ($t2 < $t1) ? ((strtotime('24:00') - $t1 + $t2 - strtotime('00:00')) / 3600) : (($t2 - $t1) / 3600);
                 $diff = round($diff, 1);
 
-                if (stripos($r['TurnoNombre'], 'Mañana') !== false) {
-                    $codigo = 'M';
-                } elseif (stripos($r['TurnoNombre'], 'Tarde') !== false) {
-                    $codigo = 'T';
-                } elseif (stripos($r['TurnoNombre'], 'Nocturna') !== false || stripos($r['TurnoNombre'], 'Noche') !== false) {
-                    $codigo = 'N';
-                } elseif (stripos($r['TurnoNombre'], 'Diurna') !== false) {
-                    $codigo = 'GD';
-                } elseif (stripos($r['TurnoNombre'], 'Admin') !== false) {
-                    $codigo = 'ADM';
-                } else {
-                    $codigo = strtoupper(mb_substr($r['TurnoNombre'], 0, 3, 'UTF-8'));
-                }
+                $codigo = $r['TurnoCodigo'];
 
                 $grouped[$pid]['dias'][$r['DiaSemana']] = [
                     'turno_id'    => $r['TurnoID'],

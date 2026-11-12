@@ -4,7 +4,7 @@
  * Sistema de Gestión de RR.HH. - Hospital Distrital de Pacasmayo
  * 
  * Conexión directa a Microsoft SQL Server 2022 (BD_HOSPITAL):
- * seguridad.Usuario, seguridad.UsuarioRol, seguridad.Rol, core.Persona
+ * seguridad.Usuario, seguridad.UsuarioRol, seguridad.Rol, rrhh.Personal
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -15,19 +15,159 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/auditoria.php';
+require_once __DIR__ . '/SystemContext.php';
 
 class Auth {
+    /** Compatibilidad con el código administrativo de BD_HOSPITAL_V3. */
+    private static function permissionRole(string $role): string {
+        return $role === 'RRHH_ADMIN' ? 'ADMIN_RRHH' : $role;
+    }
+
+    /**
+     * Obtiene la configuración de la cuenta auxiliar temporal
+     */
+    public static function getAuxiliaryConfig(): array {
+        static $cfg = null;
+        if ($cfg === null) {
+            $file = __DIR__ . '/../config/auxiliary_account.php';
+            $cfg = is_file($file) ? (include $file) : [];
+            if (!is_array($cfg)) $cfg = [];
+            $cfg['enabled'] = $cfg['enabled'] ?? true;
+            $cfg['username'] = $cfg['username'] ?? 'auxiliar';
+            $cfg['password'] = $cfg['password'] ?? 'Auxiliar2026!';
+            $cfg['allow_admin_fallback'] = $cfg['allow_admin_fallback'] ?? true;
+            $cfg['admin_offline_pass'] = $cfg['admin_offline_pass'] ?? 'Admin2026!';
+            $cfg['usuario_id'] = $cfg['usuario_id'] ?? 999999;
+            $cfg['nombre_corto'] = $cfg['nombre_corto'] ?? 'Admin Auxiliar';
+            $cfg['nombre_completo'] = $cfg['nombre_completo'] ?? 'Administrador de Contingencia (Modo Auxiliar)';
+            $cfg['cargo'] = $cfg['cargo'] ?? 'Administrador de Emergencia / Respaldo';
+            $cfg['rol'] = $cfg['rol'] ?? 'ADMIN_RRHH';
+            $cfg['rol_nombre'] = $cfg['rol_nombre'] ?? 'Administrador Auxiliar (Contingencia)';
+            $cfg['servicio_id'] = null;
+            $cfg['area'] = $cfg['area'] ?? 'Hospital Distrital de Pacasmayo';
+            $cfg['servicio'] = $cfg['servicio'] ?? 'Hospital Distrital de Pacasmayo (Contingencia)';
+            $cfg['correo'] = $cfg['correo'] ?? 'contingencia@hospitalpacasmayo.gob.pe';
+        }
+        return $cfg;
+    }
+
+    /**
+     * Comprueba si la sesión activa corresponde a la cuenta auxiliar temporal
+     */
+    public static function isAuxiliarySession(): bool {
+        return !empty($_SESSION['user']['is_auxiliary']);
+    }
+
+    /**
+     * Inicializa la sesión con los privilegios de la cuenta auxiliar
+     */
+    public static function startAuxiliarySession(array $auxConfig, string $auditAction = 'LOGIN_AUXILIAR'): array {
+        session_regenerate_id(true);
+
+        $_SESSION['user'] = [
+            'usuario_id'      => (int)($auxConfig['usuario_id'] ?? 999999),
+            'personal_id'     => null,
+            'system_code'     => SystemContext::code(),
+            'database_source' => 'OFFLINE_AUXILIARY',
+            'is_auxiliary'    => true,
+            'username'        => $auxConfig['username'] ?? 'auxiliar',
+            'dni'             => '00000000',
+            'nombre_corto'    => $auxConfig['nombre_corto'] ?? 'Admin Auxiliar',
+            'nombre_completo' => $auxConfig['nombre_completo'] ?? 'Administrador de Contingencia',
+            'cargo'           => $auxConfig['cargo'] ?? 'Administrador de Emergencia / Respaldo',
+            'servicio_id'     => null,
+            'area'            => $auxConfig['area'] ?? 'Hospital Distrital de Pacasmayo',
+            'servicio'        => $auxConfig['servicio'] ?? 'Hospital Distrital de Pacasmayo (Contingencia)',
+            'hospital'        => 'Hospital Distrital de Pacasmayo',
+            'rol'             => $auxConfig['rol'] ?? 'ADMIN_RRHH',
+            'rol_nombre'      => $auxConfig['rol_nombre'] ?? 'Administrador Auxiliar (Contingencia)',
+            'correo'          => $auxConfig['correo'] ?? '',
+            'iniciales'       => 'AX',
+            'avatar'          => null,
+            'ultimo_acceso'   => date('Y-m-d H:i:s'),
+            'auth_stamp'      => hash('sha256', 'auxiliary_offline_session'),
+            'login_time'      => time()
+        ];
+        $_SESSION['last_activity'] = time();
+
+        Auditoria::registrar(
+            (int)$_SESSION['user']['usuario_id'],
+            'SEGURIDAD',
+            $auditAction,
+            'seguridad.Usuario',
+            (string)$_SESSION['user']['usuario_id'],
+            'Inicio de sesión en Modo Auxiliar (Sin Conexión a Base de Datos)'
+        );
+
+        return [
+            'ok'           => true,
+            'is_auxiliary' => true,
+            'mensaje'      => 'Acceso autorizado en Modo Auxiliar (Sin conexión a BD). Redirigiendo...',
+            'usuario'      => $_SESSION['user']
+        ];
+    }
+
+    /** Revalidación obligatoria del servidor; el rol SQL se conserva sin alias. */
+    public static function validateSession(PDO $pdo): bool {
+        if (!empty($_SESSION['user']['is_auxiliary'])) {
+            return true;
+        }
+
+        $user = self::getCurrentUser();
+        $stmt = $pdo->prepare("SELECT u.UsuarioID, u.PasswordHash FROM seguridad.Usuario u
+            LEFT JOIN rrhh.Personal p ON p.PersonalID = u.PersonalID
+            INNER JOIN seguridad.UsuarioRol ur ON ur.UsuarioID = u.UsuarioID AND ur.Activo = 1
+            INNER JOIN seguridad.Rol r ON r.RolID = ur.RolID AND r.Activo = 1
+            WHERE u.UsuarioID = ? AND u.Activo = 1 AND u.Bloqueado = 0 AND r.Codigo = ?
+            AND (ur.FechaInicio IS NULL OR ur.FechaInicio <= CAST(GETDATE() AS DATE))
+            AND (ur.FechaFin IS NULL OR ur.FechaFin >= CAST(GETDATE() AS DATE))
+            AND r.SistemaID = ? AND " . SystemContext::membershipSql() . "
+            AND ((u.PersonalID IS NULL AND r.Codigo IN ('ADMIN','ADMIN_RRHH','RRHH_ADMIN')) OR p.Activo = 1)");
+        if (($user['database_source'] ?? '') !== Database::sourceId() || ($user['system_code'] ?? '') !== SystemContext::code()) { unset($_SESSION['user']); return false; }
+        $stmt->execute([(int)$user['usuario_id'], $user['rol'], SystemContext::id($pdo)]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+        $valid = $account !== false;
+        if ($valid) $valid = isset($user['auth_stamp'], $account['PasswordHash']) && hash_equals($user['auth_stamp'], hash('sha256', $account['PasswordHash']));
+        $service = self::getAllowedServiceId();
+        if ($valid && $service !== null) {
+            $stmt = $pdo->prepare('SELECT ap.ServicioID FROM seguridad.Usuario u
+                INNER JOIN rrhh.AsignacionPersonal ap ON ap.PersonalID = u.PersonalID
+                AND ap.EsActual = 1 AND ap.Activo = 1
+                WHERE u.UsuarioID = ? AND ap.ServicioID = ?');
+            $stmt->execute([(int)$user['usuario_id'], $service]);
+            $valid = $stmt->fetchColumn() !== false;
+        }
+        if (!$valid) unset($_SESSION['user']);
+        return $valid;
+    }
+
     /**
      * Comprueba si existe una sesión de usuario válida activa
      */
     public static function isAuthenticated(): bool {
-        return !empty($_SESSION['user']) && !empty($_SESSION['user']['usuario_id']);
+        if (empty($_SESSION['user']['usuario_id'])) {
+            return false;
+        }
+        if (!empty($_SESSION['user']['is_auxiliary'])) {
+            return true;
+        }
+        return ($_SESSION['user']['database_source'] ?? '') === Database::sourceId()
+            && ($_SESSION['user']['system_code'] ?? '') === SystemContext::code();
     }
 
     /**
      * Exige autenticación; si no hay sesión activa, redirige a login.php
      */
     public static function requireAuth(): void {
+        if (self::isAuthenticated()) {
+            if (!self::isAuxiliarySession()) {
+                $pdo = Database::getConnection();
+                if ($pdo) {
+                    try { self::validateSession($pdo); }
+                    catch (Throwable $e) { unset($_SESSION['user']); }
+                }
+            }
+        }
         if (!self::isAuthenticated()) {
             $currentUri = $_SERVER['REQUEST_URI'] ?? 'index.php';
             // Prevenir redirección en bucle a login
@@ -48,7 +188,7 @@ class Auth {
 
         return [
             'usuario_id'      => 0,
-            'persona_id'      => 0,
+            'personal_id'     => null,
             'username'        => 'invitado',
             'dni'             => '',
             'nombre_corto'    => 'Invitado',
@@ -69,8 +209,18 @@ class Auth {
      * Valida credenciales e inicializa la sesión en el sistema
      */
     public static function login(string $identificador, string $password): array {
-        $identificador = trim($identificador);
+        require_once __DIR__ . '/LoginThrottle.php';
+        try {
+            if (!LoginThrottle::allow(trim($identificador))) return ['ok'=>false, 'status'=>429, 'mensaje'=>'Demasiados intentos de acceso. Espere 15 minutos.'];
+        } catch (RuntimeException $e) {
+            error_log($e->getMessage());
+            return ['ok'=>false, 'status'=>503, 'mensaje'=>'No se pudo verificar el acceso. Intente nuevamente.'];
+        }
+        return self::performLogin($identificador, $password);
+    }
 
+    private static function performLogin(string $identificador, string $password): array {
+        $identificador = trim($identificador);
 
         if ($identificador === '' || $password === '') {
             return [
@@ -79,7 +229,38 @@ class Auth {
             ];
         }
 
+        $auxConfig = self::getAuxiliaryConfig();
+
+        // Acceso directo con cuenta auxiliar de contingencia (no requiere SQL Server)
+        if (!empty($auxConfig['enabled']) && strcasecmp($identificador, (string)$auxConfig['username']) === 0) {
+            if (hash_equals((string)$auxConfig['password'], $password)) {
+                return self::startAuxiliarySession($auxConfig, 'LOGIN_AUXILIAR');
+            }
+            return [
+                'ok'      => false,
+                'status'  => 401,
+                'mensaje' => 'Contraseña incorrecta para la cuenta auxiliar de contingencia.'
+            ];
+        }
+
         $pdo = Database::getConnection();
+        if ($pdo === null) {
+            error_log('Conexión durante login: ' . Database::getLastError());
+
+            // Permitir fallback offline de emergencia para administrador
+            if (!empty($auxConfig['enabled']) && !empty($auxConfig['allow_admin_fallback'])) {
+                if (in_array(strtolower($identificador), ['admin', 'administrador'], true) && hash_equals((string)$auxConfig['admin_offline_pass'], $password)) {
+                    return self::startAuxiliarySession($auxConfig, 'LOGIN_AUXILIAR_ADMIN');
+                }
+            }
+
+            return [
+                'ok'         => false,
+                'status'     => 503,
+                'db_offline' => true,
+                'mensaje'    => 'No se pudo conectar con la base de datos SQL Server. Puede acceder con la Cuenta Auxiliar de contingencia (Usuario: ' . htmlspecialchars($auxConfig['username']) . ' / Clave: ' . htmlspecialchars($auxConfig['password']) . ').'
+            ];
+        }
 
         // 1. Consulta en la base de datos SQL Server
         if ($pdo !== null) {
@@ -87,17 +268,17 @@ class Auth {
                 $sql = "
                     SELECT 
                         u.UsuarioID,
-                        u.PersonaID,
+                        u.PersonalID,
                         u.NombreUsuario,
                         u.PasswordHash,
                         u.Bloqueado,
-                        u.Estado,
+                        u.Activo,
                         u.UltimoAcceso,
-                        per.NumeroDocumento AS DNI,
-                        per.Nombres,
-                        per.ApellidoPaterno,
-                        per.ApellidoMaterno,
-                        per.Correo,
+                        p.NumeroDocumento AS DNI,
+                        p.Nombres,
+                        p.ApellidoPaterno,
+                        p.ApellidoMaterno,
+                        p.Correo,
                         r.RolID,
                         r.Codigo AS RolCodigo,
                         r.Nombre AS RolNombre,
@@ -105,18 +286,19 @@ class Auth {
                         ISNULL(s.Nombre, 'Hospital Distrital de Pacasmayo') AS ServicioNombre,
                         ISNULL(c.Nombre, 'Servidor Público') AS CargoNombre
                     FROM seguridad.Usuario u
-                    INNER JOIN core.Persona per ON u.PersonaID = per.PersonaID
-                    LEFT JOIN seguridad.UsuarioRol ur ON u.UsuarioID = ur.UsuarioID AND ur.Estado = 1
-                    LEFT JOIN seguridad.Rol r ON ur.RolID = r.RolID
-                    LEFT JOIN rrhh.Personal p ON per.PersonaID = p.PersonaID
-                    LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1
+                    LEFT JOIN rrhh.Personal p ON u.PersonalID = p.PersonalID
+                    LEFT JOIN seguridad.UsuarioRol ur ON u.UsuarioID = ur.UsuarioID AND ur.Activo = 1 AND (ur.FechaInicio IS NULL OR ur.FechaInicio <= CAST(GETDATE() AS DATE)) AND (ur.FechaFin IS NULL OR ur.FechaFin >= CAST(GETDATE() AS DATE))
+                    LEFT JOIN seguridad.Rol r ON ur.RolID = r.RolID AND r.Activo = 1
+                    LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
                     LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
                     LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-                    WHERE (u.NombreUsuario = ? OR per.NumeroDocumento = ?) AND u.Estado = 1
+                    WHERE (u.NombreUsuario = ? OR p.NumeroDocumento = ?) AND u.Activo = 1 AND ((u.PersonalID IS NULL AND r.Codigo IN ('ADMIN','ADMIN_RRHH','RRHH_ADMIN')) OR p.Activo = 1) AND r.RolID IS NOT NULL
+                    AND r.SistemaID = ? AND " . SystemContext::membershipSql() . "
+                    ORDER BY CASE WHEN r.Codigo IN ('ADMIN', 'ADMIN_RRHH', 'RRHH_ADMIN') THEN 0 ELSE 1 END, r.RolID
                 ";
 
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$identificador, $identificador]);
+                $stmt->execute([$identificador, $identificador, SystemContext::id($pdo)]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if (!$user) {
@@ -136,7 +318,7 @@ class Auth {
                 }
 
                 // Validación estricta con hash de contraseñas de Microsoft SQL Server (seguridad.Usuario)
-                $passwordValida = password_verify($password, $user['PasswordHash']);
+                $passwordValida = is_string($user['PasswordHash']) && password_verify($password, $user['PasswordHash']);
 
                 if (!$passwordValida) {
                     Auditoria::registrar((int)$user['UsuarioID'], 'SEGURIDAD', 'LOGIN_FALLIDO', 'seguridad.Usuario', (string)$user['UsuarioID'], "Contraseña incorrecta para el usuario: {$user['NombreUsuario']}");
@@ -158,11 +340,11 @@ class Auth {
                 $nombres = trim($user['Nombres'] ?? '');
                 $apePat  = trim($user['ApellidoPaterno'] ?? '');
                 $apeMat  = trim($user['ApellidoMaterno'] ?? '');
-                $nombreCompleto = trim("{$nombres} {$apePat} {$apeMat}");
+                $nombreCompleto = trim("{$nombres} {$apePat} {$apeMat}") ?: $user['NombreUsuario'];
                 
                 $primerNombre = explode(' ', $nombres)[0] ?? $nombres;
                 $letraApe = mb_substr($apePat, 0, 1, 'UTF-8');
-                $nombreCorto = "{$primerNombre} {$letraApe}.";
+                $nombreCorto = $nombres !== '' ? "{$primerNombre} {$letraApe}." : $user['NombreUsuario'];
 
                 $ini1 = mb_strtoupper(mb_substr($nombres, 0, 1, 'UTF-8'), 'UTF-8');
                 $ini2 = mb_strtoupper(mb_substr($apePat, 0, 1, 'UTF-8'), 'UTF-8');
@@ -173,7 +355,9 @@ class Auth {
 
                 $_SESSION['user'] = [
                     'usuario_id'      => (int)$user['UsuarioID'],
-                    'persona_id'      => (int)$user['PersonaID'],
+                    'personal_id'     => $user['PersonalID'] !== null ? (int)$user['PersonalID'] : null,
+                    'system_code'     => SystemContext::code(),
+                    'database_source' => Database::sourceId(),
                     'username'        => $user['NombreUsuario'],
                     'dni'             => $user['DNI'],
                     'nombre_corto'    => $nombreCorto,
@@ -189,9 +373,11 @@ class Auth {
                     'iniciales'       => $iniciales,
                     'avatar'          => null,
                     'ultimo_acceso'   => $user['UltimoAcceso'] ?? date('Y-m-d H:i:s'),
+                    'auth_stamp'      => hash('sha256', $user['PasswordHash']),
                     'login_time'      => time()
                 ];
 
+                $_SESSION['last_activity'] = time();
                 Auditoria::registrar(
                     (int)$user['UsuarioID'], 
                     'SEGURIDAD', 
@@ -209,6 +395,20 @@ class Auth {
 
             } catch (Exception $e) {
                 error_log("Error en Auth::login(): " . $e->getMessage());
+
+                // Permitir fallback offline de emergencia para administrador si la BD falla
+                if (!empty($auxConfig['enabled']) && !empty($auxConfig['allow_admin_fallback'])) {
+                    if (in_array(strtolower($identificador), ['admin', 'administrador'], true) && hash_equals((string)$auxConfig['admin_offline_pass'], $password)) {
+                        return self::startAuxiliarySession($auxConfig, 'LOGIN_AUXILIAR_ADMIN');
+                    }
+                }
+
+                return [
+                    'ok'         => false,
+                    'status'     => 503,
+                    'db_offline' => true,
+                    'mensaje'    => 'No se pudo verificar el acceso en la base de datos SQL Server. Puede ingresar con la Cuenta Auxiliar temporal (Usuario: ' . htmlspecialchars($auxConfig['username']) . ' / Clave: ' . htmlspecialchars($auxConfig['password']) . ').'
+                ];
             }
         }
 
@@ -256,7 +456,8 @@ class Auth {
             return false;
         }
 
-        $userRole = $_SESSION['user']['rol'] ?? '';
+        $userRole = self::permissionRole($_SESSION['user']['rol'] ?? '');
+        $roles = array_map([self::class, 'permissionRole'], $roles);
         return in_array($userRole, $roles, true);
     }
 
@@ -268,7 +469,11 @@ class Auth {
             return false;
         }
 
-        $rol = $_SESSION['user']['rol'] ?? '';
+        return self::roleAllows($_SESSION['user']['rol'] ?? '', $modulo);
+    }
+
+    public static function roleAllows(string $role, string $modulo): bool {
+        $rol = self::permissionRole($role);
         if ($rol === 'ADMIN' || $rol === 'ADMIN_RRHH') {
             return true;
         }
@@ -299,7 +504,7 @@ class Auth {
             return false;
         }
 
-        $rol = $_SESSION['user']['rol'] ?? '';
+        $rol = self::permissionRole($_SESSION['user']['rol'] ?? '');
         // Roles institucionales con alcance global a todos los servicios
         if (in_array($rol, ['ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH', 'OPERADOR_ASISTENCIA', 'AUDITOR_PLANILLAS'], true)) {
             return true;
@@ -327,7 +532,7 @@ class Auth {
         if (!self::isAuthenticated()) {
             return null;
         }
-        $rol = $_SESSION['user']['rol'] ?? '';
+        $rol = self::permissionRole($_SESSION['user']['rol'] ?? '');
         if (in_array($rol, ['ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH', 'OPERADOR_ASISTENCIA', 'AUDITOR_PLANILLAS'], true)) {
             return null; // Alcance global
         }
@@ -358,7 +563,7 @@ class Auth {
             $stmt = $pdo->prepare("
                 SELECT ap.ServicioID
                 FROM rrhh.Personal p
-                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+                LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
                 WHERE p.PersonalID = ?
             ");
             $stmt->execute([$personalId]);

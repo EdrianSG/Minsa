@@ -136,7 +136,7 @@ $pageScript = "administracion.js";
           <thead>
             <tr>
               <th>Usuario / Identificador</th>
-              <th>Servidor Vinculado (Persona)</th>
+              <th>Servidor Vinculado (Personal)</th>
               <th>Servicio / UPSS</th>
               <th>Rol Institucional</th>
               <th>Estado</th>
@@ -417,19 +417,21 @@ $pageScript = "administracion.js";
 <!-- =========================================================
      MODAL: CREAR NUEVO USUARIO
      ========================================================= -->
-<div class="modal-backdrop" id="modalCrearUsuario">
+<div class="modal-backdrop" id="modalCrearUsuario" role="dialog" aria-modal="true" aria-labelledby="modalCrearUsuarioTitulo">
   <div class="modal-dialog" style="max-width: 580px;">
     <div class="modal-header">
       <div class="modal-title">
-        <span>👤</span> Crear Nueva Cuenta de Acceso
+        <span id="modalCrearUsuarioTitulo">👤 Crear Nueva Cuenta de Acceso</span>
       </div>
       <button type="button" class="modal-close" aria-label="Cerrar modal">&times;</button>
     </div>
     <form id="formCrearUsuario">
       <div class="modal-body">
+        <p id="modalUserEstado" role="status" aria-live="polite">Cargando trabajadores y roles...</p>
+        <a id="modalUserRegistrarPersonal" href="index.php?page=personal" hidden>Ir a Personal para registrar un trabajador</a>
         <div class="form-group" style="margin-bottom: 1rem;">
-          <label for="modalUserPersonalSelect">Vincular a Servidor Registrado (core.Persona): *</label>
-          <select id="modalUserPersonalSelect" class="input" required>
+          <label for="modalUserPersonalSelect">Trabajador registrado (opcional para cuentas técnicas):</label>
+          <select id="modalUserPersonalSelect" class="input">
             <option value="">Cargando lista de servidores...</option>
           </select>
           <small style="color: var(--text-tertiary);">Seleccione el trabajador que utilizará esta cuenta de acceso.</small>
@@ -438,16 +440,13 @@ $pageScript = "administracion.js";
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem;">
           <div class="form-group">
             <label for="modalUserUsername">Nombre de Usuario (Login): *</label>
-            <input type="text" id="modalUserUsername" class="input" placeholder="ej. cbenites" required>
+            <input type="text" id="modalUserUsername" class="input" minlength="3" maxlength="80" pattern="[a-zA-Z0-9._\-]{3,80}" autocomplete="off" placeholder="ej. cbenites" required>
           </div>
 
           <div class="form-group">
-            <label for="modalUserRolSelect">Rol Institucional (seguridad.Rol): *</label>
+            <label for="modalUserRolSelect">Rol institucional: *</label>
             <select id="modalUserRolSelect" class="input" required>
-              <option value="3" selected>OPERADOR_ASISTENCIA - Operador</option>
-              <option value="2">JEFE_SERVICIO - Jefatura de Servicio</option>
-              <option value="4">AUDITOR_PLANILLAS - Auditor Planillas</option>
-              <option value="1">ADMIN_RRHH - Administrador RR.HH.</option>
+              <option value="">Cargando roles disponibles...</option>
             </select>
           </div>
         </div>
@@ -478,12 +477,12 @@ $pageScript = "administracion.js";
         </div>
 
         <div style="font-size: 0.78rem; color: var(--text-secondary); background: rgba(37, 99, 235, 0.05); padding: 0.65rem; border-radius: var(--radius-sm); border-left: 3px solid var(--primary-600);">
-          Nota: La contraseña inicial provisoria será generada automáticamente por el sistema como <code>Minsa.2026!</code>. El usuario podrá cambiarla en su panel.
+          El sistema generará una contraseña aleatoria y la mostrará una sola vez al crear la cuenta. Entregue esa clave al titular por un canal privado.
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Crear Cuenta</button>
+        <button type="submit" class="btn btn-primary" id="btnCrearCuenta" disabled>Crear Cuenta</button>
       </div>
     </form>
   </div>

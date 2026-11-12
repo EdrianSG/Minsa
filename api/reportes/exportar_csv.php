@@ -11,9 +11,9 @@ apiGuard('reportes', ['GET'], []);
  */
 
 $tipo       = $_GET['tipo'] ?? 'consolidado'; // 'consolidado', 'individual', 'seti'
-$mes        = intval($_GET['mes'] ?? 9);
-$anio       = intval($_GET['anio'] ?? 2026);
-$personalId = intval($_GET['personal_id'] ?? 1);
+$mes        = intval($_GET['mes'] ?? date('n'));
+$anio       = intval($_GET['anio'] ?? date('Y'));
+$personalId = intval($_GET['personal_id'] ?? 0);
 $servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : 0;
 $allowedServiceId = Auth::getAllowedServiceId();
 if ($allowedServiceId !== null) {
@@ -26,6 +26,7 @@ if ($tipo === 'individual' && $personalId > 0) {
     apiRequirePersonalAccess($personalId);
 }
 
+if (!in_array($tipo, ['consolidado', 'individual', 'seti'], true)) apiError(400, 'Tipo de reporte inválido.');
 $filename = "reporte_{$tipo}_{$mes}_{$anio}.csv";
 
 // Consumir datos en buffer antes de emitir encabezados
@@ -61,18 +62,25 @@ header('Pragma: no-cache');
 header('Expires: 0');
 
 $output = fopen('php://output', 'w');
+function safeCsv($output, array $fields): void {
+    foreach ($fields as &$field) {
+        if (is_string($field) && preg_match('/^[\s]*[=+@-]/u', $field)) $field = "'" . $field;
+    }
+    unset($field);
+    fputcsv($output, $fields);
+}
 
 // Escribir BOM UTF-8 para compatibilidad absoluta con Microsoft Excel
 fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
 if ($tipo === 'individual') {
     // Encabezado institucional
-    fputcsv($output, ['HOSPITAL DISTRITAL DE PACASMAYO - RECURSOS HUMANOS']);
-    fputcsv($output, ["RÉCORD INDIVIDUAL DE ASISTENCIA Y TURNOS - MES: $mes / AÑO: $anio"]);
-    fputcsv($output, []);
+    safeCsv($output, ['HOSPITAL DISTRITAL DE PACASMAYO - RECURSOS HUMANOS']);
+    safeCsv($output, ["RÉCORD INDIVIDUAL DE ASISTENCIA Y TURNOS - MES: $mes / AÑO: $anio"]);
+    safeCsv($output, []);
 
     // Columnas
-    fputcsv($output, [
+    safeCsv($output, [
         'Día', 'Fecha', 'Día Semana', 'Turno Código', 'Turno Nombre',
         'Hora Prog. Inicio', 'Hora Prog. Fin', 'Horas Prog.',
         'Hora Entrada Real', 'Hora Salida Real', 'Minutos Tardanza',
@@ -81,7 +89,7 @@ if ($tipo === 'individual') {
 
     if ($data && !empty($data['dias'])) {
         foreach ($data['dias'] as $d) {
-            fputcsv($output, [
+            safeCsv($output, [
                 $d['dia'],
                 $d['fecha'],
                 $d['dia_semana'],
@@ -99,12 +107,12 @@ if ($tipo === 'individual') {
         }
     }
 } elseif ($tipo === 'seti') {
-    fputcsv($output, ['HOSPITAL DISTRITAL DE PACASMAYO - RED DE SALUD PACASMAYO']);
-    fputcsv($output, ["REPORTE OFICIAL SETI - SISTEMA DE INFORMACIÓN DE TURNOS ASISTENCIALES"]);
-    fputcsv($output, ["PERIODO: Mes $mes / Año $anio - NORMA MINSA 150 HORAS"]);
-    fputcsv($output, []);
+    safeCsv($output, ['HOSPITAL DISTRITAL DE PACASMAYO - RED DE SALUD PACASMAYO']);
+    safeCsv($output, ["REPORTE OFICIAL SETI - SISTEMA DE INFORMACIÓN DE TURNOS ASISTENCIALES"]);
+    safeCsv($output, ["PERIODO: Mes $mes / Año $anio - NORMA MINSA 150 HORAS"]);
+    safeCsv($output, []);
 
-    fputcsv($output, [
+    safeCsv($output, [
         'Condición', 'DNI', 'Nombre Completo', 'Cargo', 'Servicio Hospitalario',
         'Guardias Diurnas (12h)', 'Guardias Nocturnas (12h)', 'Turnos Ordinarios (6h)',
         'Total Horas Computadas', 'Cumple 150h', 'Diferencia Horas', 'Faltas', 'CITT EsSalud'
@@ -112,7 +120,7 @@ if ($tipo === 'individual') {
 
     if ($data) {
         foreach ($data['nombrados'] as $r) {
-            fputcsv($output, [
+            safeCsv($output, [
                 'NOMBRADO (DL 276)', $r['dni'], $r['nombre_completo'], $r['cargo'], $r['servicio_nombre'],
                 $r['guardias_diurnas_12h'], $r['guardias_nocturnas_12h'], $r['turnos_ordinarios_6h'],
                 $r['total_horas'], $r['cumple_150h'] ? 'SÍ (150h)' : 'NO', $r['diferencia_horas'],
@@ -120,7 +128,7 @@ if ($tipo === 'individual') {
             ]);
         }
         foreach ($data['cas'] as $r) {
-            fputcsv($output, [
+            safeCsv($output, [
                 'CAS (DL 1057)', $r['dni'], $r['nombre_completo'], $r['cargo'], $r['servicio_nombre'],
                 $r['guardias_diurnas_12h'], $r['guardias_nocturnas_12h'], $r['turnos_ordinarios_6h'],
                 $r['total_horas'], $r['cumple_150h'] ? 'SÍ (150h)' : 'NO', $r['diferencia_horas'],
@@ -130,11 +138,11 @@ if ($tipo === 'individual') {
     }
 } else {
     // Consolidado para planillas
-    fputcsv($output, ['HOSPITAL DISTRITAL DE PACASMAYO - UNIDAD DE RECURSOS HUMANOS']);
-    fputcsv($output, ["CONSOLIDADO MENSUAL DE ASISTENCIA Y TARDANZAS PARA PLANILLAS - $mes / $anio"]);
-    fputcsv($output, []);
+    safeCsv($output, ['HOSPITAL DISTRITAL DE PACASMAYO - UNIDAD DE RECURSOS HUMANOS']);
+    safeCsv($output, ["CONSOLIDADO MENSUAL DE ASISTENCIA Y TARDANZAS PARA PLANILLAS - $mes / $anio"]);
+    safeCsv($output, []);
 
-    fputcsv($output, [
+    safeCsv($output, [
         'DNI', 'Apellidos y Nombres', 'Cargo', 'Servicio', 'Condición', 'Régimen',
         'Días Programados', 'Días Laborados', 'Minutos Tardanza Acumulados',
         'Faltas Injustificadas (Descuento)', 'Permisos con Goce', 'Descansos CITT EsSalud',
@@ -143,7 +151,7 @@ if ($tipo === 'individual') {
 
     if ($data && !empty($data['filas'])) {
         foreach ($data['filas'] as $f) {
-            fputcsv($output, [
+            safeCsv($output, [
                 $f['dni'],
                 $f['nombre_completo'],
                 $f['cargo'],

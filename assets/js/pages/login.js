@@ -66,7 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = data.redirect_url || 'index.php';
           }, 450);
         } else {
-          mostrarAlerta(data.mensaje || 'Credenciales inválidas. Verifique sus datos.', 'danger');
+          let alertMsg = data.mensaje || 'Credenciales inválidas. Verifique sus datos.';
+          mostrarAlerta(alertMsg, data.db_offline ? 'warning' : 'danger');
           setLoading(false);
           passwordInput.value = '';
           passwordInput.focus();
@@ -75,6 +76,21 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error en autenticación:', err);
         mostrarAlerta('No se pudo conectar con el servidor de autenticación. Intente nuevamente.', 'danger');
         setLoading(false);
+      }
+    });
+  }
+
+  const btnAuxiliary = document.getElementById('btnAuxiliaryLogin');
+  if (btnAuxiliary) {
+    btnAuxiliary.addEventListener('click', () => {
+      if (!identificadorInput || !passwordInput || !loginForm) return;
+      identificadorInput.value = 'auxiliar';
+      passwordInput.value = 'Auxiliar2026!';
+      limpiarAlerta();
+      if (typeof loginForm.requestSubmit === 'function') {
+        loginForm.requestSubmit();
+      } else {
+        loginForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       }
     });
   }
@@ -105,6 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let icono = '';
     if (tipo === 'danger') {
+      icono = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+    } else if (tipo === 'warning') {
       icono = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
     } else if (tipo === 'success') {
       icono = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;

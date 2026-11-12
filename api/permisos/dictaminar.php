@@ -21,8 +21,8 @@ $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true) ?: $_POST;
 
 $permisoId   = intval($data['permiso_id'] ?? 0);
-$accion      = strtoupper(trim($data['accion'] ?? 'APROBAR')); // APROBAR, RECHAZAR, ANULAR
-$observacion = trim($data['observacion_dictamen'] ?? 'Aprobado conforme a directiva institucional de RR.HH.');
+$accion      = strtoupper(trim($data['accion'] ?? '')); // APROBAR, RECHAZAR, ANULAR
+$observacion = trim($data['observacion_dictamen'] ?? '');
 
 if ($permisoId <= 0) {
     http_response_code(400);
@@ -127,6 +127,7 @@ if ($dbConnected) {
                 }
             }
         }
+        if (!Auditoria::registrar((int)Auth::getCurrentUser()['usuario_id'],'AUSENCIAS',$accion,'rrhh.PermisoLaboral',(string)$permisoId,'Dictamen: '.$nuevoEstado.'. Obs: '.$observacion)) throw new RuntimeException('No se pudo auditar.');
         $pdo->commit();
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -134,16 +135,6 @@ if ($dbConnected) {
         apiError(500, 'No se pudo guardar el dictamen. Se revirtieron los cambios.');
     }
 }
-
-$currentUser = Auth::getCurrentUser();
-Auditoria::registrar(
-    $currentUser['usuario_id'] ?? 1,
-    'AUSENCIAS',
-    $accion,
-    'rrhh.PermisoLaboral',
-    (string)$permisoId,
-    "Dictamen de solicitud de permiso ID $permisoId: $nuevoEstado. Obs: $observacion"
-);
 
 $mensaje = ($nuevoEstado === 'APROBADO')
     ? "Permiso APROBADO por Recursos Humanos. Se sincronizó el registro de asistencia institucional."

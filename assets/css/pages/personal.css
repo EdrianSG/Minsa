@@ -255,6 +255,18 @@ html.dark .badge-cas {
   border: 1px solid var(--status-justified-border);
 }
 
+.badge-admin {
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-100);
+}
+
+html.dark .badge-admin {
+  background-color: rgba(30, 58, 138, 0.2);
+  color: var(--primary-400);
+  border-color: rgba(30, 58, 138, 0.4);
+}
+
 .badge-tag-seti {
   font-size: 0.65rem;
   font-weight: 800;
@@ -392,3 +404,21 @@ html.dark .ficha-group-title {
   font-weight: 600;
   text-align: right;
 }
+
+/* Editor de identidad, asignación y perfil profesional. */
+.worker-editor-dialog { max-width: 960px; }
+.worker-editor-body { max-height: calc(86vh - 140px); overflow-y: auto; }
+.worker-editor-section { margin: 0 0 1rem; padding: 1rem; border: 1px solid var(--border-subtle); border-radius: 8px; min-width: 0; }
+.worker-editor-section legend { font-weight: 700; padding: 0 .4rem; }
+.worker-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.worker-editor-grid label { display: grid; gap: .35rem; font-size: .83rem; font-weight: 600; align-content: start; }
+.worker-editor-grid input, .worker-editor-grid select { width: 100%; min-width: 0; }
+.worker-editor-hint, .worker-origin-card small { display: block; color: var(--text-secondary); font-size: .8rem; margin: .75rem 0 0; }
+.worker-origin-card { padding: 1rem; margin-bottom: 1rem; background: var(--bg-surface-muted); border: 1px solid var(--border-subtle); border-radius: 8px; }
+.worker-origin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin: .75rem 0; }
+.worker-origin-grid dt { color: var(--text-secondary); font-size: .75rem; }
+.worker-origin-grid dd { margin: .2rem 0; overflow-wrap: anywhere; }
+.worker-check { display: flex; gap: .5rem; align-items: center; margin: .75rem 0; font-size: .85rem; }
+.worker-editor-error { padding: .8rem; margin-bottom: 1rem; border: 1px solid var(--status-absent-accent); border-radius: 6px; color: var(--status-absent-accent); }
+.worker-editor-section:disabled { opacity: .65; }
+@media(max-width: 640px) { .worker-editor-grid, .worker-origin-grid { grid-template-columns: 1fr; } }

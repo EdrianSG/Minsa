@@ -117,6 +117,12 @@ class BiostarCsvParser
                 // Clasificación de evento
                 $eventosDesglose[$eventoRaw] = ($eventosDesglose[$eventoRaw] ?? 0) + 1;
 
+                if (mb_strlen($dispositivoId)>50) throw new InvalidArgumentException('ID de dispositivo excede 50 caracteres; no se trunca.');
+                $parsedDate = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $fechaRaw);
+                if (!$parsedDate || $parsedDate->format('Y-m-d H:i:s') !== $fechaRaw) {
+                    throw new InvalidArgumentException('Fecha biométrica inválida en fila ' . $totalFilas . '; se conserva el archivo sin importar.');
+                }
+
                 $esEventoValido = in_array($eventoRaw, self::VALID_EVENTS, true);
 
                 if (!$esEventoValido) {
@@ -264,6 +270,15 @@ class BiostarCsvParser
             // Validar cabeceras
             $headerMap = self::validarCabeceras($handle);
 
+            $pdo->beginTransaction();
+            $lock=$pdo->query("DECLARE @r int; EXEC @r=sys.sp_getapplock @Resource=N'RRHH_BIOSTAR_IMPORT_V4', @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; SELECT @r");
+            if ((int)$lock->fetchColumn()<0) throw new RuntimeException('Otra importación está en curso.');
+            $lock->closeCursor();
+            $previous=self::buscarImportacionPorHash($hashSHA256);
+            if ($previous && $previous['Estado']==='COMPLETADO') {
+                $pdo->commit();
+                return ['ok'=>true,'ya_importado'=>true,'importacion_id'=>(int)$previous['ImportacionID'],'marcaciones_insertadas'=>0,'mensaje'=>'Archivo ya importado; no se duplicaron registros.'];
+            }
             // 1. Crear registro de importación en estado 'EN_PROCESO'
             $stmtInit = $pdo->prepare("
                 SET NOCOUNT ON;
@@ -276,7 +291,7 @@ class BiostarCsvParser
                     :nombre, :hash, SYSDATETIME(), :usuario_id,
                     0, 0, 0, 0, 0, 0, 0, 'EN_PROCESO', :obs
                 );
-                SELECT SCOPE_IDENTITY() AS ImportacionID;
+                SELECT SCOPE_IDENTITY() AS ImportacionBiometricaID;
             ");
             $stmtInit->execute([
                 ':nombre'     => substr($originalFileName, 0, 255),
@@ -285,17 +300,15 @@ class BiostarCsvParser
                 ':obs'        => $observaciones ? substr($observaciones, 0, 500) : 'Carga desde Portal de Asistencia'
             ]);
             $rowId = $stmtInit->fetch(PDO::FETCH_ASSOC);
-            $importacionId = intval($rowId['ImportacionID'] ?? 0);
+            $importacionId = intval($rowId['ImportacionBiometricaID'] ?? 0);
+            $stmtInit->closeCursor();
 
-            if ($importacionId <= 0) {
-                // Respaldo de obtención de ID
-                $importacionId = intval($pdo->query("SELECT MAX(ImportacionID) FROM rrhh.ImportacionBiometrica")->fetchColumn());
-            }
+            if ($importacionId <= 0) throw new RuntimeException('No se obtuvo la clave de la importación.');
 
             // Preparar sentencias de inserción atómica
             $stmtInsertMarcacion = $pdo->prepare("
                 INSERT INTO rrhh.MarcacionBiometrica (
-                    ImportacionID, BiostarUserID, BiostarUserName, FechaHora,
+                    ImportacionBiometricaID, BiostarUserID, BiostarUserName, FechaHora,
                     DispositivoID, DispositivoNombre, Evento, PersonalID,
                     EstadoProcesamiento, EstadoVinculacion, EsConsecutiva,
                     SegundosDiferencia, Advertencia
@@ -307,16 +320,16 @@ class BiostarCsvParser
                     :segDif, :adv
                 WHERE NOT EXISTS (
                     SELECT 1 FROM rrhh.MarcacionBiometrica WITH (UPDLOCK, HOLDLOCK)
-                    WHERE BiostarUserID = :bUserCheck
+                    WHERE ISNULL(BiostarUserID, '') = :bUserCheck
                       AND FechaHora = :fecCheck
-                      AND DispositivoID = :devIdCheck
+                      AND ISNULL(DispositivoID, '') = :devIdCheck
                       AND Evento = :evCheck
                 )
             ");
 
             $stmtInsertIncidencia = $pdo->prepare("
                 INSERT INTO rrhh.IncidenciaBiometrica (
-                    ImportacionID, BiostarUserID, TipoIncidencia, Nivel,
+                    ImportacionBiometricaID, BiostarUserID, TipoIncidencia, Nivel,
                     Detalle, FechaHoraEvento, FechaHoraRegistro
                 ) VALUES (
                     :impId, :bUser, :tipo, :nivel, :detalle, :fecEv, SYSDATETIME()
@@ -338,8 +351,6 @@ class BiostarCsvParser
             $ultimoTimestampUsuario = [];
 
             // Iniciar transacción SQL para la carga masiva
-            $pdo->beginTransaction();
-
             while (($row = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
                 if (empty($row) || (count($row) === 1 && $row[0] === null)) {
                     continue;
@@ -352,6 +363,12 @@ class BiostarCsvParser
                 $dispositivoNom= trim($row[$headerMap['dispositivo']] ?? '');
                 $usuarioRaw    = trim($row[$headerMap['usuario']] ?? '');
                 $eventoRaw     = trim($row[$headerMap['evento']] ?? '');
+
+                if (mb_strlen($dispositivoId)>50) throw new InvalidArgumentException('ID de dispositivo excede 50 caracteres; no se trunca.');
+                $parsedDate = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $fechaRaw);
+                if (!$parsedDate || $parsedDate->format('Y-m-d H:i:s') !== $fechaRaw) {
+                    throw new InvalidArgumentException('Fecha biométrica inválida en fila ' . $totalFilas . '; se conserva el archivo sin importar.');
+                }
 
                 $esEventoValido = in_array($eventoRaw, self::VALID_EVENTS, true);
 
@@ -436,7 +453,7 @@ class BiostarCsvParser
                     ':segDif'      => $segundosDif,
                     ':adv'         => $advertencia,
                     // Parámetros para el WHERE NOT EXISTS
-                    ':bUserCheck'  => $biostarUserId,
+                    ':bUserCheck'  => $biostarUserId ?? '',
                     ':fecCheck'    => $fechaRaw,
                     ':devIdCheck'  => substr($dispositivoId, 0, 50),
                     ':evCheck'     => substr($eventoRaw, 0, 100)
@@ -449,8 +466,6 @@ class BiostarCsvParser
                 }
             }
 
-            // Confirmar transacción SQL
-            $pdo->commit();
 
             // 2. Actualizar registro maestro de importación con totales finales
             $stmtUpd = $pdo->prepare("
@@ -464,7 +479,7 @@ class BiostarCsvParser
                     VinculadosDirectos      = :vinc,
                     Estado                  = 'COMPLETADO',
                     MensajeError            = NULL
-                WHERE ImportacionID = :id
+                WHERE ImportacionBiometricaID = :id
             ");
             $stmtUpd->execute([
                 ':tot'  => $totalFilas,
@@ -478,7 +493,7 @@ class BiostarCsvParser
             ]);
 
             // Auditoría institucional
-            Auditoria::registrar(
+            $auditOk = Auditoria::registrar(
                 $usuarioId,
                 'ASISTENCIA',
                 'IMPORT_BIOMETRICO_CSV',
@@ -487,6 +502,8 @@ class BiostarCsvParser
                 "Importación de {$originalFileName}: {$marcacionesInsertadas} nuevas, {$marcacionesDuplicadas} duplicadas, {$marcacionesConsecutivas} consecutivas."
             );
 
+            if (!$auditOk) throw new RuntimeException('No se pudo auditar la importación.');
+            $pdo->commit();
             return [
                 'ok'                        => true,
                 'importacion_id'            => $importacionId,
@@ -506,24 +523,6 @@ class BiostarCsvParser
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
-            }
-
-            // Registrar fallo en ImportacionBiometrica si se llegó a crear el ID
-            if ($importacionId > 0) {
-                try {
-                    $stmtFail = $pdo->prepare("
-                        UPDATE rrhh.ImportacionBiometrica
-                        SET Estado = 'FALLIDO',
-                            MensajeError = :err
-                        WHERE ImportacionID = :id
-                    ");
-                    $stmtFail->execute([
-                        ':err' => substr($e->getMessage(), 0, 1000),
-                        ':id'  => $importacionId
-                    ]);
-                } catch (Exception $ign) {
-                    // Ignorar error al guardar log
-                }
             }
 
             throw $e;
@@ -578,64 +577,22 @@ class BiostarCsvParser
     public static function extraerUsuario(string $usuarioRaw): array
     {
         $usuarioRaw = trim($usuarioRaw);
-        if ($usuarioRaw === '') {
-            return ['id' => 'SIN_ID', 'nombre' => null];
-        }
-
-        // Patrón oficial BioStar 2: 72025461(LEON EUSEBIO SHIRLEY LUCERO) o 53
-        if (preg_match('/^(\d{1,12})\s*(?:\((.+)\))?$/u', $usuarioRaw, $matches)) {
-            $id = $matches[1];
-            $nombre = isset($matches[2]) ? trim($matches[2]) : null;
-            return ['id' => $id, 'nombre' => $nombre];
-        }
-
-        // Si contiene letras sueltas sin números iniciales
-        return [
-            'id'     => substr(preg_replace('/[^a-zA-Z0-9]/', '', $usuarioRaw), 0, 30) ?: 'DESC',
-            'nombre' => $usuarioRaw
-        ];
+        if ($usuarioRaw === '') return ['id'=>null, 'nombre'=>null];
+        if (preg_match('/^([^()]+)\s*\((.*)\)$/u', $usuarioRaw, $m)) {
+            $id=trim($m[1]); $name=trim($m[2]);
+        } else { $id=$usuarioRaw; $name=null; }
+        if (mb_strlen($id)>30) throw new InvalidArgumentException('BiostarUserID excede 30 caracteres; no se trunca.');
+        return ['id'=>$id, 'nombre'=>$name ?: null];
     }
 
-    /**
-     * Retorna mapa [ DNI => PersonalID ] a partir del padrón institucional
-     */
-    private static function obtenerMapaPersonal(): array
-    {
-        $pdo = Database::getConnection();
-        if ($pdo === null) {
-            return [];
-        }
-
-        $map = [];
-        try {
-            // 1. Personal con DNI en core.Persona
-            $sql = "
-                SELECT per.NumeroDocumento AS DNI, p.PersonalID
-                FROM rrhh.Personal p
-                INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-                WHERE p.Estado = 1
-            ";
-            $stmt = $pdo->query($sql);
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $dni = trim((string)$row['DNI']);
-                if ($dni !== '') {
-                    $map[$dni] = intval($row['PersonalID']);
-                }
-            }
-
-            // 2. Mapeos manuales de la tabla rrhh.VinculacionBiometrica (tienen prioridad)
-            $sqlVinculaciones = "SELECT BiostarUserID, PersonalID FROM rrhh.VinculacionBiometrica";
-            $stmtV = $pdo->query($sqlVinculaciones);
-            while ($row = $stmtV->fetch(PDO::FETCH_ASSOC)) {
-                $bId = trim((string)$row['BiostarUserID']);
-                if ($bId !== '') {
-                    $map[$bId] = intval($row['PersonalID']);
-                }
-            }
-        } catch (Exception $e) {
-            // Silencioso; si falla, el mapa queda vacío y las marcaciones quedarán PENDIENTE_VINCULACION
-        }
-
+    /** Solo vínculos explícitos; el ID del dispositivo no es documento. */
+    private static function obtenerMapaPersonal(): array {
+        $pdo=Database::getConnection();
+        if (!$pdo) return [];
+        $s=$pdo->query('SELECT v.BiostarUserID, v.PersonalID FROM rrhh.VinculacionBiometrica v
+            JOIN rrhh.Personal p ON p.PersonalID=v.PersonalID WHERE v.BiostarUserID IS NOT NULL');
+        $map=[];
+        foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) $map[$r['BiostarUserID']]=(int)$r['PersonalID'];
         return $map;
     }
 
@@ -652,11 +609,11 @@ class BiostarCsvParser
         try {
             $stmt = $pdo->prepare("
                 SELECT TOP 1 
-                    ImportacionID, NombreArchivo, FechaHoraCarga, Estado,
+                    ImportacionBiometricaID AS ImportacionID, NombreArchivo, FechaHoraCarga, Estado,
                     MarcacionesValidas, MarcacionesDuplicadas
                 FROM rrhh.ImportacionBiometrica
                 WHERE HashSHA256 = :hash AND Estado = 'COMPLETADO'
-                ORDER BY ImportacionID DESC
+                ORDER BY ImportacionBiometricaID DESC
             ");
             $stmt->execute([':hash' => $hash]);
             $res = $stmt->fetch(PDO::FETCH_ASSOC);

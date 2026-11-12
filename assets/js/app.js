@@ -333,9 +333,17 @@ function initDbStatusWatcher() {
       const data = await API.checkRevision();
       updateDbStatus(Boolean(data.conexion_sql));
     } catch (e) {
-      updateDbStatus(false);
+      pill.classList.remove('online', 'offline');
+      pill.title = e.message || 'No se pudo comprobar el estado.';
+      dot.className = 'status-dot-offline';
+      text.textContent = e.status === 401 ? 'Sesión vencida' : e.status === 403 ? 'Acceso denegado' : 'Error de consulta';
     }
   }
+
+  window.addEventListener('sigh:backup', event => {
+    const date = new Date(event.detail.time).toLocaleString('es-PE');
+    showDataNotice(`Esta consulta usa un respaldo de ${date}. Revise la conexión y actualice la vista.`, true);
+  });
 
   function updateDbStatus(isOnline) {
     if (isOnline) {
@@ -374,10 +382,11 @@ function initDbStatusWatcher() {
     const button = document.createElement('button');
     button.className = 'btn btn-secondary btn-sm';
     button.textContent = 'Actualizar vista';
-    button.addEventListener('click', () => window.location.reload());
+    button.addEventListener('click', () => { API.invalidate(); window.location.reload(); });
     notice.append(button);
   }
-  checkStatus();
+  // La lectura de la página comunica el estado; no competir con su carga inicial.
+  if (window.currentUser?.live_reads !== true) checkStatus();
   // Verificar periódicamente cada 20 segundos
   setInterval(checkStatus, 20000);
 

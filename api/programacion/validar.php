@@ -18,8 +18,8 @@ $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true) ?: $_POST;
 
 $matriz = $data['matriz'] ?? [];
-$servicioNombre = $data['servicio_nombre'] ?? 'Emergencia y Cuidados Críticos';
-$mesNombre = $data['mes_nombre'] ?? 'Setiembre 2026';
+$servicioNombre = $data['servicio_nombre'] ?? 'Sin servicio informado';
+$mesNombre = $data['mes_nombre'] ?? 'Sin periodo informado';
 
 $observados = [];
 $cumplen = [];
@@ -29,7 +29,7 @@ $puedeAprobar = true;
 foreach ($matriz as $trabajador) {
     $nombre = $trabajador['nombre_completo'] ?? 'Personal';
     $dni = $trabajador['dni'] ?? '';
-    $regimen = strtoupper($trabajador['regimen_laboral'] ?? 'ASISTENCIAL');
+    $regimen = strtoupper($trabajador['regimen_laboral'] ?? '');
     $horas = floatval($trabajador['total_horas'] ?? 0);
 
     if ($regimen === 'ASISTENCIAL') {

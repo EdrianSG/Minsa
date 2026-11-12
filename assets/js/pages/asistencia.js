@@ -335,7 +335,7 @@ function renderTablaAsistencia(items) {
               ${escapeHtml(row.nombre_completo)}
             </span>
             <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
-              DNI ${row.dni} &bull; ${escapeHtml(row.cargo)}
+              DNI ${escapeHtml(row.dni)} &bull; ${escapeHtml(row.cargo)}
             </span>
           </div>
         </td>
@@ -396,7 +396,7 @@ function renderTablaAsistencia(items) {
             class="btn btn-secondary btn-sm" 
             style="padding: 0.25rem 0.6rem; font-size: 0.76rem;"
             title="Regularizar o Justificar Marcación"
-            onclick="prepararRegularizacionFila(${row.personal_id}, '${escapeHtml(row.nombre_completo)}', '${row.hora_prog_inicio}', '${row.hora_prog_fin}')"
+            data-regularizar-id="${Number(row.personal_id)}" data-nombre="${escapeHtml(row.nombre_completo)}" data-inicio="${escapeHtml(row.hora_prog_inicio)}" data-fin="${escapeHtml(row.hora_prog_fin)}"
           >
             ✎ Regularizar
           </button>
@@ -582,7 +582,7 @@ async function abrirModalAusenciasUrgentes() {
             <button 
               type="button" 
               class="btn btn-secondary btn-sm"
-              onclick="prepararRegularizacionFila(${item.personal_id}, '${escapeHtml(item.nombre_completo)}', '${item.hora_prog_inicio}', '${item.hora_prog_fin}')"
+              data-regularizar-id="${Number(item.personal_id)}" data-nombre="${escapeHtml(item.nombre_completo)}" data-inicio="${escapeHtml(item.hora_prog_inicio)}" data-fin="${escapeHtml(item.hora_prog_fin)}"
             >
               Subsanar / Justificar
             </button>
@@ -645,7 +645,7 @@ function poblarSelectTrabajadores() {
   if (select.options.length <= 1 && asistState.datos.length > 0) {
     select.innerHTML = '<option value="">-- Seleccione Trabajador --</option>' + 
       asistState.datos.map(p => `
-        <option value="${p.personal_id}">${escapeHtml(p.nombre_completo)} (DNI: ${p.dni} - ${escapeHtml(p.cargo)})</option>
+        <option value="${p.personal_id}">${escapeHtml(p.nombre_completo)} (DNI: ${escapeHtml(p.dni)} - ${escapeHtml(p.cargo)})</option>
       `).join('');
   }
 }
@@ -1246,3 +1246,8 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-regularizar-id]');
+  if (button) prepararRegularizacionFila(Number(button.dataset.regularizarId), button.dataset.nombre, button.dataset.inicio, button.dataset.fin);
+});

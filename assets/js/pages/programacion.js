@@ -6,8 +6,9 @@
 
 let progState = {
   servicioId: 0,
-  mes: 9,
-  anio: 2026,
+  areaId: '',
+  mes: new Date().getMonth() + 1,
+  anio: new Date().getFullYear(),
   condicion: '',
   versionBase: 1,
   dias: [],
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Inicializa los eventos de controles de filtrado y acciones
  */
 function initProgramacionControls() {
+  const areaSelect = document.getElementById('progAreaSelect');
   const serviceSelect = document.getElementById('progServiceSelect');
   const monthSelect = document.getElementById('progMonthSelect');
   const yearSelect = document.getElementById('progYearSelect');
@@ -52,6 +54,17 @@ function initProgramacionControls() {
     formHorarioProg.addEventListener('submit', (e) => {
       e.preventDefault();
       guardarHorarioTrabajadorDB();
+    });
+  }
+
+  if (areaSelect) {
+    areaSelect.addEventListener('change', (e) => {
+      if (progState.cambiosPendientes.length && !window.confirm('Hay cambios sin guardar. ¿Desea descartarlos y cambiar el área?')) {
+        areaSelect.value = progState.areaId;
+        return;
+      }
+      progState.areaId = e.target.value;
+      loadMonthlyMatrix();
     });
   }
 
@@ -104,7 +117,7 @@ function initProgramacionControls() {
   const btnExportarExcel = document.getElementById('btnExportarExcelMINSA');
   if (btnExportarExcel) {
     btnExportarExcel.addEventListener('click', () => {
-      const url = `api/reportes/exportar_excel.php?tipo=rol&mes=${progState.mes}&anio=${progState.anio}&servicio_id=${progState.servicioId}`;
+      const url = `api/reportes/exportar_excel.php?tipo=rol&mes=${progState.mes}&anio=${progState.anio}&servicio_id=${progState.servicioId}&area=${encodeURIComponent(progState.areaId)}`;
       window.location.href = url;
     });
   }
@@ -126,23 +139,33 @@ function initProgramacionControls() {
     if (!progState.selectedCell) return;
 
     const key = e.key.toUpperCase();
-    const keyMap = {
-      '1': 'M',
-      '2': 'T',
-      '3': 'N',
-      '4': 'G24',
-      '0': 'LIB',
-      'L': 'LIB',
-      'M': 'M',
-      'T': 'T',
-      'N': 'N',
-      'V': 'VAC',
-      'D': 'DESC'
-    };
+    // Mapeo inteligente hacia los turnos oficiales disponibles en el catálogo institucional
+    let targetCode = null;
+    const availableCodes = (progState.turnosDisponibles || []).map(t => t.codigo);
 
-    if (keyMap[key]) {
+    if (key === '1' || key === 'M') {
+      targetCode = availableCodes.includes('1') ? '1' : (availableCodes.includes('M') ? 'M' : null);
+    } else if (key === '2' || key === 'T') {
+      targetCode = availableCodes.includes('2') ? '2' : (availableCodes.includes('T') ? 'T' : null);
+    } else if (key === '3' || key === 'N') {
+      targetCode = availableCodes.includes('3') ? '3' : (availableCodes.includes('N') ? 'N' : null);
+    } else if (key === '4' || key === 'G') {
+      targetCode = availableCodes.includes('1/2/3') ? '1/2/3' : (availableCodes.includes('G24') ? 'G24' : null);
+    } else if (key === '0' || key === 'L') {
+      targetCode = 'LIB';
+    } else if (key === 'V') {
+      targetCode = 'VAC';
+    } else if (key === 'D') {
+      targetCode = 'DESC';
+    } else if (key === 'P') {
+      targetCode = 'PER';
+    } else if (availableCodes.includes(key)) {
+      targetCode = key;
+    }
+
+    if (targetCode) {
       e.preventDefault();
-      seleccionarTurnoDePaleta(keyMap[key]);
+      seleccionarTurnoDePaleta(targetCode);
 
       // Avanzar automáticamente a la siguiente celda del día siguiente
       const nextDia = progState.selectedCell.dia + 1;
@@ -190,6 +213,7 @@ async function loadMonthlyMatrix() {
   try {
     const params = {
       servicio_id: progState.servicioId,
+      area: progState.areaId,
       mes: progState.mes,
       anio: progState.anio,
       condicion: progState.condicion
@@ -213,6 +237,7 @@ async function loadMonthlyMatrix() {
     }
   } catch (error) {
     console.error('Error cargando matriz mensual:', error);
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="34">No se pudo cargar la programación: ${escapeHtml(error.message || 'Error de conexión.')}</td></tr>`;
   }
 }
 
@@ -426,22 +451,55 @@ function getHoursBadgeHtml(totalHoras, isAsistencial) {
 }
 
 /**
- * Prepara la paleta de selección rápida de turnos con números y letras
+ * Prepara la paleta de selección rápida de turnos sincronizada con el catálogo oficial
  */
 function renderPaletteModal(catalog) {
   const container = document.getElementById('quickShiftPaletteList');
   if (!container) return;
 
-  // Lista ordenada y curada de turnos principales (evitar redundancias en vista de botones)
-  const displayCodes = ['M', 'T', 'N', '1/2', '2/3', 'G24', 'GD', 'GN', 'ADM', 'VAC', 'DESC', 'LIB'];
+  // Obtener turnos oficiales registrados en el hospital (desde BD / Snapshot)
+  const availableShifts = progState.turnosDisponibles || [];
+  const items = [];
 
-  container.innerHTML = displayCodes.map(cod => {
-    const t = catalog[cod] || { nombre: cod, color: '#94a3b8', horas: 0, tecla: '' };
+  // 1. Agregar turnos oficiales activos del catálogo
+  availableShifts.forEach(s => {
+    if (intval(s.activo ?? s.estado ?? 1) === 1 && s.codigo) {
+      const horasVal = s.horas_computables !== undefined && s.horas_computables !== null
+        ? parseFloat(s.horas_computables)
+        : (catalog[s.codigo]?.horas || 0);
+      items.push({
+        codigo: s.codigo,
+        nombre: s.nombre,
+        horas: horasVal,
+        color: s.color || catalog[s.codigo]?.color || '#0284c7',
+        tecla: s.codigo
+      });
+    }
+  });
+
+  // 2. Si faltan ausencias / descansos normativos MINSA, agregarlos a la paleta
+  const absenceCodes = ['LIB', 'VAC', 'DESC', 'PER'];
+  absenceCodes.forEach(cod => {
+    if (!items.some(it => it.codigo === cod) && catalog[cod]) {
+      items.push({
+        codigo: cod,
+        nombre: catalog[cod].nombre,
+        horas: catalog[cod].horas || 0,
+        color: catalog[cod].color || '#94a3b8',
+        ausencia: true,
+        tecla: cod === 'LIB' ? '0' : cod[0]
+      });
+    }
+  });
+
+  container.innerHTML = items.map((t, index) => {
+    const heading = index === 0 && !t.ausencia ? '<div class="palette-group-label">Turnos configurados</div>' : '';
+    const absenceHeading = t.ausencia && !items[index - 1]?.ausencia ? '<div class="palette-group-label">Descansos y ausencias</div>' : '';
     const keyHint = t.tecla ? `<kbd style="background: var(--bg-surface-muted); padding: 2px 5px; border-radius: 4px; font-size: 0.72rem; border: 1px solid var(--border-default);">${t.tecla}</kbd>` : '';
-    return `
-      <div class="palette-item" onclick="seleccionarTurnoDePaleta('${cod}')" title="Asignar ${t.nombre}">
+    return `${heading}${absenceHeading}
+      <div class="palette-item" onclick="seleccionarTurnoDePaleta('${t.codigo}')" title="Asignar ${t.nombre}">
         <div class="palette-item-code" style="background-color: ${t.color};">
-          ${cod}
+          ${t.codigo}
         </div>
         <div class="palette-item-info" style="flex: 1;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -453,6 +511,26 @@ function renderPaletteModal(catalog) {
       </div>
     `;
   }).join('');
+
+  actualizarOpcionesSelectorDetallado(items);
+}
+
+/**
+ * Actualiza las opciones del formulario detallado con los turnos del catálogo
+ */
+function actualizarOpcionesSelectorDetallado(items) {
+  const selCod = document.getElementById('customTurnoCodigo');
+  if (!selCod) return;
+  items = items || [];
+
+  const currentVal = selCod.value;
+  selCod.innerHTML = items.map(it => {
+    return `<option value="${it.codigo}">${it.codigo} - ${it.nombre} (${it.horas}h)</option>`;
+  }).join('');
+
+  if (currentVal && items.some(it => it.codigo === currentVal)) {
+    selCod.value = currentVal;
+  }
 }
 
 /**
@@ -500,40 +578,15 @@ function actualizarValoresTurnoDetallado() {
   if (!selCod || !inpHoras) return;
   const cod = selCod.value;
 
-  const defaultHours = {
-    '1': 6.0, 'M': 6.0,
-    '2': 6.0, 'T': 6.0,
-    '3': 12.0, 'N': 12.0,
-    '1/2': 12.0,
-    '2/3': 18.0,
-    'G24': 24.0,
-    'GD': 12.0,
-    'GN': 12.0,
-    'ADM': 8.0,
-    'VAC': 6.0,
-    'DESC': 6.0,
-    'LIB': 0.0
-  };
-
-  const defaultTimes = {
-    '1': ['07:00', '13:00'], 'M': ['07:00', '13:00'],
-    '2': ['13:00', '19:00'], 'T': ['13:00', '19:00'],
-    '3': ['19:00', '07:00'], 'N': ['19:00', '07:00'],
-    '1/2': ['07:00', '19:00'],
-    '2/3': ['13:00', '07:00'],
-    'G24': ['07:00', '07:00'],
-    'GD': ['07:00', '19:00'],
-    'GN': ['19:00', '07:00'],
-    'ADM': ['08:00', '16:45'],
-    'VAC': ['08:00', '14:00'],
-    'DESC': ['08:00', '14:00'],
-    'LIB': ['00:00', '00:00']
-  };
-
-  inpHoras.value = defaultHours[cod] !== undefined ? defaultHours[cod] : 6.0;
-  if (inpInicio && inpFin && defaultTimes[cod]) {
-    inpInicio.value = defaultTimes[cod][0];
-    inpFin.value = defaultTimes[cod][1];
+  const shiftObj = (progState.turnosDisponibles || []).find(x => x.codigo === cod) || (progState.catalogTurnos ? progState.catalogTurnos[cod] : null);
+  if (shiftObj) {
+    inpHoras.value = (shiftObj.horas_computables !== undefined && shiftObj.horas_computables !== null)
+      ? shiftObj.horas_computables
+      : (shiftObj.horas || 0.0);
+    if (inpInicio && inpFin) {
+      inpInicio.value = (shiftObj.hora_inicio || '08:00').substring(0, 5);
+      inpFin.value = (shiftObj.hora_fin || '14:00').substring(0, 5);
+    }
   }
 }
 
@@ -811,7 +864,7 @@ function renderModalValidacion(report) {
   if (okList) {
     okList.innerHTML = report.cumplen.map(c => `
       <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.82rem; border-bottom: 1px dashed var(--border-subtle);">
-        <span>${c.trabajador} (DNI: ${c.dni})</span>
+        <span>${escapeHtml(c.trabajador)} (DNI: ${escapeHtml(c.dni)})</span>
         <span style="font-weight: 700; color: var(--status-present-accent);">150.0h ✓</span>
       </div>
     `).join('');
@@ -1099,20 +1152,12 @@ function abrirModalAsignarHorarioProg(personalId = null) {
   }
 
   // Poblar los 7 selects de días de la semana con catálogo de turnos
-  const turnosList = progState.turnosDisponibles && progState.turnosDisponibles.length > 0 
-    ? progState.turnosDisponibles 
-    : [
-        { turno_id: 1, nombre: 'Mañana Ordinario (6h)', horas: 6.0 },
-        { turno_id: 2, nombre: 'Tarde Ordinario (6h)', horas: 6.0 },
-        { turno_id: 3, nombre: 'Guardia Nocturna (12h)', horas: 12.0 },
-        { turno_id: 4, nombre: 'Guardia Diurna (12h)', horas: 12.0 },
-        { turno_id: 5, nombre: 'Administrativo (8h)', horas: 8.0 }
-      ];
+  const turnosList = progState.turnosDisponibles || [];
 
   const optionsHtml = `
     <option value="0" data-horas="0">LIBRE (0h)</option>
     ${turnosList.map(t => `
-      <option value="${t.turno_id}" data-horas="${t.horas_computables || t.horas || 6.0}">
+      <option value="${t.turno_id}" data-horas="${t.horas_computables ?? t.horas ?? 0}">
         ${escapeHtml(t.nombre)}
       </option>
     `).join('')}
@@ -1256,15 +1301,10 @@ function aplicarPautaAlMesActual() {
   const worker = progState.matriz.find(w => String(w.personal_id) === String(pid));
   if (!worker) return;
 
-  // Mapa de códigos según turno_id
-  const turnoIdToCode = {
-    '0': 'LIB',
-    '1': 'M',
-    '2': 'T',
-    '3': 'N',
-    '4': 'GD',
-    '5': 'ADM'
-  };
+  const turnoIdToCode = Object.fromEntries(
+    (progState.turnosDisponibles || []).map(t => [String(t.turno_id), t.codigo])
+  );
+  turnoIdToCode['0'] = 'LIB';
 
   // Recorrer los días del mes y asignar según el día de la semana
   progState.dias.forEach(d => {

@@ -1,0 +1,56 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../includes/PersonalRepository.php';
+require_once __DIR__.'/../includes/auth.php';
+require_once __DIR__.'/../includes/BiostarCsvParser.php';
+require_once __DIR__.'/../config/workload_rules.php';
+$checks=0;
+function v4check(bool $ok,string $message): void { global $checks; ++$checks; if (!$ok) throw new RuntimeException($message); }
+function rejects(callable $fn): bool { try { $fn(); return false; } catch (InvalidArgumentException $e) { return true; } }
+$d=PersonalRepository::normalize(['nombres'=>'Dato de prueba','dni'=>'','fecha_ingreso'=>'','tipo_contrato_id'=>'']);
+v4check($d['dni']===null && $d['fecha_ingreso']===null && $d['tipo_contrato_id']===null,'Se completaron datos desconocidos.');
+v4check(!array_key_exists('codigo_empleado',$d),'Se generó código sin solicitarlo.');
+v4check(rejects(fn()=>PersonalRepository::normalize(['fecha_ingreso'=>'2026-02-30'])),'Fecha imposible aceptada.');
+v4check(rejects(fn()=>PersonalRepository::normalize(['profesion_id'=>'abc'])),'ID inválido aceptado.');
+v4check(rejects(fn()=>PersonalRepository::normalize(['contrato_inicio'=>'2026-10-01','contrato_fin'=>'2026-09-01'])),'Contrato invertido aceptado.');
+// Relaciones con SQLite solo en memoria; ninguna tabla ni fila de SQL Server se modifica.
+$pdo=new PDO('sqlite::memory:'); $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+foreach (['rrhh','organizacion','catalogo'] as $schema) $pdo->exec("ATTACH DATABASE ':memory:' AS $schema");
+$pdo->exec('CREATE TABLE rrhh.Profesion (ProfesionID INT); INSERT INTO rrhh.Profesion VALUES (1),(2)');
+$pdo->exec('CREATE TABLE rrhh.Especialidad (EspecialidadID INT,ProfesionID INT); INSERT INTO rrhh.Especialidad VALUES (10,1)');
+$pdo->exec('CREATE TABLE organizacion.Area (AreaID INT); INSERT INTO organizacion.Area VALUES (3),(4)');
+$pdo->exec('CREATE TABLE organizacion.Servicio (ServicioID INT,AreaID INT); INSERT INTO organizacion.Servicio VALUES (20,3)');
+$pdo->exec('CREATE TABLE catalogo.TipoDocumento (TipoDocumentoID INT,LongitudExacta INT,EsNumerico INT); INSERT INTO catalogo.TipoDocumento VALUES (8,8,1),(9,NULL,0)');
+PersonalRepository::validateRelations($pdo,['profesion_id'=>1,'especialidad_id'=>10,'area_id'=>3,'servicio_id'=>20]);
+v4check(true,'Relaciones válidas rechazadas.');
+v4check(rejects(fn()=>PersonalRepository::validateRelations($pdo,['profesion_id'=>2,'especialidad_id'=>10])),'Especialidad ajena aceptada.');
+v4check(rejects(fn()=>PersonalRepository::validateRelations($pdo,['area_id'=>4,'servicio_id'=>20])),'Servicio ajeno aceptado.');
+v4check(rejects(fn()=>PersonalRepository::validateRelations($pdo,['servicio_id'=>20])),'Se infirió un área ausente.');
+v4check(rejects(fn()=>PersonalRepository::validateRelations($pdo,['profesion_id'=>999])),'FK inexistente aceptada.');
+v4check(rejects(fn()=>PersonalRepository::validateRelations($pdo,['dni'=>'12345678'])),'Documento sin tipo aceptado.');
+v4check(rejects(fn()=>PersonalRepository::validateRelations($pdo,['tipo_documento_id'=>8,'dni'=>'ABCD1234'])),'Documento incompatible aceptado.');
+PersonalRepository::validateRelations($pdo,['tipo_documento_id'=>9,'dni'=>'EXTRANJERO-A']);
+v4check(true,'Se impuso DNI a otro documento.');
+v4check(BiostarCsvParser::extraerUsuario('000053(Nombre de prueba)')['id']==='000053','Se alteraron ceros de BioStar.');
+v4check(BiostarCsvParser::extraerUsuario('BIO-A_01(Nombre)')['id']==='BIO-A_01','Se alteró identificador especial.');
+v4check(BiostarCsvParser::extraerUsuario('')['id']===null,'Se inventó identificador ausente.');
+v4check(rejects(fn()=>BiostarCsvParser::extraerUsuario(str_repeat('A',31))),'Se truncó un identificador.');
+v4check(WorkloadRules::detectRegime('Asistente de enfermería','Emergencia')===null,'Se clasificó por coincidencia ambigua.');
+v4check(WorkloadRules::getRulesForWorker('ASISTENCIAL')['horas_mensuales_objetivo']===150.0,'Se perdió regla confirmada.');
+$_SESSION['user']=['usuario_id'=>1,'rol'=>'ADMIN','database_source'=>Database::sourceId(),'system_code'=>SystemContext::code()];
+v4check(Auth::checkPermission('personal'),'Sesión propia no reconocida.');
+$_SESSION['user']['system_code']='LABORATORIO';
+v4check(!Auth::checkPermission('personal'),'Rol de otro sistema aceptado.');
+$_SESSION['user']['system_code']=SystemContext::code(); $_SESSION['user']['database_source']='otra_base';
+v4check(!Auth::checkPermission('personal'),'Sesión de otra base aceptada.');
+require_once __DIR__.'/../includes/WorkloadPolicy.php';
+require_once __DIR__.'/../includes/TurnoCatalog.php';
+v4check(PersonalRepository::normalize(['activo'=>false])['activo']===0,'Estado inactivo convertido a desconocido.');
+v4check(PersonalRepository::normalize(['activo'=>''])['activo']===null,'Se inventó un estado laboral.');
+v4check(WorkloadPolicy::fromAudit('{"tipo_personal":"ASISTENCIAL"}')==='ASISTENCIAL','Reglas explícitas no reconocidas.');
+v4check(WorkloadPolicy::fromAudit('Administración')===null,'Se interpretó texto ambiguo como reglas horarias.');
+$catalog=TurnoCatalog::programming([['codigo'=>'M','nombre'=>'Turno de prueba','horas_computables'=>7.0,'color'=>'#000']]);
+v4check($catalog['1']['horas']===7.0,'Las horas de catálogo se sustituyeron por seis fijas.');
+v4check(!isset($catalog['N']),'Se inventó un turno nocturno ausente del catálogo.');
+$_SESSION=[];
+echo "OK: $checks verificaciones V4 de campos incompletos, relaciones, identidad biométrica y aislamiento.\n";

@@ -39,6 +39,11 @@ assert($prev['marcaciones_validas'] === 41382, "Marcaciones válidas debe ser 41
 assert($prev['marcaciones_omitidas'] === 8618, "Omitidas debe ser 8618");
 assert(count($prev['dispositivos']) === 4, "Dispositivos debe ser 4");
 
+// La prueba heredada escribe datos reales: requiere habilitación explícita en V4 de pruebas.
+if (getenv('V4_TEST_WRITES') !== '1' || Database::getConfig()['database'] !== 'BD_HOSPITAL_V4' || !Database::getConnection()) {
+    echo "[SKIP] Importación SQL omitida. Use tests/v4_import.php sin servidor. La carga real requiere V4_TEST_WRITES=1 y una V4 de pruebas.\n";
+    exit(0);
+}
 // 2. Probar Reimportación Idempotente
 echo "\n2. Probando BiostarCsvParser::importar() para verificar deduplicación atómica...\n";
 $t1 = microtime(true);

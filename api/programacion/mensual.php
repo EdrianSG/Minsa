@@ -21,6 +21,10 @@ $servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intva
 
 apiRequireServiceAccess($servicioId);
 
+$areaFilter = trim((string)($_GET['area'] ?? ''));
+if ($areaFilter !== '' && (!ctype_digit($areaFilter) || (int)$areaFilter < 1)) {
+    apiError(400, 'El área debe ser un identificador válido.');
+}
 $condicion  = trim($_GET['condicion'] ?? '');
 $regimen    = trim($_GET['regimen'] ?? '');
 $snapshotKey = "programacion_serv_{$servicioId}_{$anio}_{$mes}";
@@ -53,44 +57,19 @@ for ($d = 1; $d <= $diasEnMes; $d++) {
 }
 
 // Catálogo de turnos y equivalencia de horas computables (Soporta modelo tradicional 1, 2, 3 y MINSA M, T, N)
-$catalogTurnos = [
-    'M'     => ['codigo' => 'M',     'tecla' => '1',     'nombre' => 'Mañana (Turno 1)',           'horas' => 6.0,  'color' => '#0284c7'],
-    '1'     => ['codigo' => '1',     'tecla' => '1',     'nombre' => 'Turno 1 (Mañana 6h)',        'horas' => 6.0,  'color' => '#0284c7'],
-    'T'     => ['codigo' => 'T',     'tecla' => '2',     'nombre' => 'Tarde (Turno 2)',            'horas' => 6.0,  'color' => '#d97706'],
-    '2'     => ['codigo' => '2',     'tecla' => '2',     'nombre' => 'Turno 2 (Tarde 6h)',         'horas' => 6.0,  'color' => '#d97706'],
-    'N'     => ['codigo' => 'N',     'tecla' => '3',     'nombre' => 'Noche / Guardia (Turno 3)',  'horas' => 12.0, 'color' => '#7c3aed'],
-    '3'     => ['codigo' => '3',     'tecla' => '3',     'nombre' => 'Turno 3 (Noche / Guardia)',  'horas' => 12.0, 'color' => '#7c3aed'],
-    '1/2'   => ['codigo' => '1/2',   'tecla' => '1/2',   'nombre' => 'Doble Turno (Mañana + Tarde)','horas' => 12.0, 'color' => '#0d9488'],
-    '2/3'   => ['codigo' => '2/3',   'tecla' => '2/3',   'nombre' => 'Tarde + Noche',              'horas' => 18.0, 'color' => '#4f46e5'],
-    'G24'   => ['codigo' => 'G24',   'tecla' => '4',     'nombre' => 'Guardia 24 Horas (1/2/3)',   'horas' => 24.0, 'color' => '#b91c1c'],
-    '1/2/3' => ['codigo' => '1/2/3', 'tecla' => '4',     'nombre' => 'Guardia Completa 24h (1/2/3)','horas' => 24.0, 'color' => '#b91c1c'],
-    'GD'    => ['codigo' => 'GD',    'tecla' => 'GD',    'nombre' => 'Guardia Diurna (12h)',       'horas' => 12.0, 'color' => '#0d9488'],
-    'GN'    => ['codigo' => 'GN',    'tecla' => 'GN',    'nombre' => 'Guardia Nocturna (12h)',     'horas' => 12.0, 'color' => '#4f46e5'],
-    'ADM'   => ['codigo' => 'ADM',   'tecla' => 'A',     'nombre' => 'Administrativo (8h)',        'horas' => 8.0,  'color' => '#475569'],
-    'VAC'   => ['codigo' => 'VAC',   'tecla' => 'V',     'nombre' => 'Vacaciones Programadas',     'horas' => 6.0,  'color' => '#0891b2'],
-    'VAC-1' => ['codigo' => 'VAC-1', 'tecla' => 'V1',    'nombre' => 'Emergencia en Vacaciones (M)','horas' => 6.0, 'color' => '#e11d48'],
-    'VAC-2' => ['codigo' => 'VAC-2', 'tecla' => 'V2',    'nombre' => 'Emergencia en Vacaciones (T)','horas' => 6.0, 'color' => '#e11d48'],
-    'VAC-3' => ['codigo' => 'VAC-3', 'tecla' => 'V3',    'nombre' => 'Emergencia en Vacaciones (N)','horas' => 12.0,'color' => '#e11d48'],
-    'DESC'  => ['codigo' => 'DESC',  'tecla' => 'D',     'nombre' => 'Descanso Médico / CITT',     'horas' => 6.0,  'color' => '#dc2626'],
-    'LIB'   => ['codigo' => 'LIB',   'tecla' => '0',     'nombre' => 'Libre / Descanso',           'horas' => 0.0,  'color' => '#94a3b8']
-];
+require_once __DIR__.'/../../includes/TurnoCatalog.php';
+$catalogConnection=Database::getConnection();
+$turnosDisponibles=$catalogConnection ? TurnoCatalog::load($catalogConnection) : (SnapshotStore::get('turnos_catalogo_oficial')['data']??[]);
+$catalogTurnos=TurnoCatalog::programming($turnosDisponibles);
+if ($catalogConnection) SnapshotStore::set('turnos_catalogo_oficial', $turnosDisponibles, ['source'=>'SQL_SERVER_LIVE']);
 
-// Nombres de Servicios según ID oficial de la BD
-$serviciosHospital = [
-    0  => 'Todos los Servicios (Plantel Completo)',
-    7  => 'Emergencia y Cuidados Críticos',
-    8  => 'Unidad de Cuidados Intensivos (UCI)',
-    9  => 'Hospitalización Medicina',
-    10 => 'Consulta Externa',
-    11 => 'Pediatría y Neonatología',
-    12 => 'Centro Obstétrico',
-    13 => 'Centro Quirúrgico',
-    14 => 'Laboratorio Clínico',
-    15 => 'Farmacia y Dosis Unitaria',
-    16 => 'Unidad de Personal / RR.HH.',
-    17 => 'Unidad de Informática y Estadística'
-];
-$servicioNombre = $serviciosHospital[$servicioId] ?? 'Servicio Hospitalario';
+require_once __DIR__.'/../../includes/OrganizationCatalog.php';
+$servicioNombre = 'Todos los servicios';
+if ($servicioId>0) {
+    $match=array_values(array_filter(OrganizationCatalog::services(),fn($s)=>(int)$s['id']===$servicioId));
+    if (!$match) apiError(404,'Servicio inexistente o no autorizado.');
+    $servicioNombre=$match[0]['nombre'];
+}
 
 // Lista del personal para la matriz
 $personalServicio = [];
@@ -116,6 +95,23 @@ if ($pdo) {
     $esSnapshotLocal = true;
     $snapshotMeta = $snap['_meta'] ?? [];
     $snapshotMeta['version'] = $snapshotMeta['sql_version'] ?? $snapshotMeta['version'] ?? 1;
+}
+
+// Filtrar después del respaldo completo para no truncar el rol al consultar un área.
+if ($areaFilter !== '') {
+    if ($esSnapshotLocal && array_filter($personalServicio, static fn($p) => !array_key_exists('area_id', $p))) {
+        apiError(503, 'El respaldo de programación no contiene áreas. Restablezca la conexión para actualizarlo.');
+    }
+    $personalServicio = array_values(array_filter($personalServicio,
+        static fn($p) => (int)($p['area_id'] ?? 0) === (int)$areaFilter));
+}
+
+// Selección de trabajador para el Rol Oficial; el servicio autorizado sigue delimitando el listado.
+$personalFiltro = trim((string)($_GET['personal_id'] ?? ''));
+if ($personalFiltro !== '') {
+    if (!ctype_digit($personalFiltro) || (int)$personalFiltro < 1) apiError(400, 'Trabajador inválido.');
+    $personalServicio = array_values(array_filter($personalServicio,
+        static fn($p) => (int)$p['personal_id'] === (int)$personalFiltro));
 }
 
 // Filtrar por condición si aplica
@@ -152,13 +148,7 @@ foreach ($personalServicio as $p) {
         $w = intval(date('w', strtotime($fechaStr)));
         $esFDS = ($w === 0 || $w === 6);
 
-        if (isset($p['patron'][$idx])) {
-            $codTurno = $p['patron'][$idx];
-        } elseif ($p['regimen_laboral'] === 'ADMINISTRATIVO' && $esFDS) {
-            $codTurno = 'LIB';
-        } else {
-            $codTurno = 'LIB';
-        }
+        $codTurno = $p['patron'][$idx] ?? '';
 
         $horasTurno = $catalogTurnos[$codTurno]['horas'] ?? 0.0;
         $horasAcumuladas += $horasTurno;
@@ -170,7 +160,7 @@ foreach ($personalServicio as $p) {
         ];
 
         // Sumar a cobertura diaria
-        if ($codTurno !== 'LIB') {
+        if ($codTurno !== '' && $codTurno !== 'LIB') {
             $coberturaDiaria[$d]['total']++;
             if ($codTurno === 'M') $coberturaDiaria[$d]['manana']++;
             if ($codTurno === 'T') $coberturaDiaria[$d]['tarde']++;
@@ -208,8 +198,7 @@ foreach ($personalServicio as $p) {
     ];
 }
 
-$turnosDisponibles = $pdo ? TurnoCatalog::load($pdo) : (SnapshotStore::get('turnos_catalogo_oficial')['data'] ?? []);
-if ($pdo) SnapshotStore::set('turnos_catalogo_oficial', $turnosDisponibles, ['source'=>'SQL_SERVER_LIVE']);
+$turnosDisponibles = TurnoCatalog::operational($turnosDisponibles);
 
 echo json_encode([
     'ok'       => true,

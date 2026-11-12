@@ -7,6 +7,7 @@ require_once __DIR__ . '/../config/database.php';
 class AttendanceSchedule {
     private static array $sqlMonths = [];
     private static array $sqlCatalogs = [];
+    private static array $weeklySchedules = [];
 
     public static function monthly(int $personalId, string $date, ?int $serviceId = null): ?array {
         $year = (int)substr($date, 0, 4); $month = (int)substr($date, 5, 2); $day = (int)substr($date, 8, 2);
@@ -51,6 +52,7 @@ class AttendanceSchedule {
         if (isset($byCode[$code])) $canonical = $code;
         if (isset($byCode[$canonical])) {
             $shift = $byCode[$canonical];
+            if (empty($shift['hora_inicio']) || empty($shift['hora_fin'])) throw new RuntimeException('Turno con horario incompleto; requiere validación.');
             return ['TurnoID'=>$shift['turno_id'], 'HoraProgInicio'=>$shift['hora_inicio'],
                 'HoraProgFin'=>$shift['hora_fin'], 'TurnoCodigo'=>$code, 'NombreTurno'=>$shift['nombre']];
         }
@@ -65,6 +67,31 @@ class AttendanceSchedule {
 
     public static function apply(array $row, string $date): array {
         $monthly = self::monthly((int)$row['PersonalID'], $date, isset($row['ServicioID']) ? (int)$row['ServicioID'] : null);
-        return $monthly === null ? $row : array_replace($row, $monthly);
+        if ($monthly !== null) return array_replace($row, $monthly);
+        $pdo=Database::getConnection();
+        if (!$pdo) return $row;
+        static $hasHorario = null;
+        if ($hasHorario === null) {
+            $hasHorario = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'rrhh' AND TABLE_NAME = 'Horario'")->fetchColumn();
+        }
+        if (!$hasHorario) return $row;
+        $cacheKey = spl_object_id($pdo) . ':' . $date;
+        if (!array_key_exists($cacheKey, self::$weeklySchedules)) {
+            $stmt = $pdo->prepare('SELECT h.PersonalID, h.TurnoID, t.Nombre AS NombreTurno, t.Codigo AS TurnoCodigo,
+                CONVERT(VARCHAR(8),t.HoraInicio,108) AS HoraProgInicio, CONVERT(VARCHAR(8),t.HoraFin,108) AS HoraProgFin
+                FROM rrhh.Horario h LEFT JOIN rrhh.Turno t ON t.TurnoID=h.TurnoID
+                WHERE h.DiaSemana=? AND h.Activo=1
+                AND (h.FechaInicio IS NULL OR h.FechaInicio<=?) AND (h.FechaFin IS NULL OR h.FechaFin>=?)');
+            $stmt->execute([(int)date('N',strtotime($date)),$date,$date]);
+            self::$weeklySchedules[$cacheKey] = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $schedule) {
+                self::$weeklySchedules[$cacheKey][(int)$schedule['PersonalID']][] = $schedule;
+            }
+        }
+        $weekly = self::$weeklySchedules[$cacheKey][(int)$row['PersonalID']] ?? [];
+        if (count($weekly)>1) throw new RuntimeException('Pautas superpuestas; requiere conciliación de vigencias.');
+        if (!$weekly) return $row;
+        if (empty($weekly[0]['HoraProgInicio']) || empty($weekly[0]['HoraProgFin'])) throw new RuntimeException('Pauta con turno incompleto; requiere validación.');
+        return array_replace($row,$weekly[0]);
     }
 }

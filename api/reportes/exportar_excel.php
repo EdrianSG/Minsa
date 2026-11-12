@@ -33,8 +33,8 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
 
 $tipo       = $_GET['tipo'] ?? 'rol'; // 'rol', 'individual', 'consolidado', 'seti'
-$mes        = max(1, min(12, intval($_GET['mes'] ?? 9)));
-$anio       = max(2020, min(2035, intval($_GET['anio'] ?? 2026)));
+$mes        = intval($_GET['mes'] ?? date('n'));
+$anio       = intval($_GET['anio'] ?? date('Y'));
 $servicioId = isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' ? intval($_GET['servicio_id']) : 0;
 $allowedServiceId = Auth::getAllowedServiceId();
 if ($allowedServiceId !== null) {
@@ -44,10 +44,13 @@ if ($allowedServiceId !== null) {
     apiRequireServiceAccess($servicioId);
 }
 $regimen    = trim($_GET['regimen'] ?? '');
-$personalId = intval($_GET['personal_id'] ?? 1);
+$personalId = intval($_GET['personal_id'] ?? 0);
+require_once __DIR__.'/../../includes/ReportAreaFilter.php';
+$areaFiltro = ReportAreaFilter::id();
 
 if ($tipo === 'individual' && $personalId > 0) {
     apiRequirePersonalAccess($personalId);
+    ReportAreaFilter::requirePersonal(apiRequireDatabase(), $personalId, $areaFiltro);
 }
 
 $nombresMeses = [
@@ -101,28 +104,16 @@ $feriadosPeruanos = [
     '12-25' => 'Navidad'
 ];
 
-$serviciosNombres = [
-    0  => 'PLANTEL COMPLETO DE SERVICIOS HOSPITALARIOS',
-    7  => 'EMERGENCIA Y CUIDADOS CRÍTICOS',
-    8  => 'UNIDAD DE CUIDADOS INTENSIVOS (UCI)',
-    9  => 'HOSPITALIZACIÓN MEDICINA',
-    10 => 'CONSULTA EXTERNA',
-    11 => 'PEDIATRÍA Y NEONATOLOGÍA',
-    12 => 'CENTRO OBSTÉTRICO',
-    13 => 'CENTRO QUIRÚRGICO',
-    14 => 'LABORATORIO CLÍNICO',
-    15 => 'FARMACIA Y DOSIS UNITARIA',
-    16 => 'UNIDAD DE PERSONAL / RR.HH.',
-    17 => 'UNIDAD DE INFORMÁTICA Y ESTADÍSTICA'
-];
-$areaNombre = $serviciosNombres[$servicioId] ?? 'SERVICIOS HOSPITALARIOS';
-
-if ($regimen !== '') {
-    $isAsistencial = (strtoupper($regimen) === 'ASISTENCIAL');
-    $categoriaNombre = $isAsistencial ? 'PERSONAL ASISTENCIAL (MÉDICOS, ENFERMERÍA, TÉCNICOS)' : 'PERSONAL ADMINISTRATIVO (OFICINA Y GESTIÓN)';
-} else {
-    $isAsistencial = ($servicioId === 0 || in_array($servicioId, [7, 8, 9, 10, 11, 12, 13, 14, 15]));
-    $categoriaNombre = ($servicioId === 0) ? 'PLANTEL COMPLETO (ASISTENCIALES Y ADMINISTRATIVOS)' : ($isAsistencial ? 'PERSONAL ASISTENCIAL' : 'PERSONAL ADMINISTRATIVO');
+$areaNombre = 'PLANTEL COMPLETO DE SERVICIOS HOSPITALARIOS';
+$categoriaNombre = $regimen === '' ? 'PLANTEL COMPLETO' : ($regimen === 'ASISTENCIAL' ? 'PERSONAL ASISTENCIAL' : 'PERSONAL ADMINISTRATIVO');
+$isAsistencial = $regimen === 'ASISTENCIAL';
+if ($servicioId > 0) {
+    $metadataPDO = apiRequireDatabase();
+    $stmt = $metadataPDO->prepare('SELECT Nombre FROM organizacion.Servicio WHERE ServicioID = ?');
+    $stmt->execute([$servicioId]);
+    $name = $stmt->fetchColumn();
+    if ($name === false) apiError(404, 'Servicio inexistente.');
+    $areaNombre = $name;
 }
 
 if ($mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Periodo inválido.');
@@ -132,6 +123,23 @@ if ($tipo === 'rol') {
     $rolPDO = apiRequireDatabase();
     try { $rolSQL = ProgramacionStore::read($rolPDO, $anio, $mes, $servicioId); }
     catch (Throwable $e) { error_log($e->getMessage()); apiError(503, 'No se pudo consultar el rol oficial en SQL Server.'); }
+}
+
+if ($tipo === 'rol' && $areaFiltro !== null) {
+    $rolSQL['personal_servicio'] = array_values(array_filter($rolSQL['personal_servicio'],
+        static fn($p) => (int)($p['area_id'] ?? 0) === $areaFiltro));
+}
+if ($areaFiltro !== null) {
+    $stmtArea = apiRequireDatabase()->prepare('SELECT Nombre FROM organizacion.Area WHERE AreaID=?');
+    $stmtArea->execute([$areaFiltro]);
+    $nombreAreaFiltro = $stmtArea->fetchColumn();
+    if ($nombreAreaFiltro === false) apiError(404, 'Área inexistente.');
+    $areaNombre = $nombreAreaFiltro;
+}
+
+if ($tipo === 'rol' && $personalId > 0) {
+    $rolSQL['personal_servicio'] = array_values(array_filter($rolSQL['personal_servicio'],
+        static fn($p) => (int)$p['personal_id'] === $personalId));
 }
 
 // Definir nombre de archivo

@@ -64,23 +64,15 @@ $pageScript = "reportes.js";
       </select>
     </div>
 
+    <div style="display: flex; align-items: center; gap: 0.35rem;">
+      <label for="repAreaSelect" style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Área:</label>
+      <select id="repAreaSelect" class="input" style="width: auto; min-width: 220px;"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::areaOptions(); ?></select>
+    </div>
+
     <!-- Selector de Servicio -->
     <div style="display: flex; align-items: center; gap: 0.35rem;">
       <label for="repServicioSelect" style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Servicio:</label>
-      <select id="repServicioSelect" class="input" style="width: auto; min-width: 220px;">
-        <option value="" selected>Todos los Servicios (Plantel Completo - Médicos y Asistenciales)</option>
-        <option value="7">Emergencia y Cuidados Críticos</option>
-        <option value="8">Unidad de Cuidados Intensivos (UCI)</option>
-        <option value="9">Hospitalización Medicina</option>
-        <option value="10">Consulta Externa</option>
-        <option value="11">Pediatría y Neonatología</option>
-        <option value="12">Centro Obstétrico</option>
-        <option value="13">Centro Quirúrgico</option>
-        <option value="14">Laboratorio Clínico</option>
-        <option value="15">Farmacia y Dosis Unitaria</option>
-        <option value="16">Unidad de Personal / RR.HH.</option>
-        <option value="17">Unidad de Informática y Estadística</option>
-      </select>
+      <select id="repServicioSelect" class="input" style="width: auto; min-width: 220px;"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::options(''); ?></select>
     </div>
 
     <!-- Selector de Régimen / Tipo de Personal -->
@@ -100,6 +92,13 @@ $pageScript = "reportes.js";
         <option value="">Todas</option>
         <option value="NOMBRADO">Nombrado (DL 276)</option>
         <option value="CAS">CAS (DL 1057)</option>
+      </select>
+    </div>
+
+    <div id="groupFiltroPersonalRol" style="display: none; align-items: center; gap: 0.35rem;">
+      <label for="repPersonalRolSelect" style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Trabajador:</label>
+      <select id="repPersonalRolSelect" class="input" style="width: auto; min-width: 260px;">
+        <option value="">Todo el personal del área / servicio</option>
       </select>
     </div>
 
@@ -136,28 +135,44 @@ $pageScript = "reportes.js";
 <!-- PANEL 1: RÉCORD INDIVIDUAL -->
 <div class="tab-pane active" id="pane-individual">
   <div id="recordIndividualContainer">
-    <!-- Inyectado por JS -->
+    <div class="report-loading" role="status" aria-label="Cargando reporte">
+      <span class="skeleton report-skeleton-title" aria-hidden="true"></span>
+      <div class="report-skeleton-kpis"><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span></div>
+      <?php for ($line=0; $line<5; $line++): ?><span class="skeleton report-skeleton-line" aria-hidden="true"></span><?php endfor; ?>
+    </div>
   </div>
 </div>
 
 <!-- PANEL 2: CONSOLIDADO DE PLANILLAS -->
 <div class="tab-pane" id="pane-consolidado">
   <div id="consolidadoPlanillasContainer">
-    <!-- Inyectado por JS -->
+    <div class="report-loading" role="status" aria-label="Cargando reporte">
+      <span class="skeleton report-skeleton-title" aria-hidden="true"></span>
+      <div class="report-skeleton-kpis"><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span></div>
+      <?php for ($line=0; $line<5; $line++): ?><span class="skeleton report-skeleton-line" aria-hidden="true"></span><?php endfor; ?>
+    </div>
   </div>
 </div>
 
 <!-- PANEL 3: REPORTE OFICIAL SETI -->
 <div class="tab-pane" id="pane-seti">
   <div id="reporteSetiContainer">
-    <!-- Inyectado por JS -->
+    <div class="report-loading" role="status" aria-label="Cargando reporte">
+      <span class="skeleton report-skeleton-title" aria-hidden="true"></span>
+      <div class="report-skeleton-kpis"><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span></div>
+      <?php for ($line=0; $line<5; $line++): ?><span class="skeleton report-skeleton-line" aria-hidden="true"></span><?php endfor; ?>
+    </div>
   </div>
 </div>
 
 <!-- PANEL 4: ROL MENSUAL OFICIAL (FORMATO MINSA) -->
 <div class="tab-pane" id="pane-rol">
   <div id="rolMensualContainer">
-    <!-- Inyectado por JS -->
+    <div class="report-loading" role="status" aria-label="Cargando reporte">
+      <span class="skeleton report-skeleton-title" aria-hidden="true"></span>
+      <div class="report-skeleton-kpis"><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span><span class="skeleton report-skeleton-card" aria-hidden="true"></span></div>
+      <?php for ($line=0; $line<5; $line++): ?><span class="skeleton report-skeleton-line" aria-hidden="true"></span><?php endfor; ?>
+    </div>
   </div>
 </div>
 

@@ -2,6 +2,7 @@
 """Pruebas de API aisladas con contexto HTTP simulado en PHP CLI. No conectan a SQL Server ni modifican storage real.
 Ejecutar: python3 tests/integration.py
 """
+import hashlib
 import concurrent.futures
 import json
 import os
@@ -25,7 +26,7 @@ with tempfile.TemporaryDirectory(prefix='minsa-tests-') as tmp:
     sessions = path / 'sessions'
     sessions.mkdir()
     env = dict(os.environ, SNAPSHOT_PATH=str(snapshots), DB_HOST='127.0.0.1', DB_PORT='1',
-               DB_USER='test', DB_PASS='test', TMPDIR=tmp)
+               DB_NAME='BD_HOSPITAL_V4', APP_SYSTEM_CODE='RRHH', DB_USER='test', DB_PASS='test', TMPDIR=tmp, AUTH_RATE_PATH=str(path / 'rate'))
     for role in ['ADMIN', 'CONSULTA', 'JEFE_SERVICIO', 'OPERADOR_ASISTENCIA', 'JEFE_RRHH']:
         sid = 'test' + role.replace('_', '').lower()
         code = 'session_id($argv[1]); session_start(); $_SESSION["user"] = ["usuario_id"=>1,"username"=>"test","rol"=>$argv[2]]; session_write_close();'
@@ -37,9 +38,15 @@ with tempfile.TemporaryDirectory(prefix='minsa-tests-') as tmp:
         key = f'programacion_serv_{service}_2026_9'
         (snapshots / f'{key}.json').write_text(json.dumps({'_meta': {'version': 1},
             'data': {'personal_servicio': staff, 'servicio_id': service, 'mes': 9, 'anio': 2026}}))
+    (snapshots / 'servicios_catalogo_v4.json').write_text(json.dumps({'data': [{'id': 7, 'nombre': 'Servicio de prueba', 'area_id': None}]}))
     # Only yesterday is available: requesting today must never substitute it.
     (snapshots / 'asistencia_diaria_2026-09-21.json').write_text(json.dumps({'data': [{'personal_id': 1}]}))
     def request(endpoint, data=None, role=None, method=None, headers=None, service_id=None, report_case=None):
+        source = hashlib.sha256(('127.0.0.1:1/' + env.get('DB_NAME', 'BD_HOSPITAL_V4')).encode()).hexdigest()
+        for fixture in snapshots.glob('*.json'):
+            record = json.loads(fixture.read_text())
+            record.setdefault('_meta', {})['database_source'] = source
+            fixture.write_text(json.dumps(record))
         # Ejecuta el punto de entrada real con contexto HTTP simulado en PHP CLI.
         from urllib.parse import urlsplit, parse_qs
         parsed = urlsplit(endpoint)
@@ -50,11 +57,14 @@ with tempfile.TemporaryDirectory(prefix='minsa-tests-') as tmp:
 $_GET=$p['query']; $_POST=$p['data'];
 $_SERVER['REQUEST_METHOD']=$p['method']; $_SERVER['HTTP_HOST']='localhost';
 $_SERVER['HTTP_ORIGIN']=$p['origin'];
-if ($p['role']) { session_id('test'.strtolower(str_replace('_','',$p['role']))); session_start(); $_SESSION['user']['servicio_id'] = $p['service_id']; }
+require getcwd().'/config/database.php';
+require getcwd().'/includes/SystemContext.php';
+if ($p['role']) { session_id('test'.strtolower(str_replace('_','',$p['role']))); session_start(); $_SESSION['user']['servicio_id'] = $p['service_id']; $_SESSION['user']['database_source']=Database::sourceId(); $_SESSION['user']['system_code']=SystemContext::code(); }
 ob_start();
 register_shutdown_function(function() { $out=ob_get_clean(); echo json_encode(['status'=>http_response_code() ?: 200,'body'=>$out]); });
 if ($p['report_case']) {
-    require dirname($p['endpoint'], 3).'/config/database.php';
+    $_SESSION['user']['auth_stamp'] = hash('sha256', 'fixture');
+    require_once dirname($p['endpoint'], 3).'/config/database.php';
     require dirname($p['endpoint'], 3).'/tests/ReportFixturePDO.php';
     $db = new ReflectionProperty(Database::class, 'instance');
     $db->setValue(null, new ReportFixturePDO($p['report_case']));
@@ -82,7 +92,7 @@ require $p['endpoint'];'''
     check(status == 403, 'Rechaza origen externo')
     for username, password in [('admin', 'admin123'), ('curcia', 'minsa2026'), ('atorres', 'minsa2026'), ('admin', 'incorrecta')]:
         status, data = request('api/auth/login.php', {'usuario': username, 'password': password})
-        check(status == 401 and not data['ok'], 'Sin SQL no hay acceso de contingencia: ' + username)
+        check(status == 503 and not data['ok'], 'Sin SQL no hay acceso de contingencia: ' + username)
     for endpoint in ['api/asistencia/diaria.php', 'api/personal/listar.php', 'api/reportes/individual.php?personal_id=1',
                      'api/reportes/consolidado.php', 'api/reportes/seti.php', 'api/programacion/mensual.php?servicio_id=7']:
         status, data = request(endpoint, role='JEFE_SERVICIO')

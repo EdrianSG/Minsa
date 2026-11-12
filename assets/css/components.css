@@ -82,6 +82,41 @@
   color: var(--text-primary);
 }
 
+.btn-danger {
+  background-color: var(--status-absent-accent, #ef4444);
+  color: #ffffff;
+  border-color: var(--status-absent-accent, #ef4444);
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.btn-outline-danger {
+  background-color: transparent;
+  border-color: var(--status-absent-border, #fecaca);
+  color: var(--status-absent-text, #991b1b);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--status-absent-bg, #fef2f2);
+  border-color: var(--status-absent-accent, #ef4444);
+  color: var(--status-absent-text, #991b1b);
+}
+
+html.dark .btn-outline-danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+html.dark .btn-outline-danger:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
 .btn-sm {
   font-size: 0.78rem;
   padding: 0.4rem 0.75rem;
@@ -713,6 +748,32 @@ html.dark .empty-state-icon {
 .tab-pane.active,
 .tab-content.active {
   display: block;
+}
+
+/* Entrada discreta al navegar entre módulos y pestañas internas. */
+@keyframes contentFadeIn {
+  from { opacity: 0.65; }
+  to { opacity: 1; }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .app-content,
+  .app-content .tab-pane.active,
+  .app-content .tab-content.active,
+  .app-content #vistaControlDiario,
+  .app-content #vistaImportacionBiometrica {
+    animation: contentFadeIn 180ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .app-content,
+  .app-content .tab-pane.active,
+  .app-content .tab-content.active,
+  .app-content #vistaControlDiario,
+  .app-content #vistaImportacionBiometrica {
+    animation: none;
+  }
 }
 
 /* =========================================================

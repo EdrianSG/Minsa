@@ -5,7 +5,7 @@ apiGuard('horarios', ['POST'], ['JEFE_RRHH']);
 /**
  * API Endpoint: /api/horarios/asignar.php
  * Hospital Distrital de Pacasmayo - Control de Carga Horaria Laboral (MINSA)
- * 
+ *
  * Asigna la pauta de horario semanal validando:
  * 1. Existencia del trabajador y régimen (Asistencial vs Administrativo).
  * 2. Catálogo de turnos y duración real (incluye turnos nocturnos que cruzan medianoche).
@@ -23,7 +23,7 @@ $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true) ?: $_POST;
 
 $personalId  = intval($data['personal_id'] ?? 0);
-$fechaInicio = trim($data['fecha_inicio'] ?? date('Y-m-01'));
+$fechaInicio = trim($data['fecha_inicio'] ?? '');
 $dias        = $data['dias'] ?? []; // Array [dia => turno_id]
 
 if ($personalId <= 0 || empty($dias)) {
@@ -58,15 +58,14 @@ $trabajadorNombre = "Personal #$personalId";
 if ($dbConnected) {
     try {
         $stmtWorker = $pdo->prepare("
-            SELECT 
-                p.PersonalID,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS NombreCompleto,
+            SELECT
+                p.PersonalID, p.GrupoOcupacional,
+                COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ' ', p.Nombres))), ''), p.NombreCompletoOriginal, p.CodigoEmpleado) AS NombreCompleto,
                 ISNULL(c.Nombre, '') AS CargoNombre,
                 ISNULL(s.Nombre, '') AS ServicioNombre,
                 ISNULL(a.Nombre, '') AS AreaNombre
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
             LEFT JOIN organizacion.Area a ON ap.AreaID = a.AreaID
@@ -87,17 +86,18 @@ if ($dbConnected) {
 }
 
 // Obtener reglas según régimen
-$reglas = WorkloadRules::getRulesForWorker($cargoNombre, $servicioNombre, $areaNombre);
+$reglas = WorkloadRules::getRulesForWorker($data['tipo_personal'] ?? '');
 $maxSemanal      = $reglas['horas_semanales_maximas'];
 $targetMensual   = $reglas['horas_mensuales_objetivo'];
 $maxMensual      = $reglas['horas_mensuales_maximas'];
 $tipoPersonal    = $reglas['tipo'];
+if ($tipoPersonal === null) apiError(422, 'Seleccione explícitamente las reglas asistenciales o administrativas para esta pauta; no se deducen del grupo ocupacional.');
 
 // 2. Obtener duración de los turnos desde catálogo (soporta medianoche)
 $turnosMap = [];
 if ($dbConnected) {
     try {
-        $stmtTurnos = $pdo->query("SELECT TurnoID, Nombre, HoraInicio, HoraFin FROM rrhh.Turno WHERE Estado = 1");
+        $stmtTurnos = $pdo->query("SELECT TurnoID, Codigo, Nombre, HoraInicio, HoraFin, Horas, Activo FROM rrhh.Turno WHERE Activo = 1");
         $turnosRows = $stmtTurnos->fetchAll(PDO::FETCH_ASSOC);
         foreach ($turnosRows as $tr) {
             $inicio = substr($tr['HoraInicio'], 0, 5);
@@ -183,51 +183,58 @@ if ($tipoPersonal === 'ASISTENCIAL' && $targetMensual !== null) {
 // 8. Persistencia Segura y Manejo de Histórico en Base de Datos
 if ($dbConnected) {
     try {
-        $pdo->beginTransaction();
+        $hasHorario = false;
+        try {
+            $hasHorario = (bool)$pdo->query("SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('rrhh.Horario')")->fetchColumn();
+        } catch (Throwable $t) {}
 
-        $future = $pdo->prepare('SELECT COUNT(*) FROM rrhh.Horario WITH (UPDLOCK, HOLDLOCK) WHERE PersonalID = ? AND FechaInicio > ? AND Estado = 1');
-        $future->execute([$personalId, $fechaInicio]);
-        if ((int)$future->fetchColumn() > 0) {
-            $pdo->rollBack();
-            apiError(409, 'Existe una pauta posterior. Revise las vigencias antes de cambiar el histórico.');
-        }
-        // Cerrar vigencia de pautas activas anteriores exactamente un día antes de la nueva vigencia
-        // FechaFin = DATEADD(DAY, -1, :nueva_fecha_inicio)
-        $stmtCierre = $pdo->prepare("
-            UPDATE rrhh.Horario 
-            SET FechaFin = DATEADD(DAY, -1, CAST(? AS DATE))
-            WHERE PersonalID = ? 
-              AND Estado = 1
-              AND FechaInicio < CAST(? AS DATE)
-              AND (FechaFin IS NULL OR FechaFin >= CAST(? AS DATE))
-        ");
-        $stmtCierre->execute([
-            $fechaInicio,
-            $personalId,
-            $fechaInicio,
-            $fechaInicio
-        ]);
+        if ($hasHorario) {
+            $pdo->beginTransaction();
 
-        $sameDate = $pdo->prepare('DELETE FROM rrhh.Horario WHERE PersonalID = ? AND FechaInicio = ?');
-        $sameDate->execute([$personalId, $fechaInicio]);
-        // Insertar la nueva pauta semanal
-        $stmtIns = $pdo->prepare("
-            INSERT INTO rrhh.Horario (PersonalID, TurnoID, DiaSemana, FechaInicio, Estado)
-            VALUES (?, ?, ?, ?, 1)
-        ");
-
-        foreach ($diasValidos as $diaNum => $tId) {
-            if ($diaNum >= 1 && $diaNum <= 7 && $tId > 0) {
-                $stmtIns->execute([
-                    $personalId,
-                    $tId,
-                    $diaNum,
-                    $fechaInicio
-                ]);
+            $future = $pdo->prepare('SELECT COUNT(*) FROM rrhh.Horario WITH (UPDLOCK, HOLDLOCK) WHERE PersonalID = ? AND FechaInicio > ? AND Activo = 1');
+            $future->execute([$personalId, $fechaInicio]);
+            if ((int)$future->fetchColumn() > 0) {
+                $pdo->rollBack();
+                apiError(409, 'Existe una pauta posterior. Revise las vigencias antes de cambiar el histórico.');
             }
-        }
+            // Cerrar vigencia de pautas activas anteriores exactamente un día antes de la nueva vigencia
+            $stmtCierre = $pdo->prepare("
+                UPDATE rrhh.Horario
+                SET FechaFin = DATEADD(DAY, -1, CAST(? AS DATE))
+                WHERE PersonalID = ?
+                  AND Activo = 1
+                  AND FechaInicio < CAST(? AS DATE)
+                  AND (FechaFin IS NULL OR FechaFin >= CAST(? AS DATE))
+            ");
+            $stmtCierre->execute([
+                $fechaInicio,
+                $personalId,
+                $fechaInicio,
+                $fechaInicio
+            ]);
 
-        $pdo->commit();
+            $sameDate = $pdo->prepare('UPDATE rrhh.Horario SET Activo=0 WHERE PersonalID = ? AND FechaInicio = ?');
+            $sameDate->execute([$personalId, $fechaInicio]);
+            // Insertar la nueva pauta semanal
+            $stmtIns = $pdo->prepare("
+                INSERT INTO rrhh.Horario (PersonalID, TurnoID, DiaSemana, FechaInicio, Activo)
+                VALUES (?, ?, ?, ?, 1)
+            ");
+
+            foreach ($diasValidos as $diaNum => $tId) {
+                if ($diaNum >= 1 && $diaNum <= 7 && $tId > 0) {
+                    $stmtIns->execute([
+                        $personalId,
+                        $tId,
+                        $diaNum,
+                        $fechaInicio
+                    ]);
+                }
+            }
+
+            if (!Auditoria::registrar((int)Auth::getCurrentUser()['usuario_id'],'HORARIOS','ASIGNAR','rrhh.Horario',(string)$personalId,json_encode(['fecha_inicio'=>$fechaInicio,'tipo_personal'=>$tipoPersonal],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR))) throw new PDOException('Auditoría no disponible.');
+            $pdo->commit();
+        }
 
         // Sincronizar de inmediato el snapshot local de resiliencia
         try {
@@ -236,12 +243,8 @@ if ($dbConnected) {
         } catch (Throwable $t) {}
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        http_response_code(500);
-        echo json_encode([
-            'ok'      => false,
-            'message' => 'Error al guardar la pauta en la base de datos: ' . $e->getMessage()
-        ]);
-        exit;
+        error_log("Error al persistir horario: " . $e->getMessage());
+        apiError(500, "Error en SQL Server al persistir la pauta: " . $e->getMessage());
     }
 }
 

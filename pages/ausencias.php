@@ -78,18 +78,7 @@ $pageScript = "ausencias.js";
       <input type="text" id="ausSearchInput" class="search-input-field" placeholder="Buscar trabajador por nombre, DNI, CITT...">
     </div>
 
-    <select id="ausServicioSelect" class="filter-select-field">
-      <option value="">Todos los Servicios</option>
-      <option value="1">Emergencia y Cuidados Críticos</option>
-      <option value="2">Hospitalización Medicina y Cirugía</option>
-      <option value="3">Gineco-Obstetricia y Centro Obstétrico</option>
-      <option value="4">Pediatría y Neonatología</option>
-      <option value="5">Cirugía y Centro Quirúrgico</option>
-      <option value="6">Consulta Externa y Especialidades</option>
-      <option value="7">Farmacia Hospitalaria</option>
-      <option value="8">Laboratorio Clínico y Banco de Sangre</option>
-      <option value="9">Dirección y Recursos Humanos</option>
-    </select>
+    <select id="ausServicioSelect" class="filter-select-field"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::options(''); ?></select>
 
     <select id="ausTipoSelect" class="filter-select-field">
       <option value="">Todos los Tipos de Permiso</option>

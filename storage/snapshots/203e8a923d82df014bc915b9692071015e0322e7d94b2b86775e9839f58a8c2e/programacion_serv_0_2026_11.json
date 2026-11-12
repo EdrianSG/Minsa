@@ -1,0 +1,21 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER",
+        "sql_version": 1,
+        "persistencia": "SQL_SERVER",
+        "database_source": "203e8a923d82df014bc915b9692071015e0322e7d94b2b86775e9839f58a8c2e",
+        "key": "programacion_serv_0_2026_11",
+        "version": 7,
+        "saved_at": "2026-11-05 15:43:25",
+        "timestamp": 1793911405,
+        "hash": "6281a251690a813ef9740453e8c93c2e",
+        "is_snapshot": true
+    },
+    "data": {
+        "personal_servicio": [],
+        "servicio_id": 0,
+        "mes": 11,
+        "anio": 2026,
+        "version": 1
+    }
+}

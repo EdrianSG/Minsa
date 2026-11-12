@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/SystemContext.php';
 
 class Auditoria {
     /**
@@ -27,63 +28,72 @@ class Auditoria {
         ?string $descripcion = null
     ): bool {
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
-        }
+
 
         $pdo = Database::getConnection();
         if ($pdo !== null) {
             try {
-                $stmt = $pdo->prepare("
-                    INSERT INTO auditoria.EventoAuditoria (
-                        UsuarioID, SistemaID, FechaHora, Modulo, Accion,
-                        TablaAfectada, RegistroID, DireccionIP, Descripcion
-                    ) VALUES (
-                        :usuario_id, 1, SYSDATETIME(), :modulo, :accion,
-                        :tabla, :registro_id, :ip, :descripcion
-                    )
-                ");
-                return $stmt->execute([
-                    ':usuario_id'   => $usuarioId,
-                    ':modulo'       => $modulo,
-                    ':accion'       => $accion,
-                    ':tabla'        => $tablaAfectada,
-                    ':registro_id'  => $registroId,
-                    ':ip'           => substr($ip, 0, 45),
-                    ':descripcion'  => $descripcion
-                ]);
+                static $hasModuloCol = null;
+                if ($hasModuloCol === null) {
+                    $hasModuloCol = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'auditoria' AND TABLE_NAME = 'EventoAuditoria' AND COLUMN_NAME = 'Modulo'")->fetchColumn();
+                }
+
+                $detalleCompleto = $hasModuloCol ? ($descripcion ?? '') : ("[$modulo] " . ($descripcion ?? ''));
+                if ($hasModuloCol) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO auditoria.EventoAuditoria (
+                            UsuarioID, SistemaID, Modulo, FechaHora, Accion,
+                            TablaAfectada, RegistroID, DireccionIP, Descripcion
+                        ) VALUES (
+                            :usuario_id, :sistema_id, :modulo, SYSDATETIME(), :accion,
+                            :tabla, :registro_id, :ip, :descripcion
+                        )
+                    ");
+                    return $stmt->execute([
+                        ':usuario_id'   => ($usuarioId && $usuarioId > 0) ? $usuarioId : null,
+                        ':sistema_id'   => SystemContext::id($pdo),
+                        ':modulo'       => substr($modulo, 0, 100),
+                        ':accion'       => substr($accion, 0, 50),
+                        ':tabla'        => $tablaAfectada ? substr($tablaAfectada, 0, 150) : null,
+                        ':registro_id'  => $registroId ? substr((string)$registroId, 0, 100) : null,
+                        ':ip'           => substr($ip, 0, 45),
+                        ':descripcion'  => mb_substr($detalleCompleto, 0, 1000, 'UTF-8')
+                    ]);
+                } else {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO auditoria.EventoAuditoria (
+                            UsuarioID, SistemaID, FechaHora, Accion,
+                            TablaAfectada, RegistroID, DireccionIP, Descripcion
+                        ) VALUES (
+                            :usuario_id, :sistema_id, SYSDATETIME(), :accion,
+                            :tabla, :registro_id, :ip, :descripcion
+                        )
+                    ");
+                    return $stmt->execute([
+                        ':usuario_id'   => ($usuarioId && $usuarioId > 0) ? $usuarioId : null,
+                        ':sistema_id'   => SystemContext::id($pdo),
+                        ':accion'       => substr($accion, 0, 50),
+                        ':tabla'        => $tablaAfectada ? substr($tablaAfectada, 0, 150) : null,
+                        ':registro_id'  => $registroId ? substr((string)$registroId, 0, 100) : null,
+                        ':ip'           => substr($ip, 0, 45),
+                        ':descripcion'  => mb_substr($detalleCompleto, 0, 1000, 'UTF-8')
+                    ]);
+                }
             } catch (Exception $e) {
-                // Si falla la BD, cae en el fallback en sesión
+                error_log('Auditoría SQL: ' . $e->getMessage());
+                // Una operación transaccional debe revertirse si falta su auditoría.
+                if ($pdo->inTransaction()) return false;
             }
         }
 
-        // Almacenamiento en buffer de sesión para entorno local/offline
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        if (!isset($_SESSION['auditoria_log'])) {
-            $_SESSION['auditoria_log'] = [];
-        }
-
-        array_unshift($_SESSION['auditoria_log'], [
-            'auditoria_id'   => count($_SESSION['auditoria_log']) + 1001,
-            'usuario_id'     => $usuarioId ?: 1,
-            'nombre_usuario' => 'mrodriguez',
-            'fecha_hora'     => date('Y-m-d H:i:s'),
-            'modulo'         => $modulo,
-            'accion'         => $accion,
-            'tabla_afectada' => $tablaAfectada,
-            'registro_id'    => $registroId,
-            'direccion_ip'   => $ip,
-            'descripcion'    => $descripcion
+        require_once __DIR__ . '/AuditFallback.php';
+        $saved = AuditFallback::append([
+            'usuario_id'=>$usuarioId, 'nombre_usuario'=>$_SESSION['user']['username'] ?? null,
+            'fecha_hora'=>date('c'), 'modulo'=>$modulo, 'accion'=>$accion,
+            'tabla_afectada'=>$tablaAfectada, 'registro_id'=>$registroId,
+            'direccion_ip'=>$ip, 'descripcion'=>$descripcion
         ]);
-
-        // Limitar buffer en sesión a los últimos 100 eventos
-        if (count($_SESSION['auditoria_log']) > 100) {
-            array_pop($_SESSION['auditoria_log']);
-        }
-
-        return true;
+        error_log($saved ? 'Auditoría guardada en archivo; pendiente de consolidación SQL.' : 'ERROR: no se pudo persistir la auditoría.');
+        return false;
     }
 }

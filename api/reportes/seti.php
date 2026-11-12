@@ -17,8 +17,11 @@ require_once __DIR__ . '/../../includes/SnapshotStore.php';
 require_once __DIR__ . '/../../includes/AttendancePeriod.php';
 require_once __DIR__ . '/../../includes/ProgramacionStore.php';
 
-$mes        = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
-$anio       = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
+require_once __DIR__.'/../../includes/ReportAreaFilter.php';
+$areaFiltro = ReportAreaFilter::id();
+
+$mes        = isset($_GET['mes']) ? intval($_GET['mes']) : (int)date('n');
+$anio       = isset($_GET['anio']) ? intval($_GET['anio']) : (int)date('Y');
 if ($mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Periodo inválido.');
 $servicioId = (isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' && intval($_GET['servicio_id']) > 0) ? intval($_GET['servicio_id']) : null;
 
@@ -46,8 +49,12 @@ $asistenciales = [];
 // Consultar personal asistencial real desde SQL Server
 if ($dbConnected) {
     try {
-        $whereSql = "WHERE p.Estado = 1 AND c.Nombre NOT LIKE '%Admin%' AND c.Nombre NOT LIKE '%Inform%'";
+        $whereSql = "WHERE p.Activo = 1 AND c.Nombre NOT LIKE '%Admin%' AND c.Nombre NOT LIKE '%Inform%'";
         $params = [];
+        if ($areaFiltro !== null) {
+            $whereSql .= ' AND ap.AreaID = :areaId';
+            $params[':areaId'] = $areaFiltro;
+        }
         if ($servicioId !== null && $servicioId > 0) {
             $whereSql .= " AND s.ServicioID = :servId";
             $params[':servId'] = $servicioId;
@@ -56,23 +63,22 @@ if ($dbConnected) {
         $sql = "
             SELECT 
                 p.PersonalID AS personal_id,
-                per.NumeroDocumento AS dni,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS nombre_completo,
+                p.NumeroDocumento AS dni,
+                COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ' ', p.Nombres))), ''), p.NombreCompletoOriginal, p.CodigoEmpleado) AS nombre_completo,
                 ISNULL(c.Nombre, 'Personal Asistencial') AS cargo,
-                ISNULL(s.ServicioID, 7) AS servicio_id,
+                s.ServicioID AS servicio_id,
                 ISNULL(s.Nombre, 'Servicio Asistencial') AS servicio_nombre,
-                ISNULL(tc.Nombre, 'CAS') AS condicion_laboral
+                p.CondicionLaboral AS condicion_laboral
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+            OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
             LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
             {$whereSql}
             ORDER BY 
                 CASE WHEN c.Nombre LIKE '%Médico%' THEN 1 WHEN c.Nombre LIKE '%Enferm%' THEN 2 ELSE 3 END,
-                per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+                p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
         ";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -106,10 +112,11 @@ if ($dbConnected) {
 
             $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
 
+            $duraciones=array_map(static fn($shift)=>$shift['horas'],TurnoCatalog::programming(TurnoCatalog::load($pdo)));
             foreach ($rows as $r) {
                 $pid = intval($r['personal_id']);
                 $patron = $patronPorPersonal[$pid] ?? [];
-                $cond = (stripos($r['condicion_laboral'], 'Nombrad') !== false ? 'NOMBRADO' : 'CAS');
+                $cond = $r['condicion_laboral'];
 
                 $gd = 0;
                 $gn = 0;
@@ -118,6 +125,7 @@ if ($dbConnected) {
                 $inasistencias = 0;
 
                 $workerAsist = $asistMap[$pid] ?? [];
+                $incompleto = !$workerAsist || !$patron;
 
                 for ($d = 1; $d <= $diasEnMes; $d++) {
                     $codTurno = $patron[$d - 1] ?? 'LIB';
@@ -126,42 +134,35 @@ if ($dbConnected) {
                     if ($as) {
                         $st = strtoupper(trim((string)$as['Estado']));
                         if (in_array($st, ['PUNTUAL', 'TARDANZA', 'ASISTIO'])) {
+                            $duration=$duraciones[$codTurno]??null;
+                            if ($duration===null) $incompleto=true; else $horasEfectivas+=$duration;
                             // Contabilizar según el turno efectivamente cubierto
                             if ($codTurno === 'GD') {
                                 $gd++;
-                                $horasEfectivas += 12.0;
                             } elseif (in_array($codTurno, ['GN', 'N', '3'])) {
                                 $gn++;
-                                $horasEfectivas += 12.0;
                             } elseif (in_array($codTurno, ['M', 'T', '1', '2'])) {
                                 $ord++;
-                                $horasEfectivas += 6.0;
                             } elseif ($codTurno === '1/2') {
                                 $ord += 2;
-                                $horasEfectivas += 12.0;
                             } elseif (in_array($codTurno, ['G24', '1/2/3'])) {
                                 $gd++; $gn++;
-                                $horasEfectivas += 24.0;
                             } elseif ($codTurno === '2/3') {
                                 $ord++; $gn++;
-                                $horasEfectivas += 18.0;
                             } else {
-                                $ord++;
-                                $horasEfectivas += 6.0;
+                                $incompleto = true;
                             }
                         } elseif (strpos($st, 'FALTA') !== false) {
                             $inasistencias++;
                         } elseif (strpos($st, 'PERMISO') !== false || strpos($st, 'LICENCIA') !== false) {
-                            // Turno cubierto por licencia o permiso justificado
-                            $horasEfectivas += 6.0;
+                            // El esquema no define créditos horarios ni goce para el permiso.
+                            $incompleto = true;
                         }
                     }
                 }
 
                 $citt = $cittMap[$pid] ?? 0;
-                if ($citt > 0) {
-                    $horasEfectivas += ($citt * 6.0);
-                }
+                if ($citt > 0) $incompleto = true;
 
                 $asistenciales[] = [
                     $pid,
@@ -176,7 +177,8 @@ if ($dbConnected) {
                     $ord,
                     round($horasEfectivas, 1),
                     $inasistencias,
-                    $citt
+                    $citt,
+                    $incompleto
                 ];
             }
         }
@@ -188,6 +190,7 @@ if ($dbConnected) {
 
 $nombrados = [];
 $cas = [];
+$sinCondicion = [];
 $totalGuardias12h = 0;
 $totalCumplen150h = 0;
 
@@ -200,7 +203,8 @@ foreach ($asistenciales as $item) {
     $horas = $item[10];
     $faltas = $item[11];
     $citt = $item[12];
-    $cumple = ($horas >= 150.0);
+    $incompleto = $item[13];
+    $cumple = $incompleto ? null : ($horas >= 150.0);
     $dif = $horas - 150.0;
 
     $totalGuardias12h += ($gd + $gn);
@@ -222,17 +226,19 @@ foreach ($asistenciales as $item) {
         'diferencia_horas'       => $dif,
         'total_inasistencias'    => $faltas,
         'total_licencias_citt'   => $citt,
-        'estado_seti'            => $cumple ? 'CUMPLE_NORMA' : 'OBSERVADO'
+        'estado_seti'            => $incompleto ? 'PENDIENTE' : ($cumple ? 'CUMPLE_NORMA' : 'OBSERVADO')
     ];
 
     if ($item[6] === 'NOMBRADO') {
         $nombrados[] = $registro;
-    } else {
+    } elseif ($item[6] === 'CAS') {
         $cas[] = $registro;
+    } else {
+        $sinCondicion[] = $registro;
     }
 }
 
-$totalEvaluados = count($nombrados) + count($cas);
+$totalEvaluados = count($nombrados) + count($cas) + count($sinCondicion);
 $porcentajeCumplimiento = ($totalEvaluados > 0) ? round(($totalCumplen150h / $totalEvaluados) * 100, 1) : 100.0;
 
 echo json_encode([
@@ -252,5 +258,6 @@ echo json_encode([
     ],
     'nombrados'    => $nombrados,
     'cas'          => $cas,
+    'sin_condicion_confirmada' => $sinCondicion,
     'conexion_sql' => $dbConnected
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

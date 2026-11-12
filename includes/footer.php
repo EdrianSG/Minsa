@@ -191,7 +191,9 @@
   <!-- Configuración del usuario en sesión para control de interfaz -->
   <script>
     window.currentUser = <?= json_encode([
-        'cache_scope'        => hash('sha256', session_id() . '|' . ($currentUser['rol'] ?? '') . '|' . (string)Auth::getAllowedServiceId()),
+        // La caché se reutiliza únicamente cuando el servidor confirma una revisión fiable.
+        'live_reads'         => false,
+        'cache_scope'        => hash('sha256', Database::sourceId() . '|' . SystemContext::code() . '|' . session_id() . '|' . ($currentUser['rol'] ?? '') . '|' . (string)Auth::getAllowedServiceId()),
         'usuario_id'         => $currentUser['usuario_id'] ?? null,
         'username'           => $currentUser['username'] ?? '',
         'nombre'             => $currentUser['nombre_completo'] ?? '',
@@ -206,6 +208,9 @@
   <script src="assets/js/api.js?v=<?= filemtime(__DIR__ . '/../assets/js/api.js') ?>"></script>
   <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/../assets/js/app.js') ?>"></script>
 
+  <?php if (($pageScript ?? '') === 'personal.js'): ?>
+    <script src="assets/js/personal-relations.js?v=<?= filemtime(__DIR__ . '/../assets/js/personal-relations.js') ?>"></script>
+  <?php endif; ?>
   <!-- Script Específico de Página si aplica -->
   <?php if (isset($pageScript) && file_exists(__DIR__ . '/../assets/js/pages/' . $pageScript)): ?>
     <script src="assets/js/pages/<?= htmlspecialchars($pageScript) ?>?v=<?= filemtime(__DIR__ . '/../assets/js/pages/' . $pageScript) ?>"></script>

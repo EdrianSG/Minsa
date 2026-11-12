@@ -31,6 +31,9 @@ if (!$dbConnected) {
     $turnos = $snap['data'];
 }
 
+// Para la gestión de catálogo en Horarios y Turnos, listar únicamente turnos operativos
+$turnos = TurnoCatalog::operational($turnos);
+
 // Estadísticas de parametrización
 $stats = [
     'total_turnos'     => count($turnos),

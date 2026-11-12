@@ -18,7 +18,6 @@ $pageScript = "programacion.js";
     <div class="prog-title-area">
       <h1>
         <span>📅</span> Programación Mensual del Rol
-        <span class="badge badge-neutral" id="progEstadoBadge" style="font-size: 0.72rem; vertical-align: middle;">BORRADOR</span>
       </h1>
       <p id="progPeriodoTitulo">Emergencia y Cuidados Críticos • Setiembre 2026</p>
     </div>
@@ -130,23 +129,15 @@ $pageScript = "programacion.js";
   <!-- Barra de Filtros y Periodo -->
   <div class="prog-filter-card">
     <div class="prog-filter-group">
+      <div class="prog-filter-item">
+        <label for="progAreaSelect">Área:</label>
+        <select class="form-select" id="progAreaSelect"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::areaOptions(); ?></select>
+      </div>
+
       <!-- Selector de Servicio / UPSS -->
       <div class="prog-filter-item">
         <label for="progServiceSelect">Servicio / UPSS:</label>
-        <select class="form-select" id="progServiceSelect">
-          <option value="0" selected>Todos los Servicios (Plantel Completo - Médicos y Asistenciales)</option>
-          <option value="7">Emergencia y Cuidados Críticos</option>
-          <option value="8">Unidad de Cuidados Intensivos (UCI)</option>
-          <option value="9">Hospitalización Medicina</option>
-          <option value="10">Consulta Externa</option>
-          <option value="11">Pediatría y Neonatología</option>
-          <option value="12">Centro Obstétrico</option>
-          <option value="13">Centro Quirúrgico</option>
-          <option value="14">Laboratorio Clínico</option>
-          <option value="15">Farmacia y Dosis Unitaria</option>
-          <option value="16">Unidad de Personal / RR.HH.</option>
-          <option value="17">Unidad de Informática y Estadística</option>
-        </select>
+        <select class="form-select" id="progServiceSelect"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::options('0'); ?></select>
       </div>
 
       <!-- Selector de Mes -->
@@ -261,15 +252,13 @@ $pageScript = "programacion.js";
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="customTurnoCodigo" style="font-size: 0.76rem;">Código del Turno *</label>
               <select class="form-select form-select-sm" id="customTurnoCodigo" onchange="actualizarValoresTurnoDetallado()">
-                <option value="1">1 - Mañana (6h)</option>
-                <option value="2">2 - Tarde (6h)</option>
-                <option value="3">3 - Noche / Guardia (12h)</option>
-                <option value="1/2">1/2 - Doble Turno (12h)</option>
-                <option value="2/3">2/3 - Tarde + Noche (18h)</option>
-                <option value="G24">1/2/3 - Guardia 24 Horas</option>
-                <option value="GD">GD - Guardia Diurna (12h)</option>
-                <option value="GN">GN - Guardia Nocturna (12h)</option>
-                <option value="ADM">ADM - Administrativo (8h)</option>
+                <option value="1">1 - Mañana Ordinario (6h)</option>
+                <option value="2">2 - Tarde Ordinario (6h)</option>
+                <option value="3">3 - Guardia Nocturna (12h)</option>
+                <option value="1/2">1/2 - Turnos 1 y 2 (12h)</option>
+                <option value="2/3">2/3 - Turnos 2 y 3 (18h)</option>
+                <option value="1/2/3">1/2/3 - Guardia 24 Horas (24h)</option>
+                <option value="AD">AD - Jornada Administrativa (8h)</option>
                 <option value="VAC">VAC - Vacaciones Programadas</option>
                 <option value="DESC">DESC - Descanso Médico / CITT</option>
                 <option value="LIB">LIB - Libre / Descanso (0h)</option>

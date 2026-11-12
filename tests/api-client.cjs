@@ -3,10 +3,12 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const storage = new Map();
 const sessionStorage = { getItem:k=>storage.get(k) ?? null, setItem:(k,v)=>storage.set(k,v), removeItem:k=>storage.delete(k), key:i=>[...storage.keys()][i], get length(){ return storage.size; } };
+let stateReads=0;
 let revision='1', online=true, scope='session-a', value=1, reads=0, checks=0, denyState=false, network=false, getStatus=200, postStatus=200, deferred=null;
 const response = (data, status=200) => ({ok:status===200,status,statusText:String(status),json:async()=>data});
 async function fetch(url, options={}) {
   if (String(url).endsWith('data_revision.php')) {
+    stateReads++;
     if (network) throw new TypeError('Sin red');
     return denyState ? response({},403) : response({ok:true,conexion_sql:online,revision,scope});
   }
@@ -15,8 +17,8 @@ async function fetch(url, options={}) {
   if (deferred) return deferred;
   return response({ok:true,value,conexion_sql:online},getStatus);
 }
-function client(user='session-a') {
-  const context=vm.createContext({URL,FormData,Map,Date,console,fetch,window:{sessionStorage,currentUser:{cache_scope:user},location:{origin:'http://localhost',pathname:'/index.php'}}});
+function client(user='session-a', liveReads=false) {
+  const context=vm.createContext({URL,FormData,Map,Date,console,fetch,window:{sessionStorage,currentUser:{cache_scope:user,live_reads:liveReads},location:{origin:'http://localhost',pathname:'/index.php'}}});
   vm.runInContext(fs.readFileSync('assets/js/api.js','utf8')+'\nglobalThis.client=API;',context);
   return context.client;
 }
@@ -78,5 +80,56 @@ function check(ok,label){assert.ok(ok,label);checks++;}
   await pending;
   check(api._cache.size===0,'Lectura anterior a un guardado no repuebla caché vieja');
   deferred=null;
+  value={rows:[{name:'Original'}]};
+  const editable=await api.get('personal/opciones.php');
+  editable.value.rows[0].name='Editado localmente';
+  const original=await api.get('personal/opciones.php');
+  check(original.value.rows[0].name==='Original','Editar una respuesta no modifica la copia de caché');
+  check(original._cache.origen==='CACHE_VIGENTE','La caché verificada identifica su origen');
+  original.value.rows[0].name='Otra edición';
+  check((await api.get('personal/opciones.php')).value.rows[0].name==='Original','Una respuesta reutilizada también es independiente');
+  const countForced=reads;
+  await api.get('personal/opciones.php',{}, {useCache:false});
+  check(reads===countForced+1,'Actualizar fuerza la consulta aunque exista una copia vigente');
+  let finishShared;
+  deferred=new Promise(resolve=>{finishShared=resolve;});
+  const countShared=reads;
+  const sharedA=api.get('personal/catalogos.php');
+  const sharedB=api.get('personal/catalogos.php');
+  await new Promise(resolve=>setImmediate(resolve));
+  check(reads===countShared+1,'Las lecturas simultáneas de la misma vista comparten petición');
+  finishShared(response({ok:true,value:{rows:[1]}}));
+  const [copyA,copyB]=await Promise.all([sharedA,sharedB]);
+  copyA.value.rows.push(2);
+  check(copyB.value.rows.length===1,'Las respuestas simultáneas conservan copias independientes');
+  deferred=null;
+  revision=null; value=3;
+  const beforeNull=reads;
+  await api.get('personal/listar.php');
+  await api.get('personal/listar.php');
+  check(reads===beforeNull+2,'Una revisión sin cobertura nunca habilita la reutilización');
+  revision='4';
+  await api.get('reportes/consolidado.php');
+  api._cache.get(api._url('reportes/consolidado.php')).time-=120000;
+  const beforeReport=reads;
+  await api.get('reportes/consolidado.php');
+  check(reads===beforeReport+1,'Los reportes también caducan por el reloj');
+  api=client('session-live',true);
+  const beforeState=stateReads, beforeLive=reads;
+  denyState=true;
+  await api.get('personal/listar.php');
+  value=4;
+  check((await api.get('personal/listar.php')).value===4,'Lectura directa siempre obtiene datos actualizados');
+  check(stateReads===beforeState && reads===beforeLive+2,'Sin solicitud previa cuando no hay revision fiable');
+  getStatus=403;
+  await assert.rejects(api.get('personal/listar.php'),e=>e.status===403);checks++;
+  check(api._cache.size===0,'Lectura directa respeta denegacion y elimina respaldo');
+  getStatus=200;
+  await api.get('personal/listar.php');
+  getStatus=503;
+  await assert.rejects(api.get('personal/listar.php'),e=>e.status===503);checks++;
+  getStatus=200;online=false;
+  check((await api.get('personal/listar.php'))._cache.solo_lectura,'Respaldo del servidor sigue identificado en lectura directa');
+  online=true;denyState=false;
   console.log(`OK: ${checks} comprobaciones de caché persistente, revisión SQL y errores.`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

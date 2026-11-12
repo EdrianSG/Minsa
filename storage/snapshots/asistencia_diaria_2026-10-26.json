@@ -3,10 +3,10 @@
         "source": "SQL_SERVER_LIVE",
         "fecha": "2026-10-26",
         "key": "asistencia_diaria_2026-10-26",
-        "version": 14,
-        "saved_at": "2026-10-26 12:25:02",
-        "timestamp": 1793035502,
-        "hash": "988ab97f87545b7f98d11eda096a7329",
+        "version": 15,
+        "saved_at": "2026-10-27 09:18:01",
+        "timestamp": 1793110681,
+        "hash": "d965d747c535616bbf6bbdf8c19ba081",
         "is_snapshot": true
     },
     "data": [
@@ -32,7 +32,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -59,7 +59,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -86,7 +86,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -113,7 +113,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -140,7 +140,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -167,7 +167,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -194,7 +194,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -221,7 +221,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -248,7 +248,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -275,7 +275,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -302,7 +302,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -329,7 +329,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -356,7 +356,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -383,7 +383,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -410,7 +410,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -437,7 +437,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "PROGRAMADO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -464,7 +464,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -491,7 +491,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -518,7 +518,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -545,7 +545,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -572,7 +572,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -599,7 +599,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -626,7 +626,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -653,7 +653,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -680,7 +680,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -707,7 +707,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -734,7 +734,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -761,7 +761,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -788,7 +788,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -815,7 +815,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -842,7 +842,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -869,7 +869,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -896,7 +896,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -923,7 +923,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -950,7 +950,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -977,7 +977,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1004,7 +1004,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1031,7 +1031,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1058,7 +1058,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1085,7 +1085,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1112,7 +1112,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1139,7 +1139,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1166,7 +1166,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1193,7 +1193,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1220,7 +1220,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1247,7 +1247,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1274,7 +1274,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1301,7 +1301,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1328,7 +1328,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1355,7 +1355,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1382,7 +1382,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1409,7 +1409,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1436,7 +1436,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1463,7 +1463,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1490,7 +1490,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1517,7 +1517,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1544,7 +1544,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1571,7 +1571,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1598,7 +1598,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1625,7 +1625,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1652,7 +1652,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1679,7 +1679,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1706,7 +1706,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1733,7 +1733,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1760,7 +1760,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1787,7 +1787,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1814,7 +1814,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1841,7 +1841,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1868,7 +1868,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1895,7 +1895,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1922,7 +1922,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1949,7 +1949,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -1976,7 +1976,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2003,7 +2003,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2030,7 +2030,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2057,7 +2057,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2084,7 +2084,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2111,7 +2111,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2138,7 +2138,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2165,7 +2165,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2192,7 +2192,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2219,7 +2219,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2246,7 +2246,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2273,7 +2273,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2300,7 +2300,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2327,7 +2327,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2354,7 +2354,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2381,7 +2381,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2408,7 +2408,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2435,7 +2435,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2462,7 +2462,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2489,7 +2489,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2516,7 +2516,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2543,7 +2543,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2570,7 +2570,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2597,7 +2597,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2624,7 +2624,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2651,7 +2651,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2678,7 +2678,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2705,7 +2705,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2732,7 +2732,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2759,7 +2759,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2786,7 +2786,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2813,7 +2813,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2840,7 +2840,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2867,7 +2867,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2894,7 +2894,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2921,7 +2921,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2948,7 +2948,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -2975,7 +2975,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3002,7 +3002,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3029,7 +3029,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3056,7 +3056,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3083,7 +3083,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3110,7 +3110,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3137,7 +3137,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3164,7 +3164,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3191,7 +3191,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3218,7 +3218,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3245,7 +3245,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3272,7 +3272,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3299,7 +3299,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "PROGRAMADO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3326,7 +3326,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3353,7 +3353,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3380,7 +3380,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3407,7 +3407,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3434,7 +3434,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3461,7 +3461,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3488,7 +3488,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3515,7 +3515,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3542,7 +3542,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3569,7 +3569,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3596,7 +3596,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3623,7 +3623,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3650,7 +3650,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3677,7 +3677,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3704,7 +3704,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3731,7 +3731,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3758,7 +3758,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3785,7 +3785,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3812,7 +3812,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3839,7 +3839,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3866,7 +3866,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3893,7 +3893,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3920,7 +3920,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3947,7 +3947,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -3974,7 +3974,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4001,7 +4001,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4028,7 +4028,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4055,7 +4055,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4082,7 +4082,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4109,7 +4109,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4136,7 +4136,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4163,7 +4163,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4190,7 +4190,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4217,7 +4217,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4244,7 +4244,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4271,7 +4271,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4298,7 +4298,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4325,7 +4325,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4352,7 +4352,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4379,7 +4379,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4406,7 +4406,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4433,7 +4433,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4460,7 +4460,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4487,7 +4487,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4514,7 +4514,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4541,7 +4541,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4568,7 +4568,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4595,7 +4595,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4622,7 +4622,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4649,7 +4649,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4676,7 +4676,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4703,7 +4703,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4730,7 +4730,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4757,7 +4757,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4784,7 +4784,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4811,7 +4811,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4838,7 +4838,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4865,7 +4865,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4892,7 +4892,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4919,7 +4919,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4946,7 +4946,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -4973,7 +4973,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5000,7 +5000,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5027,7 +5027,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5054,7 +5054,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5081,7 +5081,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5108,7 +5108,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5135,7 +5135,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5162,7 +5162,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5189,7 +5189,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5216,7 +5216,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5243,7 +5243,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5270,7 +5270,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "PROGRAMADO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5297,7 +5297,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5324,7 +5324,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5351,7 +5351,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5378,7 +5378,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5405,7 +5405,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5432,7 +5432,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5459,7 +5459,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5486,7 +5486,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5513,7 +5513,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5540,7 +5540,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5567,7 +5567,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5594,7 +5594,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5621,7 +5621,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5648,7 +5648,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5675,7 +5675,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5702,7 +5702,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5729,7 +5729,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5756,7 +5756,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5783,7 +5783,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5810,7 +5810,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5837,7 +5837,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5864,7 +5864,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5891,7 +5891,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5918,7 +5918,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5945,7 +5945,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5972,7 +5972,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -5999,7 +5999,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6026,7 +6026,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6053,7 +6053,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6080,7 +6080,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "PROGRAMADO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6107,7 +6107,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6134,7 +6134,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6161,7 +6161,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6188,7 +6188,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6215,7 +6215,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6242,7 +6242,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6269,7 +6269,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6296,7 +6296,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6323,7 +6323,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6350,7 +6350,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6377,7 +6377,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6404,7 +6404,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6431,7 +6431,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6458,7 +6458,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6485,7 +6485,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6512,7 +6512,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6539,7 +6539,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6566,7 +6566,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6593,7 +6593,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6620,7 +6620,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6647,7 +6647,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6674,7 +6674,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6701,7 +6701,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6728,7 +6728,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6755,7 +6755,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6782,7 +6782,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6809,7 +6809,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6836,7 +6836,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6863,7 +6863,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6890,7 +6890,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6917,7 +6917,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6944,7 +6944,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6971,7 +6971,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -6998,7 +6998,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "PROGRAMADO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7025,7 +7025,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7052,7 +7052,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7079,7 +7079,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7106,7 +7106,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7133,7 +7133,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7160,7 +7160,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7187,7 +7187,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "PROGRAMADO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7214,7 +7214,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7241,7 +7241,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7268,7 +7268,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7295,7 +7295,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7322,7 +7322,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7349,7 +7349,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7376,7 +7376,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7403,7 +7403,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7430,7 +7430,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7457,7 +7457,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7484,7 +7484,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7511,7 +7511,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7538,7 +7538,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7565,7 +7565,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7592,7 +7592,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7619,7 +7619,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false
@@ -7646,7 +7646,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false

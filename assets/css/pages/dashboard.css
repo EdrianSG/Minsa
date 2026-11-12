@@ -346,6 +346,11 @@ html.dark .pill-count {
   letter-spacing: 0.02em;
 }
 
+.badge-clean.neutral {
+  background-color: var(--bg-secondary, #f1f5f9);
+  color: var(--text-secondary, #475569);
+}
+
 .badge-clean.asistio {
   background-color: #ecfdf5;
   color: #065f46;
@@ -404,3 +409,29 @@ html.dark .badge-clean.permiso {
   font-size: 0.76rem;
   color: var(--text-tertiary);
 }
+
+.dash-scope-controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin: 1rem 0; }
+.dash-scope-controls label { display: grid; gap: .35rem; min-width: 200px; flex: 1; }
+.dash-operation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.dash-operation-card { background: var(--bg-surface, #fff); border: 1px solid var(--border-default, #e2e8f0); border-radius: 10px; padding: 1rem; }
+.dash-operation-card h2, .dash-operation-card summary { font-size: 1rem; font-weight: 600; margin: 0 0 .8rem; }
+.dash-operation-card p { color: var(--text-secondary, #475569); font-size: .85rem; margin: .6rem 0; }
+.dash-operation-card dl { display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem; margin: .8rem 0; font-size: .9rem; }
+.dash-operation-card dd { margin: 0; font-weight: 600; }
+.dash-action-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.dash-action-counts .dash-kpi-card { font: inherit; color: inherit; text-align: left; padding: .7rem; }
+.dash-action-counts strong { display: block; font-size: 1.5rem; margin-top: .4rem; }
+.dash-coverage { margin-bottom: 1rem; }
+.dash-coverage summary { cursor: pointer; }
+.dash-coverage .dash-table-responsive { max-height: 320px; }
+@media (max-width: 760px) { .dash-operation-grid { grid-template-columns: 1fr; } .dash-action-counts { grid-template-columns: 1fr; } }
+
+.dash-worker-filter { display: grid; gap: .3rem; min-width: 220px; max-width: 100%; font-size: .8rem; color: var(--text-secondary); }
+.dash-pagination { display: flex; align-items: center; gap: .65rem; }
+.dash-pagination button:disabled { opacity: .45; cursor: default; }
+.dash-source-detail { display: grid; gap: .25rem; text-align: right; max-width: 440px; }
+.dash-source-detail .is-warning { color: var(--status-late-accent, #b45309); }
+.dash-table-footer { flex-wrap: wrap; gap: .8rem; }
+.dash-skeleton-line { display: block; width: 80%; height: 15px; margin: .6rem 0; border-radius: 4px; }
+.dash-skeleton-number { display: inline-block; width: 48px; height: 30px; border-radius: 4px; }
+@media (max-width: 760px) { .dash-source-detail { text-align: left; width: 100%; } .dash-worker-filter { width: 100%; } }

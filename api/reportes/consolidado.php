@@ -12,15 +12,20 @@ apiGuard('reportes', ['GET'], []);
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__.'/../../includes/WorkloadPolicy.php';
 require_once __DIR__ . '/../../includes/SnapshotStore.php';
 require_once __DIR__ . '/../../includes/AttendancePeriod.php';
 require_once __DIR__ . '/../../includes/ProgramacionStore.php';
 
-$mes            = isset($_GET['mes']) ? intval($_GET['mes']) : 9;
-$anio           = isset($_GET['anio']) ? intval($_GET['anio']) : 2026;
+require_once __DIR__.'/../../includes/ReportAreaFilter.php';
+$areaFiltro = ReportAreaFilter::id();
+
+$mes            = isset($_GET['mes']) ? intval($_GET['mes']) : (int)date('n');
+$anio           = isset($_GET['anio']) ? intval($_GET['anio']) : (int)date('Y');
 $servicioId     = (isset($_GET['servicio_id']) && $_GET['servicio_id'] !== '' && intval($_GET['servicio_id']) > 0) ? intval($_GET['servicio_id']) : null;
 
 if ($mes < 1 || $mes > 12 || $anio < 2020 || $anio > 2100) apiError(400, 'Periodo inválido.');
+$workloadSql=WorkloadPolicy::sql('p.PersonalID',date('Y-m-t',strtotime(sprintf('%04d-%02d-01',$anio,$mes))));
 
 // Restringir a jefaturas de servicio
 $userAllowedServ = Auth::getAllowedServiceId();
@@ -49,8 +54,12 @@ $personalConsolidado = [];
 // Intentar consultar personal real desde SQL Server
 if ($dbConnected) {
     try {
-        $whereSql = "WHERE p.Estado = 1";
+        $whereSql = "WHERE p.Activo = 1";
         $params = [];
+        if ($areaFiltro !== null) {
+            $whereSql .= ' AND ap.AreaID = :areaId';
+            $params[':areaId'] = $areaFiltro;
+        }
         if ($servicioId !== null && $servicioId > 0) {
             $whereSql .= " AND s.ServicioID = :servId";
             $params[':servId'] = $servicioId;
@@ -59,27 +68,23 @@ if ($dbConnected) {
         $sql = "
             SELECT 
                 p.PersonalID AS personal_id,
-                per.NumeroDocumento AS dni,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS nombre_completo,
+                p.NumeroDocumento AS dni,
+                COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, ''), ' ', p.Nombres))), ''), p.NombreCompletoOriginal, p.CodigoEmpleado) AS nombre_completo,
                 ISNULL(c.Nombre, 'Personal Hospitalario') AS cargo,
-                ISNULL(s.ServicioID, 7) AS servicio_id,
-                ISNULL(s.Nombre, 'Servicio General') AS servicio_nombre,
-                CASE 
-                    WHEN c.Nombre LIKE '%Admin%' OR c.Nombre LIKE '%Inform%' THEN 'ADMINISTRATIVO' 
-                    ELSE 'ASISTENCIAL' 
-                END AS regimen_laboral,
-                ISNULL(tc.Nombre, 'CAS') AS condicion_laboral
+                s.ServicioID AS servicio_id,
+                s.Nombre AS servicio_nombre,
+                {$workloadSql} AS regimen_laboral,
+                p.CondicionLaboral AS condicion_laboral
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
+            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
             LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
             LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
+            OUTER APPLY (SELECT TOP 1 cx.* FROM rrhh.Contrato cx WHERE cx.PersonalID = p.PersonalID AND cx.Activo = 1 ORDER BY cx.FechaInicio DESC, cx.ContratoID DESC) con
             LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
             {$whereSql}
             ORDER BY 
                 CASE WHEN c.Nombre LIKE '%Médico%' THEN 1 WHEN c.Nombre LIKE '%Enferm%' THEN 2 ELSE 3 END,
-                per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+                p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
         ";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -87,13 +92,7 @@ if ($dbConnected) {
 
         if (!empty($rows)) {
             // Catálogo de duraciones oficiales de turnos
-            $duracionTurnos = [
-                '1' => 6.0, 'M' => 6.0, '2' => 6.0, 'T' => 6.0,
-                '3' => 12.0, 'N' => 12.0, 'GN' => 12.0, 'GD' => 12.0,
-                '1/2' => 12.0, '2/3' => 18.0, 'G24' => 24.0, '1/2/3' => 24.0,
-                'ADM' => 8.0, 'VAC' => 6.0, 'VAC-1' => 6.0, 'VAC-2' => 6.0, 'VAC-3' => 12.0,
-                'DESC' => 6.0, 'CITT' => 6.0, 'LIB' => 0.0, '0' => 0.0
-            ];
+            $duracionTurnos=array_map(static fn($shift)=>$shift['horas'],TurnoCatalog::programming(TurnoCatalog::load($pdo)));
 
             // Leer snapshot para obtener horas programadas reales de la matriz
             $snapGlobal = ['data'=>ProgramacionStore::read($pdo, $anio, $mes, $servicioId ?? 0)];
@@ -110,7 +109,7 @@ if ($dbConnected) {
                 $totD = 0;
                 if (!empty($sp['patron']) && is_array($sp['patron'])) {
                     foreach ($sp['patron'] as $cod) {
-                        $hCod = $duracionTurnos[$cod] ?? ($cod !== 'LIB' && $cod !== '0' ? 6.0 : 0.0);
+                        $hCod = $duracionTurnos[$cod] ?? 0.0;
                         if ($hCod > 0) {
                             $totH += $hCod;
                             $totD++;
@@ -144,7 +143,7 @@ if ($dbConnected) {
                 $patron = $patronPorPersonal[$pid] ?? null;
 
                 $diasProg = $diasProgPorPersonal[$pid] ?? 0;
-                $horasProg = $horasProgPorPersonal[$pid] ?? ($reg === 'ADMINISTRATIVO' ? 176.0 : 150.0);
+                $horasProg = $horasProgPorPersonal[$pid] ?? 0.0;
 
                 $diasLab = 0;
                 $minTard = 0;
@@ -153,7 +152,7 @@ if ($dbConnected) {
                 $horasEfectivas = 0.0;
 
                 $workerAsist = $asistMap[$pid] ?? [];
-                $incompleto = empty($workerAsist) || $patron === null;
+                $incompleto = empty($workerAsist) || $patron === null || !array_filter($patron,static fn($code)=>$code!==null);
                 foreach ($workerAsist as $registro) {
                     if (in_array(strtoupper(trim((string)$registro['Estado'])), ['SIN_DATOS', 'EN_CURSO', 'PROGRAMADO'], true)) $incompleto = true;
                 }
@@ -166,20 +165,21 @@ if ($dbConnected) {
                         $turno = ($patron !== null && isset($patron[$d - 1])) ? $patron[$d - 1] : 'LIB';
                         $hTurno = $duracionTurnos[$turno] ?? 0.0;
                         if ($hTurno <= 0 && $turno !== 'LIB' && $turno !== '0') {
-                            $hTurno = ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0);
+                            $incompleto = true;
                         }
 
                         $as = $workerAsist[$d] ?? null;
                         if ($as) {
+                            if (!isset($patron[$d-1]) || !array_key_exists($turno,$duracionTurnos) || $duracionTurnos[$turno]===null) $incompleto=true;
                             $st = strtoupper(trim((string)$as['Estado']));
                             $obs = (string)($as['Observacion'] ?? '');
 
                             if (in_array($st, ['PUNTUAL', 'ASISTIO'])) {
                                 $diasLab++;
-                                $horasEfectivas += ($hTurno > 0 ? $hTurno : ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0));
+                                $horasEfectivas += $hTurno;
                             } elseif ($st === 'TARDANZA') {
                                 $diasLab++;
-                                $horasEfectivas += ($hTurno > 0 ? $hTurno : ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0));
+                                $horasEfectivas += $hTurno;
                                 if (preg_match('/Tardanza de (\d+) min/i', $obs, $m)) {
                                     $minTard += intval($m[1]);
                                 }
@@ -187,7 +187,7 @@ if ($dbConnected) {
                                 $faltas++;
                             } elseif (strpos($st, 'PERMISO') !== false || strpos($st, 'LICENCIA') !== false) {
                                 $permisos++;
-                                $horasEfectivas += ($hTurno > 0 ? $hTurno : ($reg === 'ADMINISTRATIVO' ? 8.0 : 6.0));
+                                $horasEfectivas += $hTurno;
                             }
                         }
                     }
@@ -203,7 +203,7 @@ if ($dbConnected) {
                     intval($r['servicio_id']),
                     $r['servicio_nombre'],
                     $reg,
-                    (stripos($r['condicion_laboral'], 'Nombrad') !== false ? 'NOMBRADO' : 'CAS'),
+                    $r['condicion_laboral'],
                     $diasProg,
                     $diasLab,
                     $minTard,
@@ -251,7 +251,8 @@ foreach ($personalConsolidado as $p) {
         'dias_laborados'        => $p[9],
         'minutos_tardanza_total'=> $p[10],
         'faltas_injustificadas' => $p[11],
-        'permisos_con_goce'     => $p[12],
+        'permisos_con_goce'     => null,
+        'permisos_registrados'  => $p[12],
         'descansos_citt'        => $p[13],
         'horas_netas'           => $p[14],
         'estado_planilla'       => $p[15] ?? (($p[11] > 0 || $p[10] > 60) ? 'CON_DESCUENTO' : 'CONFORME')

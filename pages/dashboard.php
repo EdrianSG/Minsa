@@ -14,7 +14,7 @@ $pageScript = "dashboard.js";
   <div class="dash-clean-header">
     <div class="dash-header-titles">
       <h1 class="dash-main-title">Resumen de Asistencia Diaria</h1>
-      <p class="dash-subtitle">Monitoreo de puntualidad y dotación de personal en tiempo real</p>
+      <p class="dash-subtitle">Programación, marcaciones conciliadas y pendientes de revisión</p>
     </div>
 
     <!-- Selector de Fecha Directo y Sencillo -->
@@ -27,13 +27,19 @@ $pageScript = "dashboard.js";
     </div>
   </div>
 
+  <div class="dash-scope-controls">
+    <label>Área<select id="dashAreaSelect" class="form-select"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::areaOptions(); ?></select></label>
+    <label>Servicio<select id="dashServiceSelect" class="form-select"><?php echo OrganizationCatalog::options(''); ?></select></label>
+    <button type="button" class="btn btn-secondary" id="dashRefresh">Actualizar</button>
+  </div>
+
   <!-- Fila de 4 Indicadores Clave Sobrios -->
   <section class="dash-kpi-row" aria-label="Indicadores de asistencia del día">
     <!-- 1. Programados -->
-    <div class="dash-kpi-card" data-filter="TODOS">
-      <span class="dash-kpi-title">Programados Hoy</span>
+    <div class="dash-kpi-card" data-filter="PROGRAMADOS">
+      <span class="dash-kpi-title">Con turno confirmado</span>
       <div class="dash-kpi-number" id="dashKpiProgramados">--</div>
-      <span class="dash-kpi-note">Total en rol oficial</span>
+      <span class="dash-kpi-note">Rol mensual o pauta semanal</span>
     </div>
 
     <!-- 2. Presentes -->
@@ -47,16 +53,49 @@ $pageScript = "dashboard.js";
     <div class="dash-kpi-card highlight-warning" data-filter="TARDANZA">
       <span class="dash-kpi-title">Tardanzas</span>
       <div class="dash-kpi-number text-warning" id="dashKpiTardanzas">--</div>
-      <span class="dash-kpi-note">Dentro de tolerancia</span>
+      <span class="dash-kpi-note">Ingresos con tardanza</span>
     </div>
 
     <!-- 4. Faltas -->
     <div class="dash-kpi-card highlight-danger" data-filter="FALTA">
       <span class="dash-kpi-title">Inasistencias</span>
       <div class="dash-kpi-number text-danger" id="dashKpiFaltas">--</div>
-      <span class="dash-kpi-note">Sin marcación / falta</span>
+      <span class="dash-kpi-note">Faltas registradas o evaluadas</span>
     </div>
   </section>
+
+  <section class="dash-operation-grid" aria-label="Seguimiento operativo">
+    <div class="dash-operation-card">
+      <h2>Programación y verificación</h2>
+      <div class="dash-action-counts">
+        <button type="button" class="dash-kpi-card" data-filter="SIN_MARCACION">Sin marcación conciliada <strong id="dashPendingMarks">—</strong></button>
+        <button type="button" class="dash-kpi-card" data-filter="SIN_PROGRAMACION">Sin turno confirmado <strong id="dashUnscheduled">—</strong></button>
+        <button type="button" class="dash-kpi-card" data-filter="DESCANSO">Descanso o ausencia programada <strong id="dashRest">—</strong></button>
+      </div>
+      <p id="dashPendingDetail">Pendiente de consulta</p>
+    </div>
+    <div class="dash-operation-card">
+      <h2>Última carga biométrica</h2>
+      <div id="dashBiometric" aria-live="polite"><div class="skeleton dash-skeleton-line" aria-hidden="true"></div></div>
+    </div>
+    <div class="dash-operation-card">
+      <h2>Calidad del padrón</h2>
+      <div id="dashDataQuality"><div class="skeleton dash-skeleton-line" aria-hidden="true"></div></div>
+      <?php if (Auth::checkPermission('personal')): ?><a href="index.php?page=personal">Revisar personal</a><?php endif; ?>
+    </div>
+    <div class="dash-operation-card">
+      <h2>Pendientes de RR. HH.</h2>
+      <div id="dashHrPending"><div class="skeleton dash-skeleton-line" aria-hidden="true"></div></div>
+      <?php if (Auth::checkPermission('ausencias')): ?><a href="index.php?page=ausencias">Revisar solicitudes</a><?php endif; ?>
+    </div>
+  </section>
+  <details class="dash-operation-card dash-coverage" open>
+    <summary>Cobertura programada por área, servicio y turno</summary>
+    <div class="dash-table-responsive"><table class="dash-clean-table">
+      <thead><tr><th>Área</th><th>Servicio</th><th>Turno</th><th>Programados</th><th>Sin marcación conciliada</th></tr></thead>
+      <tbody id="dashCoverageBody"><tr><td colspan="5"><div class="skeleton dash-skeleton-line" aria-hidden="true"></div></td></tr></tbody>
+    </table></div>
+  </details>
 
   <!-- Tarjeta Principal: Listado Diario Limpio -->
   <section class="dash-table-card">
@@ -74,6 +113,10 @@ $pageScript = "dashboard.js";
           autocomplete="off"
         >
       </div>
+
+      <label class="dash-worker-filter" for="dashWorkerSelect">Trabajador
+        <select id="dashWorkerSelect" class="form-select"><option value="">Todo el personal</option></select>
+      </label>
 
       <div class="dash-filter-pills" id="dashFilterPills">
         <button type="button" class="dash-pill-btn active" data-estado="TODOS">
@@ -98,19 +141,17 @@ $pageScript = "dashboard.js";
           <tr>
             <th style="width: 100px;">DNI</th>
             <th>Servidor Público</th>
-            <th>Servicio / UPSS</th>
+            <th>Área / Servicio</th>
             <th>Turno Programado</th>
             <th style="width: 100px; text-align: center;">Ingreso</th>
             <th style="width: 100px; text-align: center;">Salida</th>
             <th style="width: 120px; text-align: center;">Estado</th>
           </tr>
         </thead>
-        <tbody id="dashTableBody">
-          <tr>
-            <td colspan="7" class="dash-loading-cell">
-              Cargando información de asistencia...
-            </td>
-          </tr>
+        <tbody id="dashTableBody" aria-busy="true">
+          <?php for ($row=0; $row<5; $row++): ?>
+            <tr class="skeleton-table-row"><?php for ($column=0; $column<7; $column++): ?><td><div class="skeleton dash-skeleton-line" aria-hidden="true"></div></td><?php endfor; ?></tr>
+          <?php endfor; ?>
         </tbody>
       </table>
     </div>
@@ -118,7 +159,15 @@ $pageScript = "dashboard.js";
     <!-- Pie de Tabla: Resumen Rápido -->
     <div class="dash-table-footer">
       <span id="dashFooterCount">Mostrando 0 registros</span>
-      <span class="dash-footer-source">Datos oficiales de Microsoft SQL Server 2022</span>
+      <div class="dash-pagination" aria-label="Páginas del personal">
+        <button type="button" class="dash-btn-quick" id="dashPrevPage" disabled>Anterior</button>
+        <span id="dashPageLabel">Página 1 de 1</span>
+        <button type="button" class="dash-btn-quick" id="dashNextPage" disabled>Siguiente</button>
+      </div>
+      <div class="dash-source-detail">
+        <span class="dash-footer-source" id="dashDataSource">Consulta en curso</span>
+        <small id="dashConnectionStatus" role="status" aria-live="polite">Consultando datos…</small>
+      </div>
     </div>
   </section>
 </div>

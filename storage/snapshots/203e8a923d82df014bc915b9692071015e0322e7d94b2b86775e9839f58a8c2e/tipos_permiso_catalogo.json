@@ -1,0 +1,63 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "203e8a923d82df014bc915b9692071015e0322e7d94b2b86775e9839f58a8c2e",
+        "key": "tipos_permiso_catalogo",
+        "version": 7,
+        "saved_at": "2026-11-05 15:43:25",
+        "timestamp": 1793911405,
+        "hash": "51808392011943787beca8c7830f125f",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "TipoPermisoLaboralID": "1",
+            "Nombre": "Descanso Médico (CITT EsSalud)",
+            "Descripcion": "Incapacidad temporal para el trabajo certificada",
+            "Activo": "1",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "2",
+            "Nombre": "Permiso por Capacitación Oficial",
+            "Descripcion": "Eventos académicos aprobados por MINSA\/DIRESA",
+            "Activo": "1",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "3",
+            "Nombre": "Permiso por Asuntos Particulares",
+            "Descripcion": "Permiso personal con o sin goce de haber",
+            "Activo": "1",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "4",
+            "Nombre": "Vacaciones Programadas",
+            "Descripcion": "Rol anual de descanso vacacional",
+            "Activo": "1",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "5",
+            "Nombre": "Compensación de Horas Extra",
+            "Descripcion": "Descanso compensatorio por sobretiempo",
+            "Activo": "1",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "6",
+            "Nombre": "Licencia por Maternidad \/ Paternidad",
+            "Descripcion": "Licencia legal por alumbramiento",
+            "Activo": "1",
+            "Estado": "1"
+        },
+        {
+            "TipoPermisoLaboralID": "7",
+            "Nombre": "Licencia Sindical",
+            "Descripcion": "Representación gremial autorizada",
+            "Activo": "1",
+            "Estado": "1"
+        }
+    ]
+}

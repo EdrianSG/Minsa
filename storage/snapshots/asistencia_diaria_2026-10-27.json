@@ -1,0 +1,42 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "fecha": "2026-10-27",
+        "database_source": "6ff1d9a68c3ddcb419aa5f4e7953df256269dd7359f0ba1567338522af54b485",
+        "key": "asistencia_diaria_2026-10-27",
+        "version": 13,
+        "saved_at": "2026-10-27 15:19:33",
+        "timestamp": 1793132373,
+        "hash": "bd30aaec18f62694ddeb274822606d51",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "personal_id": 1,
+            "dni": "SYS-RRHH-ADMIN",
+            "nombre_completo": "De Recursos Humanos  Administrador",
+            "telefono": "",
+            "correo": "",
+            "cargo": "Servidor Público",
+            "profesion": "General",
+            "servicio_id": 1,
+            "servicio_nombre": "Hospital Distrital de Pacasmayo",
+            "regimen_laboral": "ASISTENCIAL",
+            "condicion_laboral": "CAS",
+            "turno_id": null,
+            "turno_nombre": "Descanso",
+            "turno_codigo": "LIB",
+            "hora_prog_inicio": "07:00",
+            "hora_prog_fin": "13:00",
+            "asistencia_id": null,
+            "hora_entrada": null,
+            "hora_salida": null,
+            "minutos_tardanza": 0,
+            "minutos_salida_anticipada": 0,
+            "estado_evaluado": "DESCANSO",
+            "observacion": "",
+            "observacion_regla": "Día no laborable \/ Descanso programado",
+            "es_ausente": false
+        }
+    ]
+}

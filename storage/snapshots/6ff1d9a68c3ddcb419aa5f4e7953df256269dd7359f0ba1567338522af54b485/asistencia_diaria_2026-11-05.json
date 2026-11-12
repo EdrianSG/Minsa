@@ -1,0 +1,42 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "fecha": "2026-11-05",
+        "database_source": "6ff1d9a68c3ddcb419aa5f4e7953df256269dd7359f0ba1567338522af54b485",
+        "key": "asistencia_diaria_2026-11-05",
+        "version": 1,
+        "saved_at": "2026-11-05 18:00:51",
+        "timestamp": 1793919651,
+        "hash": "2ef06083eefe90466751be42e264a8f8",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "personal_id": 1,
+            "dni": "SYS-RRHH-ADMIN",
+            "nombre_completo": "De Recursos Humanos  Administrador",
+            "telefono": "",
+            "correo": "",
+            "cargo": "ADMINISTRATIVO",
+            "profesion": "General",
+            "servicio_id": null,
+            "servicio_nombre": "Hospital Distrital de Pacasmayo",
+            "regimen_laboral": null,
+            "condicion_laboral": "NOMBRADO",
+            "turno_id": 29,
+            "turno_nombre": "Jornada Administrativa",
+            "turno_codigo": "AD",
+            "hora_prog_inicio": "08:00",
+            "hora_prog_fin": "16:00",
+            "asistencia_id": null,
+            "hora_entrada": null,
+            "hora_salida": null,
+            "minutos_tardanza": 0,
+            "minutos_salida_anticipada": 0,
+            "estado_evaluado": "SIN_DATOS",
+            "observacion": "",
+            "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
+            "es_ausente": false
+        }
+    ]
+}

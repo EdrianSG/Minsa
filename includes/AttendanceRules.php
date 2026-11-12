@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/SystemSettings.php";
 /** Reglas de asistencia documentadas por el hospital; no interpreta normativa externa. */
 class AttendanceRules {
     public static function evaluate(?string $entry, string $scheduled, ?string $date = null, ?string $end = null): array {
@@ -8,8 +9,9 @@ class AttendanceRules {
         $real = (new DateTimeImmutable("$date $entry", new DateTimeZone('America/Lima')))->getTimestamp();
         if ($end !== null && $end <= $scheduled && $real < $start - 7200) $real += 86400;
         $minutes = ($real - $start) / 60;
-        if ($minutes <= 5) return ['estado' => 'ASISTIO', 'minutos' => 0];
-        return ['estado' => $minutes <= 30 ? 'TARDANZA' : 'FALTA_ADMINISTRATIVA',
+        $settings = SystemSettings::read($date);
+        if ($minutes <= $settings['tolerancia_entrada_minutos']) return ['estado' => 'ASISTIO', 'minutos' => 0];
+        return ['estado' => $minutes <= $settings['tardanza_maxima_minutos'] ? 'TARDANZA' : 'FALTA_ADMINISTRATIVA',
             'minutos' => (int)round($minutes)];
     }
 

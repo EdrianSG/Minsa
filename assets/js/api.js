@@ -5,6 +5,7 @@ const API = {
   _statePromise: null,
   _revision: undefined,
   _generation: 0,
+  _inflight: new Map(),
 
   _url(endpoint, params = {}) {
     const url = new URL(`${this.baseUrl}/${endpoint}`, window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/'));
@@ -12,7 +13,7 @@ const API = {
     return url.toString();
   },
   _prefix() {
-    return window.currentUser?.cache_scope ? `sigh-cache-v2:${window.currentUser.cache_scope}:` : null;
+    return window.currentUser?.cache_scope ? `sigh-cache-v4:${window.currentUser.cache_scope}:` : null;
   },
   _storageRead(key) {
     try { return JSON.parse(window.sessionStorage?.getItem(key) || 'null'); } catch (_) { return null; }
@@ -30,6 +31,7 @@ const API = {
   invalidate() {
     this._generation++;
     this._cache.clear();
+    this._inflight.clear();
     const prefix = this._prefix();
     if (!prefix) return;
     try {
@@ -89,23 +91,39 @@ const API = {
     })();
     try { return await this._statePromise; } finally { this._statePromise = null; }
   },
-  _emergency(entry) {
-    this._event('sigh:connection', { online: false });
-    return { ...entry.data, _cache: { origen: 'RESPALDO_EMERGENCIA', guardado_en: entry.time, solo_lectura: true } };
+  _emergency(entry, sqlOffline = true) {
+    if (sqlOffline) this._event('sigh:connection', { online: false });
+    this._event('sigh:backup', { time: entry.time });
+    return { ...this._copy(entry.data), _cache: { origen: 'RESPALDO_EMERGENCIA', guardado_en: entry.time, solo_lectura: true } };
+  },
+  _copy(data) {
+    return JSON.parse(JSON.stringify(data));
   },
   async get(endpoint, params = {}, options = {}) {
+    const key = `${this._generation}|${options.useCache !== false}|${this._url(endpoint, params)}`;
+    if (this._inflight.has(key)) return this._copy(await this._inflight.get(key));
+    const request = this._get(endpoint, params, options);
+    this._inflight.set(key, request);
+    try { return await request; }
+    finally { if (this._inflight.get(key) === request) this._inflight.delete(key); }
+  },
+  async _get(endpoint, params = {}, options = {}) {
     const useCache = options.useCache !== false;
     const key = this._url(endpoint, params);
-    const state = await this.checkRevision();
+    // Sin revisión fiable, el endpoint ya verifica sesión y permisos y consulta SQL.
+    // Evitar una solicitud SQL previa que nunca permite reutilizar la caché.
+    const liveRead = window.currentUser?.live_reads === true;
+    const state = liveRead ? { conexion_sql: true, revision: null } : await this.checkRevision();
     const entry = this._entry(key);
     // Las jornadas cambian de estado con el reloj aunque no haya escrituras SQL.
-    const temporal = /^(asistencia|dashboard)\//.test(endpoint) || endpoint === 'reportes/individual.php';
+    const temporal = /^(asistencia|dashboard|reportes)\//.test(endpoint);
     const timeValid = !temporal || (entry && Math.floor(entry.time / 60000) === Math.floor(Date.now() / 60000));
     if (useCache && state.conexion_sql && state.revision !== null && entry?.revision === state.revision && entry?.source === 'SQL_SERVER' && timeValid) {
-      return entry.data;
+      return {...this._copy(entry.data), _cache:{origen:'CACHE_VIGENTE',guardado_en:entry.time,solo_lectura:false}};
     }
     if (useCache && !state.conexion_sql && entry) return this._emergency(entry);
     const generation = this._generation;
+    const startedAt = Date.now();
     try {
       let response;
       try { response = await fetch(key, { cache: 'no-store', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } }); }
@@ -114,14 +132,15 @@ const API = {
       const json = await response.json();
       if (json.ok === false || json.success === false) throw new Error(json.mensaje || json.message || 'No se pudo cargar la información.');
       const emergency = !state.conexion_sql || json.conexion_sql === false || json.resiliencia?.es_snapshot === true;
-      const cached = { time: Date.now(), data: json, revision: state.revision, source: emergency ? 'RESPALDO_EMERGENCIA' : 'SQL_SERVER' };
+      if (liveRead) this._event('sigh:connection', { online: !emergency });
+      const cached = { time: startedAt, data: this._copy(json), revision: state.revision, source: emergency ? 'RESPALDO_EMERGENCIA' : 'SQL_SERVER' };
       // Una lectura iniciada antes de un guardado no puede repoblar la caché invalidada.
       if (generation === this._generation) {
         this._cache.set(key, cached);
         const prefix = this._prefix();
         if (prefix) this._storageWrite(prefix + key, cached);
       }
-      return emergency ? this._emergency(cached) : json;
+      return emergency ? this._emergency(cached, !state.conexion_sql) : json;
     } catch (error) {
       if (error.network && useCache && entry) return this._emergency(entry);
       throw error;
@@ -129,22 +148,29 @@ const API = {
   },
   async post(endpoint, data = {}) {
     const isFormData = data instanceof FormData;
-    const response = await fetch(`${this.baseUrl}/${endpoint}`, {
-      method: 'POST',
-      headers: isFormData ? { 'X-Requested-With': 'XMLHttpRequest' } : {
-        'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: isFormData ? data : JSON.stringify(data)
-    });
+    let response;
+    try {
+      response = await fetch(`${this.baseUrl}/${endpoint}`, {
+        method: 'POST',
+        headers: isFormData ? { 'X-Requested-With': 'XMLHttpRequest' } : {
+          'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: isFormData ? data : JSON.stringify(data)
+      });
+    } catch (error) {
+      this.invalidate();
+      this._revision = undefined;
+      throw error;
+    }
+    // Toda escritura puede haber sido confirmada aunque se pierda su respuesta.
+    this.invalidate();
+    this._revision = undefined;
     if (!response.ok) {
       const error = await this._error(response);
       if (response.status === 409 && error.data) return error.data;
-      // Una respuesta perdida o fallida puede ocurrir después del commit SQL.
-      if (response.status >= 500) this.invalidate();
       throw error;
     }
     const json = await response.json();
-    if (json.ok || json.success) { this.invalidate(); this._revision = undefined; }
     return json;
   }
 };

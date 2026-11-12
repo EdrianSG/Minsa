@@ -1,0 +1,51 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "6ff1d9a68c3ddcb419aa5f4e7953df256269dd7359f0ba1567338522af54b485",
+        "key": "personal_catalogo_completo",
+        "version": 43,
+        "saved_at": "2026-11-05 18:01:03",
+        "timestamp": 1793919663,
+        "hash": "f087ae6ada384f596dfb84d6c0cc1c19",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "personal_id": "1",
+            "codigo_empleado": "SYS-RRHH-ADMIN",
+            "fecha_ingreso": "2026-10-27",
+            "fecha_cese": null,
+            "estado": "1",
+            "activo": "1",
+            "dni": "SYS-RRHH-ADMIN",
+            "departamento_origen": null,
+            "cargo_origen": null,
+            "fecha_alta_biometrica": null,
+            "biostar_user_id": null,
+            "regimen_laboral": "DL 276",
+            "tipo_personal": "DL 276",
+            "grupo_ocupacional": "ADMINISTRATIVO",
+            "nombre_completo_original": null,
+            "nombres": "Administrador",
+            "apellido_paterno": "De Recursos Humanos",
+            "apellido_materno": null,
+            "nombre_completo": "De Recursos Humanos , Administrador",
+            "celular": null,
+            "correo": null,
+            "telefono": null,
+            "cargo_id": "8",
+            "cargo_nombre": "ADMINISTRATIVO",
+            "profesion_id": null,
+            "profesion_nombre": "General",
+            "especialidad_id": null,
+            "especialidad_nombre": null,
+            "area_id": "6",
+            "area_nombre": "ADMINISTRATIVO",
+            "servicio_id": null,
+            "servicio_nombre": "Servicio General",
+            "tipo_contrato_id": null,
+            "condicion_laboral": "NOMBRADO",
+            "numero_contrato": null
+        }
+    ]
+}

@@ -7,16 +7,22 @@ apiGuard('personal', ['GET'], ['JEFE_RRHH', 'JEFE_SERVICIO']);
  * Hospital Distrital de Pacasmayo - ETAPA 2
  * 
  * Reutiliza el modelo de datos institucional:
- * core.Persona, rrhh.Personal, rrhh.AsignacionPersonal,
+ * rrhh.Personal, rrhh.AsignacionPersonal,
  * rrhh.Cargo, rrhh.Profesion, rrhh.Especialidad,
  * organizacion.Area, organizacion.Servicio, rrhh.Contrato, rrhh.TipoContrato
  */
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__.'/../../includes/PersonalDirectory.php';
+require_once __DIR__.'/../../includes/SnapshotStore.php';
 
 $q         = trim($_GET['q'] ?? '');
 $servicio  = trim($_GET['servicio'] ?? '');
+$areaFilter = trim((string)($_GET['area'] ?? ''));
+if ($areaFilter !== '' && (!ctype_digit($areaFilter) || (int)$areaFilter < 1)) {
+    apiError(400, 'El área debe ser un identificador válido.');
+}
 $userAllowedServ = Auth::getAllowedServiceId();
 if ($userAllowedServ !== null) {
     $servicio = (string)$userAllowedServ;
@@ -32,101 +38,25 @@ $dbConnected = ($pdo !== null);
 $personalList = [];
 $totalRecords = 0;
 
+$filters = compact('q','servicio','areaFilter','condicion','regimen','estado','page','limit');
+$pageKey = 'personal_pagina_' . hash('sha256', json_encode([$userAllowedServ,$filters]));
 if ($dbConnected) {
     try {
-        $sql = "
-            SELECT 
-                p.PersonalID AS personal_id,
-                p.PersonaID AS persona_id,
-                p.CodigoEmpleado AS codigo_empleado,
-                p.FechaIngreso AS fecha_ingreso,
-                p.FechaCese AS fecha_cese,
-                p.Estado AS estado,
-                
-                per.NumeroDocumento AS dni,
-                per.Nombres AS nombres,
-                per.ApellidoPaterno AS apellido_paterno,
-                per.ApellidoMaterno AS apellido_materno,
-                CONCAT(per.ApellidoPaterno, ' ', ISNULL(per.ApellidoMaterno, ''), ', ', per.Nombres) AS nombre_completo,
-                per.Celular AS celular,
-                per.Correo AS correo,
-                per.Telefono AS telefono,
-                
-                c.CargoID AS cargo_id,
-                ISNULL(c.Nombre, 'Sin Cargo') AS cargo_nombre,
-                
-                prof.ProfesionID AS profesion_id,
-                ISNULL(prof.Nombre, 'General') AS profesion_nombre,
-                
-                esp.EspecialidadID AS especialidad_id,
-                esp.Nombre AS especialidad_nombre,
-                
-                a.AreaID AS area_id,
-                ISNULL(a.Nombre, 'General') AS area_nombre,
-                
-                s.ServicioID AS servicio_id,
-                ISNULL(s.Nombre, 'Servicio General') AS servicio_nombre,
-                
-                tc.TipoContratoID AS tipo_contrato_id,
-                ISNULL(tc.Nombre, 'CAS') AS condicion_laboral,
-                con.NumeroContrato AS numero_contrato
-            FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1
-            LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-            LEFT JOIN rrhh.Profesion prof ON ap.ProfesionID = prof.ProfesionID
-            LEFT JOIN rrhh.Especialidad esp ON ap.EspecialidadID = esp.EspecialidadID
-            LEFT JOIN organizacion.Area a ON ap.AreaID = a.AreaID
-            LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
-            LEFT JOIN rrhh.Contrato con ON p.PersonalID = con.PersonalID AND con.Estado = 1
-            LEFT JOIN rrhh.TipoContrato tc ON con.TipoContratoID = tc.TipoContratoID
-            WHERE 1=1
-        ";
-
-        $params = [];
-
-        if ($estado !== null) {
-            $sql .= " AND p.Estado = :estado";
-            $params[':estado'] = $estado;
-        }
-
-        if ($condicion !== '') {
-            $sql .= " AND tc.Nombre = :condicion";
-            $params[':condicion'] = $condicion;
-        }
-
-        if ($servicio !== '') {
-            if (is_numeric($servicio)) {
-                $sql .= " AND s.ServicioID = :servId";
-                $params[':servId'] = intval($servicio);
-            } else {
-                $sql .= " AND s.Nombre LIKE :servNombre";
-                $params[':servNombre'] = "%$servicio%";
-            }
-        }
-
-        if ($q !== '') {
-            $sql .= " AND (per.Nombres LIKE :q1 OR per.ApellidoPaterno LIKE :q2 OR per.ApellidoMaterno LIKE :q3 OR per.NumeroDocumento LIKE :q4 OR p.CodigoEmpleado LIKE :q5)";
-            foreach (range(1, 5) as $index) $params[':q' . $index] = "%$q%";
-        }
-
-        $sql .= " ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $personalList = $rows;
-        $totalRecords = count($personalList);
-        if ($q === '' && $condicion === '' && $regimen === '' && $estado === null) {
-            require_once __DIR__ . '/../../includes/SnapshotStore.php';
-            if ($servicio === '' || $userAllowedServ !== null) {
-                SnapshotStore::set('personal_catalogo_completo' . ($userAllowedServ ? '_serv_' . $userAllowedServ : ''), $personalList, ['source'=>'SQL_SERVER_LIVE']);
-            }
-        }
+        $result = PersonalDirectory::page($pdo, $filters);
+        SnapshotStore::set($pageKey, $result, ['source'=>'SQL_SERVER_LIVE']);
+        echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
     } catch (PDOException $e) {
+        error_log('Listado paginado de personal: '.$e->getMessage());
         $dbConnected = false;
     }
+}
+$cachedPage = SnapshotStore::get($pageKey);
+if ($cachedPage) {
+    $result = $cachedPage['data'];
+    $result['conexion_sql'] = false;
+    echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
 }
 
 if (!$dbConnected) {
@@ -142,39 +72,71 @@ if ($userAllowedServ !== null) {
 
 // Asegurar campo nombre_completo y régimen asistencial vs administrativo
 foreach ($personalList as &$item) {
-    if (!isset($item['nombre_completo'])) {
-        $item['nombre_completo'] = trim($item['apellido_paterno'] . ' ' . ($item['apellido_materno'] ?? '') . ', ' . $item['nombres']);
+    if (trim($item['nombre_completo'] ?? '', ' ,') === '') {
+        $item['nombre_completo'] = trim(implode(' ', array_filter([$item['apellido_paterno'] ?? null, $item['apellido_materno'] ?? null, $item['nombres'] ?? null]))) ?: ($item['nombre_completo_original'] ?? null);
     }
-    $profAsistenciales = ['Medicina Humana', 'Enfermería', 'Obstetricia', 'Técnico de Salud', 'Tecnología Médica', 'Farmacia Técnica'];
-    $esAsistencial = in_array($item['profesion_nombre'] ?? '', $profAsistenciales) || (isset($item['aplica_seti']) && $item['aplica_seti'] == 1);
-    $item['regimen_laboral'] = $esAsistencial ? 'ASISTENCIAL' : 'ADMINISTRATIVO';
-    $item['aplica_seti'] = $esAsistencial ? 1 : 0;
+    // Normalizar tipo_personal según grupo_ocupacional, regimen_laboral, cargo o área
+    $grupo = strtoupper(trim((string)($item['grupo_ocupacional'] ?? '')));
+    $reg = strtoupper(trim((string)($item['regimen_laboral'] ?? $item['tipo_personal'] ?? '')));
+    $area = strtoupper(trim((string)($item['area_nombre'] ?? '')));
+    $cargo = strtoupper(trim((string)($item['cargo_nombre'] ?? '')));
+
+    if ($grupo === 'ADMINISTRATIVO' || str_contains($reg, 'ADMIN') || str_contains($area, 'ADMINISTRATIV') || str_contains($cargo, 'ADMINISTRATIV') || str_contains($cargo, 'CONTADOR') || str_contains($cargo, 'SECRETARIA') || str_contains($cargo, 'SISTEMA') || str_contains($area, 'RECURSOS HUMANOS') || str_contains($area, 'SIS') || str_contains($area, 'ALMACEN')) {
+        $item['tipo_personal'] = 'ADMINISTRATIVO';
+    } elseif ($reg === 'DL 1153' || str_contains($reg, 'ASIST') || str_contains($cargo, 'MEDIC') || str_contains($cargo, 'ENFERM') || str_contains($cargo, 'OBSTETR') || str_contains($cargo, 'CIRUG') || str_contains($area, 'EMERGENCIA') || str_contains($area, 'CIRUGIA')) {
+        $item['tipo_personal'] = 'ASISTENCIAL';
+    } elseif ($reg !== '') {
+        $item['tipo_personal'] = $reg;
+    } else {
+        $item['tipo_personal'] = null;
+    }
+    $item['aplica_seti'] = ($item['tipo_personal'] === 'ASISTENCIAL') ? 1 : null;
 }
 unset($item);
 
 // Filtrado en memoria si operamos con dataset
-$filtered = array_filter($personalList, function($p) use ($q, $servicio, $condicion, $regimen, $estado) {
+$filtered = array_filter($personalList, function($p) use ($q, $servicio, $areaFilter, $condicion, $regimen, $estado) {
     if ($q !== '') {
         $matchQ = (
-            stripos($p['nombre_completo'], $q) !== false ||
-            stripos($p['dni'], $q) !== false ||
-            stripos($p['codigo_empleado'], $q) !== false ||
-            stripos($p['cargo_nombre'], $q) !== false ||
-            stripos($p['profesion_nombre'], $q) !== false
+            stripos((string)($p['nombre_completo'] ?? ''), $q) !== false ||
+            stripos((string)($p['dni'] ?? ''), $q) !== false ||
+            stripos((string)($p['codigo_empleado'] ?? ''), $q) !== false ||
+            stripos((string)($p['cargo_nombre'] ?? ''), $q) !== false ||
+            stripos((string)($p['profesion_nombre'] ?? ''), $q) !== false ||
+            stripos((string)($p['biostar_user_id'] ?? ''), $q) !== false
         );
         if (!$matchQ) return false;
     }
 
+    if ($areaFilter !== '' && (int)($p['area_id'] ?? 0) !== (int)$areaFilter) return false;
+
     if ($servicio !== '') {
-        if (is_numeric($servicio) ? (int)($p['servicio_id'] ?? 0) !== (int)$servicio : stripos($p['servicio_nombre'], $servicio) === false) return false;
+        if (is_numeric($servicio) ? (int)($p['servicio_id'] ?? 0) !== (int)$servicio : stripos((string)($p['servicio_nombre'] ?? ''), $servicio) === false) return false;
     }
 
-    if ($condicion !== '' && strtoupper($p['condicion_laboral']) !== strtoupper($condicion)) {
+    if ($condicion !== '' && strtoupper((string)($p['condicion_laboral'] ?? '')) !== strtoupper($condicion)) {
         return false;
     }
 
-    if ($regimen !== '' && strtoupper($p['regimen_laboral']) !== strtoupper($regimen)) {
-        return false;
+    if ($regimen !== '') {
+        $targetRegimen = strtoupper(trim($regimen));
+        $workerTipo = strtoupper(trim((string)($p['tipo_personal'] ?? '')));
+        $workerGrupo = strtoupper(trim((string)($p['grupo_ocupacional'] ?? '')));
+        $workerRegimen = strtoupper(trim((string)($p['regimen_laboral'] ?? '')));
+
+        if ($targetRegimen === 'ADMINISTRATIVO') {
+            if ($workerTipo !== 'ADMINISTRATIVO' && $workerGrupo !== 'ADMINISTRATIVO' && !str_contains($workerRegimen, 'ADMIN')) {
+                return false;
+            }
+        } elseif ($targetRegimen === 'ASISTENCIAL') {
+            if ($workerTipo !== 'ASISTENCIAL' && $workerRegimen !== 'DL 1153' && !str_contains($workerRegimen, 'ASIST')) {
+                return false;
+            }
+        } else {
+            if ($workerTipo !== $targetRegimen && !str_contains($workerRegimen, $targetRegimen)) {
+                return false;
+            }
+        }
     }
 
     if ($estado !== null && intval($p['estado']) !== $estado) {
@@ -187,10 +149,11 @@ $filtered = array_filter($personalList, function($p) use ($q, $servicio, $condic
 // Estadísticas globales sobre el total
 $totales = [
     'total'          => count($personalList),
-    'asistenciales'  => count(array_filter($personalList, fn($p) => strtoupper($p['regimen_laboral'] ?? '') === 'ASISTENCIAL')),
-    'administrativos'=> count(array_filter($personalList, fn($p) => strtoupper($p['regimen_laboral'] ?? '') === 'ADMINISTRATIVO')),
-    'nombrados'      => count(array_filter($personalList, fn($p) => strtoupper($p['condicion_laboral'] ?? '') === 'NOMBRADO')),
-    'cas'            => count(array_filter($personalList, fn($p) => strtoupper($p['condicion_laboral'] ?? '') === 'CAS')),
+    'asistenciales'  => count(array_filter($personalList, fn($p) => strtoupper((string)($p['tipo_personal'] ?? '')) === 'ASISTENCIAL')),
+    'administrativos'=> count(array_filter($personalList, fn($p) => strtoupper((string)($p['tipo_personal'] ?? '')) === 'ADMINISTRATIVO')),
+    'nombrados'      => count(array_filter($personalList, fn($p) => strtoupper((string)($p['condicion_laboral'] ?? '')) === 'NOMBRADO')),
+    'cas'            => count(array_filter($personalList, fn($p) => strtoupper((string)($p['condicion_laboral'] ?? '')) === 'CAS')),
+    'pendientes_validacion' => count(array_filter($personalList, fn($p) => $p['estado'] === null)),
     'activos'        => count(array_filter($personalList, fn($p) => intval($p['estado']) === 1))
 ];
 

@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "6ff1d9a68c3ddcb419aa5f4e7953df256269dd7359f0ba1567338522af54b485",
+        "key": "ausentes_2026-10-27_serv_0",
+        "version": 7,
+        "saved_at": "2026-10-27 15:06:36",
+        "timestamp": 1793131596,
+        "hash": "d751713988987e9331980363e24189ce",
+        "is_snapshot": true
+    },
+    "data": []
+}

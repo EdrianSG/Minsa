@@ -123,6 +123,15 @@ if ($msg === 'logout') {
           <span class="spinner-login"></span>
           <span class="btn-text-content">Iniciar Sesión</span>
         </button>
+
+        <div class="auxiliary-login-box">
+          <button type="button" class="btn-auxiliary-link" id="btnAuxiliaryLogin" hidden style="display: none;" title="Ingresar con cuenta auxiliar de contingencia sin conexión a BD">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Acceso con Cuenta Auxiliar (Modo Offline)</span>
+          </button>
+        </div>
       </form>
     </div>
 
@@ -132,6 +141,6 @@ if ($msg === 'logout') {
   </div>
 
   <!-- Scripts -->
-  <script src="assets/js/pages/login.js"></script>
+  <script src="assets/js/pages/login.js?v=<?= filemtime(__DIR__ . '/assets/js/pages/login.js') ?>"></script>
 </body>
 </html>

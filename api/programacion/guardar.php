@@ -17,9 +17,9 @@ require_once __DIR__ . '/../../includes/SnapshotStore.php';
 $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true) ?: $_POST;
 
-$servicioId      = intval($data['servicio_id'] ?? 7);
-$mes             = intval($data['mes'] ?? 9);
-$anio            = intval($data['anio'] ?? 2026);
+$servicioId      = intval($data['servicio_id'] ?? 0);
+$mes             = intval($data['mes'] ?? 0);
+$anio            = intval($data['anio'] ?? 0);
 $cambios         = $data['cambios'] ?? []; // Array de { personal_id, dia, codigo_turno, horas }
 $versionCliente  = isset($data['version_base']) ? intval($data['version_base']) : null;
 $forzar          = !empty($data['forzar']);
@@ -31,15 +31,15 @@ apiRequireServiceAccess($servicioId);
 if (!is_array($cambios) || !$cambios) apiError(400, 'Debe enviar cambios válidos.');
 if ($versionCliente === null || $versionCliente < 1) apiError(400, 'La versión base es obligatoria. Recargue el rol.');
 if ($forzar && !Auth::hasRole('ADMIN', 'ADMIN_RRHH', 'JEFE_RRHH')) apiError(403, 'Solo RR.HH. puede forzar el guardado.');
-$codes = ['M','1','T','2','N','3','GD','GN','1/2','2/3','1/2/3','G24','ADM','VAC','V',
-    'VAC-1','VAC-2','VAC-3','V1','V2','V3','DESC','C','CITT','F','P','PER','LIB'];
 foreach ($cambios as $change) {
     if (!is_array($change) || !isset($change['personal_id'], $change['dia'], $change['codigo_turno'])
         || !is_int($change['dia']) || $change['dia'] < 1 || $change['dia'] > cal_days_in_month(CAL_GREGORIAN, $mes, $anio)
-        || !in_array($change['codigo_turno'], $codes, true)) apiError(400, 'Día, trabajador o código de turno inválido.');
+        || !is_string($change['codigo_turno']) || !preg_match('/^[A-Z0-9\/-]{1,16}$/D',$change['codigo_turno'])) apiError(400, 'Día, trabajador o código de turno inválido.');
 }
 require_once __DIR__ . '/../../includes/ProgramacionStore.php';
 $pdo = apiRequireDatabase();
+$catalog=TurnoCatalog::programming(TurnoCatalog::load($pdo));
+foreach ($cambios as $change) if (!array_key_exists($change['codigo_turno'],$catalog) || $catalog[$change['codigo_turno']]['horas']===null) apiError(422,'El turno no está definido con duración en V4.');
 try {
     $version = ProgramacionStore::save($pdo, $anio, $mes, $servicioId, $versionCliente, $forzar, $cambios,
         (int)Auth::getCurrentUser()['usuario_id']);

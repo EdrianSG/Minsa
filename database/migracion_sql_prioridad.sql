@@ -34,8 +34,9 @@ BEGIN
         Revision BIGINT NOT NULL DEFAULT 1
     );
 END;
-IF NOT EXISTS (SELECT 1 FROM seguridad.VersionDatos WHERE ID = 1)
-    INSERT INTO seguridad.VersionDatos (ID, Revision) VALUES (1, 1);
+DECLARE @versionKey SYSNAME = CASE WHEN COL_LENGTH(N'seguridad.VersionDatos', N'VersionDatosID') IS NOT NULL THEN N'VersionDatosID' ELSE N'ID' END;
+DECLARE @seed NVARCHAR(MAX) = N'IF NOT EXISTS (SELECT 1 FROM seguridad.VersionDatos WHERE ' + QUOTENAME(@versionKey) + N' = 1) INSERT INTO seguridad.VersionDatos (' + QUOTENAME(@versionKey) + N', Revision) VALUES (1, 1)';
+EXEC sys.sp_executesql @seed;
 GO
 -- También detecta modificaciones hechas desde otros equipos o directamente en SQL.
 DECLARE @esquema SYSNAME, @tabla SYSNAME, @ddl NVARCHAR(MAX), @trigger SYSNAME;
@@ -58,7 +59,7 @@ BEGIN
         + N' ON ' + QUOTENAME(@esquema) + N'.' + QUOTENAME(@tabla)
         + N' AFTER INSERT, UPDATE, DELETE AS BEGIN SET NOCOUNT ON; '
         + N'IF EXISTS (SELECT 1 FROM inserted) OR EXISTS (SELECT 1 FROM deleted) '
-        + N'UPDATE seguridad.VersionDatos SET Revision = Revision + 1 WHERE ID = 1; END;';
+        + N'UPDATE seguridad.VersionDatos SET Revision = Revision + 1; END;';
     EXEC sys.sp_executesql @ddl;
     FETCH NEXT FROM tablas INTO @esquema, @tabla;
 END;

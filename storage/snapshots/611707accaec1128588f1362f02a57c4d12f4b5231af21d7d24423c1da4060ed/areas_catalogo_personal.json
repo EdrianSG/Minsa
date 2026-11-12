@@ -1,0 +1,174 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "611707accaec1128588f1362f02a57c4d12f4b5231af21d7d24423c1da4060ed",
+        "key": "areas_catalogo_personal",
+        "version": 63,
+        "saved_at": "2026-11-12 20:57:59",
+        "timestamp": 1794517079,
+        "hash": "b4d244f13490010045c008003d3a7919",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "id": "6",
+            "nombre": "ADMINISTRATIVO"
+        },
+        {
+            "id": "8",
+            "nombre": "ALMACEN Y PATRIMONIO"
+        },
+        {
+            "id": "23",
+            "nombre": "ANESTESIOLOGIA"
+        },
+        {
+            "id": "15",
+            "nombre": "ASISTENTA SOCIAL"
+        },
+        {
+            "id": "24",
+            "nombre": "CENTRO QUIRURGICO"
+        },
+        {
+            "id": "21",
+            "nombre": "CIRUGIA"
+        },
+        {
+            "id": "22",
+            "nombre": "CIRUGIA GENERAL"
+        },
+        {
+            "id": "4",
+            "nombre": "Consulta Externa General"
+        },
+        {
+            "id": "9",
+            "nombre": "DIGITADORA"
+        },
+        {
+            "id": "27",
+            "nombre": "EMERGENCIA"
+        },
+        {
+            "id": "17",
+            "nombre": "ENFERMERA"
+        },
+        {
+            "id": "18",
+            "nombre": "ENFERMERIA"
+        },
+        {
+            "id": "29",
+            "nombre": "FARMACIA"
+        },
+        {
+            "id": "10",
+            "nombre": "GESTION DE LA INFORMACION"
+        },
+        {
+            "id": "25",
+            "nombre": "GINECOLOGIA"
+        },
+        {
+            "id": "28",
+            "nombre": "LABORATORIO"
+        },
+        {
+            "id": "19",
+            "nombre": "LIC ENFERMERIA"
+        },
+        {
+            "id": "13",
+            "nombre": "MANTENIMIENTO"
+        },
+        {
+            "id": "31",
+            "nombre": "MEDICINA"
+        },
+        {
+            "id": "32",
+            "nombre": "MEDICINA GENERAL"
+        },
+        {
+            "id": "33",
+            "nombre": "MEDICO AUDITO"
+        },
+        {
+            "id": "36",
+            "nombre": "NUTRICION"
+        },
+        {
+            "id": "37",
+            "nombre": "NUTRICIONISTA"
+        },
+        {
+            "id": "26",
+            "nombre": "OBSTETRICIA"
+        },
+        {
+            "id": "38",
+            "nombre": "ODONTOLOGO"
+        },
+        {
+            "id": "14",
+            "nombre": "PILOTO AMBULANCIA"
+        },
+        {
+            "id": "35",
+            "nombre": "PSICOLOGIA"
+        },
+        {
+            "id": "30",
+            "nombre": "RAYOS X"
+        },
+        {
+            "id": "7",
+            "nombre": "RECURSOS HUMANOS"
+        },
+        {
+            "id": "40",
+            "nombre": "REHABILITACION"
+        },
+        {
+            "id": "41",
+            "nombre": "REHABILITACION FISICA"
+        },
+        {
+            "id": "16",
+            "nombre": "SALUD AMBIENTAL"
+        },
+        {
+            "id": "11",
+            "nombre": "SIS"
+        },
+        {
+            "id": "12",
+            "nombre": "SIS (SEGURO INTEGRAL DE SALUD)"
+        },
+        {
+            "id": "20",
+            "nombre": "TEC ENFERMERIA"
+        },
+        {
+            "id": "42",
+            "nombre": "TELECONSULTAS"
+        },
+        {
+            "id": "39",
+            "nombre": "TERAPIA FISICA"
+        },
+        {
+            "id": "34",
+            "nombre": "TRAUMATOLOGIA"
+        },
+        {
+            "id": "5",
+            "nombre": "Unidad de Emergencia"
+        },
+        {
+            "id": "3",
+            "nombre": "UPSS PatologÃ­a ClÃ­nica y AnatomÃ­a PatolÃ³gica"
+        }
+    ]
+}

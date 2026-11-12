@@ -17,7 +17,7 @@ $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true) ?: $_POST;
 
 $personalId        = intval($data['personal_id'] ?? 0);
-$tipoPermisoId     = intval($data['tipo_permiso_id'] ?? 1);
+$tipoPermisoId     = intval($data['tipo_permiso_id'] ?? 0);
 $fechaInicio       = trim($data['fecha_inicio'] ?? '');
 $fechaFin          = trim($data['fecha_fin'] ?? '');
 $documentoSustento = trim($data['documento_sustento'] ?? '');
@@ -48,20 +48,24 @@ if (strtotime($fechaFin) < strtotime($fechaInicio)) {
     exit;
 }
 
+require_once __DIR__ . '/../../includes/SystemSettings.php';
+$settings = SystemSettings::read();
 // Descansos médicos requieren CITT obligatorio
-if ($tipoPermisoId === 1 && empty($documentoSustento)) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'message' => 'Para descanso médico es obligatorio ingresar el número de CITT / Certificado médico.'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
 
 $dias = round((strtotime($fechaFin) - strtotime($fechaInicio)) / 86400) + 1;
 $pdo = apiRequireDatabase();
+$typeStmt = $pdo->prepare('SELECT Nombre FROM rrhh.TipoPermisoLaboral WHERE TipoPermisoLaboralID = ? AND Activo = 1');
+$typeStmt->execute([$tipoPermisoId]);
+$typeName = $typeStmt->fetchColumn();
+if ($typeName === false) apiError(400, 'Tipo de permiso inexistente o inactivo.');
+$isMedical = preg_match('/CITT|DESCANSO M[ÉE]DICO/iu', $typeName) === 1;
+if ($settings['citt_obligatorio_salud'] && $isMedical && $documentoSustento === '') apiError(400, 'El descanso médico requiere número de CITT o certificado.');
 $dbConnected = ($pdo !== null);
-$nuevoId = time();
+$nuevoId = null;
 
 if ($dbConnected) {
     try {
+        $pdo->beginTransaction();
         $stmt = $pdo->prepare("
             INSERT INTO rrhh.PermisoLaboral (PersonalID, TipoPermisoLaboralID, FechaInicio, FechaFin, Motivo, Estado)
             VALUES (:pid, :tid, :fini, :ffin, :mot, :est)
@@ -75,7 +79,10 @@ if ($dbConnected) {
             ':est'  => $estadoInicial
         ]);
         $nuevoId = $pdo->lastInsertId();
+        if (!Auditoria::registrar((int)Auth::getCurrentUser()['usuario_id'],'AUSENCIAS','INSERT','rrhh.PermisoLaboral',(string)$nuevoId,'Solicitud con sustento proporcionado.')) throw new RuntimeException('No se pudo auditar.');
+        $pdo->commit();
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
         error_log('Guardar permiso: ' . $e->getMessage());
         apiError(500, 'No se pudo registrar la solicitud.');
     }

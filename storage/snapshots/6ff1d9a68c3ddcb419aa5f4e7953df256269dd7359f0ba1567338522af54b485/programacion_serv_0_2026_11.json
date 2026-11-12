@@ -1,0 +1,66 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER",
+        "sql_version": 2,
+        "persistencia": "SQL_SERVER",
+        "database_source": "6ff1d9a68c3ddcb419aa5f4e7953df256269dd7359f0ba1567338522af54b485",
+        "key": "programacion_serv_0_2026_11",
+        "version": 13,
+        "saved_at": "2026-11-05 18:01:12",
+        "timestamp": 1793919672,
+        "hash": "3bdc3e629f75f40a26612d3dc724ead1",
+        "is_snapshot": true
+    },
+    "data": {
+        "personal_servicio": [
+            {
+                "personal_id": "1",
+                "codigo_empleado": "SYS-RRHH-ADMIN",
+                "dni": "SYS-RRHH-ADMIN",
+                "nombre_completo": "De Recursos Humanos  Administrador",
+                "cargo_nombre": "ADMINISTRATIVO",
+                "servicio_id": null,
+                "servicio_nombre": null,
+                "condicion_laboral": "NOMBRADO",
+                "regimen_laboral": null,
+                "aplica_seti": null,
+                "patron": [
+                    "LIB",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "LIB",
+                    "LIB",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "LIB",
+                    "LIB",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    null,
+                    null,
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    "AD",
+                    null,
+                    null,
+                    null
+                ]
+            }
+        ],
+        "servicio_id": 0,
+        "mes": 11,
+        "anio": 2026,
+        "version": 2
+    }
+}

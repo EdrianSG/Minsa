@@ -53,7 +53,7 @@ try {
         $importacionId = $resultado['importacion_id'] ?? 0;
         $pdo = Database::getConnection();
         if ($pdo && $importacionId > 0) {
-            $stmtFechas = $pdo->prepare("SELECT DISTINCT CAST(FechaHora AS DATE) as Fecha FROM rrhh.MarcacionBiometrica WHERE ImportacionID = ?");
+            $stmtFechas = $pdo->prepare("SELECT DISTINCT CAST(FechaHora AS DATE) as Fecha FROM rrhh.MarcacionBiometrica WHERE ImportacionBiometricaID = ?");
             $stmtFechas->execute([$importacionId]);
             $fechas = $stmtFechas->fetchAll(PDO::FETCH_COLUMN);
             $reconciliadas = 0;
@@ -82,5 +82,5 @@ try {
     apiError(400, $e->getMessage());
 } catch (Throwable $e) {
     error_log("Error en importar BioStar CSV: " . $e->getMessage());
-    apiError(500, "No se pudo completar la importación: " . $e->getMessage());
+    apiError(500, "No se pudo completar la importación. Consulte la bitácora del servidor.");
 }

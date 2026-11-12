@@ -109,20 +109,7 @@ $pageScript = "asistencia.js";
         <input type="text" id="asistSearchInput" class="search-input-field" placeholder="Buscar trabajador por nombre, DNI o cargo...">
       </div>
 
-      <select id="asistServicioSelect" class="filter-select-field">
-        <option value="">Todos los Servicios</option>
-        <option value="7">Emergencia y Cuidados Críticos</option>
-        <option value="8">Unidad de Cuidados Intensivos (UCI)</option>
-        <option value="9">Hospitalización Medicina</option>
-        <option value="10">Consulta Externa</option>
-        <option value="11">Pediatría y Neonatología</option>
-        <option value="12">Centro Obstétrico</option>
-        <option value="13">Centro Quirúrgico</option>
-        <option value="14">Laboratorio Clínico</option>
-        <option value="15">Farmacia y Dosis Unitaria</option>
-        <option value="16">Unidad de Personal / RR.HH.</option>
-        <option value="17">Unidad de Informática y Estadística</option>
-      </select>
+      <select id="asistServicioSelect" class="filter-select-field"><?php require_once __DIR__.'/../includes/OrganizationCatalog.php'; echo OrganizationCatalog::options(''); ?></select>
 
       <select id="asistEstadoSelect" class="filter-select-field">
         <option value="TODOS">Todos los Estados</option>

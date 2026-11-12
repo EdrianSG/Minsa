@@ -260,3 +260,13 @@ html.dark .report-tab-btn.active {
     color: #000000;
   }
 }
+
+.report-loading { padding: 1.25rem; }
+.report-skeleton-title { display: block; width: min(360px, 65%); height: 24px; margin-bottom: 1rem; border-radius: 4px; }
+.report-skeleton-kpis { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; margin-bottom: 1rem; }
+.report-skeleton-card { display: block; height: 70px; border-radius: 6px; }
+.report-skeleton-table { width: 100%; border-collapse: collapse; }
+.report-skeleton-table td { padding: .75rem; min-width: 52px; }
+.report-skeleton-table td:first-child { min-width: 160px; }
+.report-skeleton-line { display: block; height: 15px; width: 85%; border-radius: 4px; }
+@media (max-width: 640px) { .report-skeleton-kpis { gap: .5rem; } .report-loading { padding: .75rem; } }

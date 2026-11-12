@@ -51,18 +51,17 @@ require_once __DIR__ . '/../../includes/AttendanceSchedule.php';
 
 $pdo = apiRequireDatabase();
 $dbConnected = ($pdo !== null);
+require_once __DIR__ . '/../../includes/SystemSettings.php';
+$settings = SystemSettings::read();
+$daysOld = (int)(new DateTimeImmutable($fecha))->diff(new DateTimeImmutable(date('Y-m-d')))->format('%r%a');
+if ($daysOld < 0 || $daysOld > $settings['dias_maximos_regularizar']) apiError(422, 'La fecha está fuera del plazo de regularización configurado.');
 
 if ($dbConnected) {
     try {
-        $scheduleStmt = $pdo->prepare("SELECT h.PersonalID, t.TurnoID,
-            CONVERT(VARCHAR(8), t.HoraInicio, 108) AS HoraProgInicio,
-            CONVERT(VARCHAR(8), t.HoraFin, 108) AS HoraProgFin,
-            (SELECT TOP 1 ap.ServicioID FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = h.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1) AS ServicioID
-            FROM rrhh.Horario h INNER JOIN rrhh.Turno t ON t.TurnoID = h.TurnoID
-            WHERE h.PersonalID = :pid AND h.DiaSemana = :dia AND h.Estado = 1
-              AND h.FechaInicio <= :inicio AND (h.FechaFin IS NULL OR h.FechaFin >= :fin)");
-        $scheduleStmt->execute([':pid'=>$personalId, ':dia'=>(int)date('N', strtotime($fecha)), ':inicio'=>$fecha, ':fin'=>$fecha]);
-        $schedule = $scheduleStmt->fetch(PDO::FETCH_ASSOC) ?: ['PersonalID'=>$personalId, 'TurnoID'=>null];
+        $servStmt = $pdo->prepare("SELECT TOP 1 ap.ServicioID FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = :pid AND ap.EsActual = 1 AND ap.Activo = 1");
+        $servStmt->execute([':pid' => $personalId]);
+        $servicioId = $servStmt->fetchColumn() ?: null;
+        $schedule = ['PersonalID' => $personalId, 'TurnoID' => null, 'ServicioID' => $servicioId];
         $schedule = AttendanceSchedule::apply($schedule, $fecha);
         if (empty($schedule['TurnoID'])) apiError(422, 'No hay una jornada programada para regularizar.');
         $horaProgInicio = $schedule['HoraProgInicio'];

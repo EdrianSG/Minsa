@@ -6,8 +6,13 @@
  */
 
 declare(strict_types=1);
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
 require_once __DIR__ . '/../config/database.php';
+if (Database::getConfig()['database'] === 'BD_HOSPITAL_V4') {
+    fwrite(STDERR, "Proceso histórico incompatible con V4. No se ejecutó ninguna consulta.\n");
+    exit(1);
+}
 
 echo "=========================================================\n";
 echo "   HOSPITAL DISTRITAL DE PACASMAYO - SEEDER INSTITUCIONAL\n";

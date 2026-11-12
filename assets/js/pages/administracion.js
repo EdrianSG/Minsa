@@ -9,7 +9,12 @@ let adminState = {
   roles: [],
   auditoria: [],
   parametros: {},
-  personalDisponible: []
+  personalDisponible: [],
+  cargandoPersonal: true,
+  cargandoRoles: true,
+  errorPersonal: '',
+  errorRoles: '',
+  creandoUsuario: false
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -88,6 +93,8 @@ function initAdminControls() {
   if (btnNuevoUser) {
     btnNuevoUser.addEventListener('click', () => {
       openModal('modalCrearUsuario');
+      cargarPersonalParaCreacion();
+      cargarRoles();
     });
   }
 
@@ -96,7 +103,8 @@ function initAdminControls() {
   if (selectPersonalModal) {
     selectPersonalModal.addEventListener('change', (e) => {
       const pId = parseInt(e.target.value, 10);
-      const persona = adminState.personalDisponible.find(p => p.personal_id === pId);
+      const persona = adminState.personalDisponible.find(p => Number(p.personal_id) === pId);
+      for (const id of ['modalUserDni', 'modalUserNombre', 'modalUserServicio', 'modalUserCargo']) document.getElementById(id).value = '';
       if (persona) {
         document.getElementById('modalUserDni').value = persona.dni || '';
         document.getElementById('modalUserNombre').value = persona.nombre_completo || '';
@@ -104,7 +112,7 @@ function initAdminControls() {
         document.getElementById('modalUserCargo').value = persona.cargo_nombre || '';
 
         // Sugerir nombre de usuario basado en inicial + apellido
-        const partes = persona.nombre_completo.split(' ');
+        const partes = (persona.nombre_completo || '').split(' ');
         if (partes.length >= 2) {
           const sug = (partes[0].charAt(0) + partes[partes.length - 2]).toLowerCase().replace(/[^a-z]/g, '');
           document.getElementById('modalUserUsername').value = sug;
@@ -197,7 +205,7 @@ function renderUsuarios(usuarios) {
         </td>
         <td>
           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.86rem;">${escapeHtml(u.nombre_completo)}</div>
-          <div style="font-size: 0.74rem; color: var(--text-secondary);">DNI: ${u.dni} &bull; ${escapeHtml(u.cargo_nombre || '')}</div>
+          <div style="font-size: 0.74rem; color: var(--text-secondary);">DNI: ${escapeHtml(u.dni)} &bull; ${escapeHtml(u.cargo_nombre || '')}</div>
         </td>
         <td style="font-size: 0.82rem; color: var(--text-secondary);">
           ${escapeHtml(u.servicio_nombre || 'Hospital Pacasmayo')}
@@ -208,8 +216,8 @@ function renderUsuarios(usuarios) {
           </span>
         </td>
         <td>
-          ${isBloq 
-            ? '<span class="badge badge-absent">Bloqueado 🔒</span>' 
+          ${isBloq
+            ? '<span class="badge badge-absent">Bloqueado 🔒</span>'
             : '<span class="badge badge-present">Activo ✓</span>'}
         </td>
         <td style="font-size: 0.76rem; color: var(--text-secondary);">
@@ -218,15 +226,15 @@ function renderUsuarios(usuarios) {
         <td style="text-align: right;">
           <div style="display: inline-flex; gap: 0.35rem;">
             <!-- Botón Bloquear / Desbloquear -->
-            <button type="button" class="btn btn-secondary btn-sm" 
-              onclick="toggleBloqueoUsuario(${u.usuario_id}, ${!isBloq})" 
+            <button type="button" class="btn btn-secondary btn-sm"
+              onclick="toggleBloqueoUsuario(${u.usuario_id}, ${!isBloq})"
               title="${isBloq ? 'Desbloquear acceso' : 'Bloquear acceso preventivamente'}">
               ${isBloq ? '🔓 Desbloquear' : '🔒 Bloquear'}
             </button>
 
             <!-- Botón Resetear Clave -->
-            <button type="button" class="btn btn-outline btn-sm" 
-              onclick="solicitarResetPassword(${u.usuario_id}, '${escapeHtml(u.username)}')" 
+            <button type="button" class="btn btn-outline btn-sm"
+              data-reset-user="${Number(u.usuario_id)}" data-username="${escapeHtml(u.username)}"
               title="Generar nueva contraseña temporal">
               🔑 Reset Clave
             </button>
@@ -256,7 +264,7 @@ async function toggleBloqueoUsuario(usuarioId, nuevoEstadoBloqueo) {
       showToast(res.error || 'Error al cambiar estado de bloqueo.', 'danger');
     }
   } catch (e) {
-    showToast('Error de conexión al procesar el bloqueo.', 'danger');
+    showToast(e.message || 'No se pudo cambiar el bloqueo.', 'danger');
   }
 }
 
@@ -275,14 +283,14 @@ async function solicitarResetPassword(usuarioId, username) {
     });
 
     if (res && res.ok) {
-      alert(`Contraseña restablecida con éxito para el usuario '${username}'.\n\nClave temporal generada: ${res.clave_temporal}\n\nIndique al usuario que deberá cambiarla en su primer inicio de sesión.`);
+      alert(`Contraseña restablecida con éxito para el usuario '${username}'.\n\nClave temporal generada: ${res.clave_temporal}\n\nEntregue esta clave al titular por un canal privado.`);
       cargarUsuarios();
       cargarAuditoria();
     } else {
       showToast(res.error || 'Error al resetear contraseña.', 'danger');
     }
   } catch (e) {
-    showToast('Error al procesar el reseteo de contraseña.', 'danger');
+    showToast(e.message || 'No se pudo restablecer la contraseña.', 'danger');
   }
 }
 
@@ -290,24 +298,27 @@ async function solicitarResetPassword(usuarioId, username) {
  * Carga el selector de personal que no tiene usuario asignado aún
  */
 async function cargarPersonalParaCreacion() {
+  adminState.cargandoPersonal = true;
+  adminState.errorPersonal = '';
+  actualizarFormularioUsuario();
   try {
-    const res = await API.get('personal/listar.php', { limit: 100 });
-    if (res && res.ok && res.personal) {
-      adminState.personalDisponible = res.personal;
-      const select = document.getElementById('modalUserPersonalSelect');
-      if (select) {
-        select.innerHTML = `
-          <option value="">-- Seleccione un servidor de la lista --</option>
-          ${res.personal.map(p => `
-            <option value="${p.personal_id}">
-              ${escapeHtml(p.nombre_completo)} (DNI: ${p.dni} &bull; ${escapeHtml(p.cargo_nombre || '')})
-            </option>
-          `).join('')}
-        `;
-      }
+    const [res, accounts] = await Promise.all([
+      API.get('personal/opciones.php', {contexto:'administracion', estado:1}),
+      API.get('administracion/usuarios.php')
+    ]);
+    const staff = [...(res.data || [])];
+    const used = new Set((accounts.usuarios || []).map(user => Number(user.personal_id)));
+    adminState.personalDisponible = staff.filter(person => !used.has(Number(person.personal_id)));
+    const select = document.getElementById('modalUserPersonalSelect');
+    if (select) {
+      select.replaceChildren(new Option('Cuenta técnica (sin trabajador; solo administradores)', ''));
+      adminState.personalDisponible.forEach(person => select.add(new Option(`${person.nombre_completo} (DNI: ${person.dni})`, String(person.personal_id))));
     }
   } catch (e) {
-    // Silencioso
+    adminState.errorPersonal = e.message || 'No se pudo cargar el personal disponible.';
+  } finally {
+    adminState.cargandoPersonal = false;
+    actualizarFormularioUsuario();
   }
 }
 
@@ -315,24 +326,27 @@ async function cargarPersonalParaCreacion() {
  * Guarda nuevo usuario en backend
  */
 async function guardarNuevoUsuario() {
+  if (adminState.creandoUsuario) return;
   const username = document.getElementById('modalUserUsername')?.value.trim();
-  const personalId = parseInt(document.getElementById('modalUserPersonalSelect')?.value, 10);
+  const personalId = parseInt(document.getElementById('modalUserPersonalSelect')?.value, 10) || null;
   const rolId = parseInt(document.getElementById('modalUserRolSelect')?.value, 10);
   const dni = document.getElementById('modalUserDni')?.value.trim();
   const nombreCompleto = document.getElementById('modalUserNombre')?.value.trim();
   const servicioNombre = document.getElementById('modalUserServicio')?.value.trim();
   const cargoNombre = document.getElementById('modalUserCargo')?.value.trim();
 
-  if (!username || !nombreCompleto) {
-    showToast('Complete el nombre de usuario y seleccione un servidor.', 'warning');
+  if (!username || !Number.isInteger(rolId) || (personalId !== null && !adminState.personalDisponible.some(person => Number(person.personal_id) === personalId)) || !adminState.roles.some(role => Number(role.rol_id) === rolId)) {
+    showToast('Complete el usuario y seleccione un trabajador y un rol disponibles.', 'warning');
     return;
   }
 
+  adminState.creandoUsuario = true;
+  actualizarFormularioUsuario();
   try {
     const res = await API.post('administracion/usuarios.php', {
       accion: 'crear',
       username,
-      persona_id: personalId,
+      personal_id: personalId,
       rol_id: rolId,
       dni,
       nombre_completo: nombreCompleto,
@@ -341,16 +355,20 @@ async function guardarNuevoUsuario() {
     });
 
     if (res && res.ok) {
-      showToast(`Usuario '${username}' creado correctamente con rol asignado.`, 'success');
+      alert(`Usuario '${username}' creado en SQL Server.\nClave generada: ${res.clave_temporal}\nEntregue esta clave al titular por un canal privado.`);
       closeModal('modalCrearUsuario');
       document.getElementById('formCrearUsuario')?.reset();
+      cargarPersonalParaCreacion();
       cargarUsuarios();
       cargarAuditoria();
     } else {
       showToast(res.error || 'No se pudo crear el usuario.', 'danger');
     }
   } catch (e) {
-    showToast('Error de conexión al crear usuario.', 'danger');
+    showToast(e.message || 'No se pudo crear el usuario.', 'danger');
+  } finally {
+    adminState.creandoUsuario = false;
+    actualizarFormularioUsuario();
   }
 }
 
@@ -358,17 +376,30 @@ async function guardarNuevoUsuario() {
  * Carga roles y matriz de permisos
  */
 async function cargarRoles() {
+  adminState.cargandoRoles = true;
+  adminState.errorRoles = '';
+  actualizarFormularioUsuario();
   const grid = document.getElementById('rolesGridContainer');
-  if (!grid) return;
-
   try {
     const res = await API.get('administracion/roles.php');
     if (res && res.ok) {
       adminState.roles = res.roles || [];
       renderRoles(adminState.roles);
+      for (const [id, blank] of [['modalUserRolSelect', '-- Seleccione un rol --'], ['filterUserRol', 'Todos los roles']]) {
+        const select = document.getElementById(id);
+        if (!select) continue;
+        const previous = select.value;
+        select.replaceChildren(new Option(blank, ''));
+        adminState.roles.forEach(role => select.add(new Option(role.nombre, id === 'modalUserRolSelect' ? String(role.rol_id) : role.codigo)));
+        select.value = previous;
+      }
     }
   } catch (e) {
-    grid.innerHTML = `<div style="color: var(--status-absent-text);">Error al cargar roles.</div>`;
+    adminState.errorRoles = e.message || 'No se pudieron cargar los roles.';
+    if (grid) grid.innerHTML = `<div>Error al cargar roles.</div>`;
+  } finally {
+    adminState.cargandoRoles = false;
+    actualizarFormularioUsuario();
   }
 }
 
@@ -390,7 +421,7 @@ function renderRoles(roles) {
         ${escapeHtml(r.nombre)}
       </h3>
       <p class="role-desc">${escapeHtml(r.descripcion)}</p>
-      
+
       <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.35rem;">
         Capacidades Clave:
       </div>
@@ -491,7 +522,7 @@ async function cargarParametros() {
     const res = await API.get('administracion/parametros.php');
     if (res && res.ok && res.parametros) {
       adminState.parametros = res.parametros;
-      const p = res.parametros;
+      const p = res.proxima_configuracion || res.parametros;
 
       const inputTol = document.getElementById('paramTolerancia');
       const inputTarMax = document.getElementById('paramTardanzaMax');
@@ -502,14 +533,15 @@ async function cargarParametros() {
 
       if (inputTol) inputTol.value = p.tolerancia_entrada_minutos;
       if (inputTarMax) inputTarMax.value = p.tardanza_maxima_minutos;
-      if (inputRegla) inputRegla.value = p.regla_asistencial_horas;
+      if (inputRegla) { inputRegla.value = p.regla_asistencial_horas; inputRegla.readOnly = true; }
       if (inputDiasReg) inputDiasReg.value = p.dias_maximos_regularizar;
       if (checkCitt) checkCitt.checked = !!p.citt_obligatorio_salud;
-      if (selectBio) selectBio.value = p.biometrico_modo || 'IMPORTACION_INDEPENDIENTE';
+      if (selectBio) { selectBio.value = p.biometrico_modo || 'IMPORTACION_INDEPENDIENTE'; selectBio.disabled = true; }
 
+      if (res.editable === false) document.querySelectorAll('#formParametrosSistema input, #formParametrosSistema select, #formParametrosSistema button').forEach(el => el.disabled = true);
       const infoUpdate = document.getElementById('paramUltimaActualizacion');
       if (infoUpdate) {
-        infoUpdate.textContent = `Última actualización: ${p.fecha_actualizacion || '--'} por ${p.actualizado_por || 'Administrador'}`;
+        infoUpdate.textContent = res.mensaje || 'Reglas institucionales en configuración.';
       }
     }
   } catch (e) {
@@ -539,7 +571,7 @@ async function guardarParametrosSistema() {
     });
 
     if (res && res.ok) {
-      showToast('Políticas y parámetros normativos guardados exitosamente.', 'success');
+      showToast('Parámetros guardados en SQL Server. Vigencia desde el día siguiente.', 'success');
       cargarParametros();
       cargarAuditoria();
     } else {
@@ -569,4 +601,31 @@ function escapeHtml(t) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-reset-user]');
+  if (button) solicitarResetPassword(Number(button.dataset.resetUser), button.dataset.username);
+});
+
+function actualizarFormularioUsuario() {
+  const button = document.getElementById('btnCrearCuenta');
+  const message = document.getElementById('modalUserEstado');
+  const link = document.getElementById('modalUserRegistrarPersonal');
+  const loading = adminState.cargandoPersonal || adminState.cargandoRoles;
+  const error = adminState.errorPersonal || adminState.errorRoles;
+  const noWorkers = adminState.personalDisponible.length === 0;
+  const noRoles = adminState.roles.length === 0;
+  if (button) {
+    button.disabled = loading || Boolean(error) || noRoles || adminState.creandoUsuario;
+    button.textContent = adminState.creandoUsuario ? 'Creando cuenta...' : 'Crear Cuenta';
+  }
+  for (const id of ['modalUserPersonalSelect', 'modalUserRolSelect']) {
+    const select = document.getElementById(id);
+    if (select) select.disabled = loading || Boolean(error) || adminState.creandoUsuario;
+  }
+  if (link) link.hidden = loading || Boolean(error) || !noWorkers;
+  if (message) message.textContent = loading ? 'Cargando trabajadores y roles...' : error ||
+    (noWorkers ? 'Puede crear cuentas técnicas con rol administrativo sin trabajador.' :
+     noRoles ? 'No hay roles disponibles para crear una cuenta.' : 'Seleccione el trabajador y el rol para crear su cuenta de acceso.');
 }

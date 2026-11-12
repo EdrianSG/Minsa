@@ -5,12 +5,15 @@
 
 let repState = {
   tabActiva: 'individual', // 'individual', 'consolidado', 'seti', 'rol'
-  mes: 9,
-  anio: 2026,
+  mes: new Date().getMonth() + 1,
+  anio: new Date().getFullYear(),
   servicioId: '',
+  areaId: '',
   regimen: '',
   condicion: '',
-  personalId: 6,
+  individualRequest: 0,
+  personalId: 0,
+  rolPersonalId: '',
   personalLista: [],
   ultimoDatosRol: null,
   formatoTurnos: 'numerico' // 'numerico' (1, 2, 3, 1/2...) vs 'letras' (M, T, N, GD...)
@@ -45,6 +48,9 @@ function initReportesControls() {
           workerSelectGroup.style.display = (tab === 'individual') ? 'flex' : 'none';
         }
 
+        const rolWorkerGroup = document.getElementById('groupFiltroPersonalRol');
+        if (rolWorkerGroup) rolWorkerGroup.style.display = tab === 'rol' ? 'flex' : 'none';
+
         const condSelectGroup = document.getElementById('groupFiltroCondicion');
         if (condSelectGroup) {
           condSelectGroup.style.display = (tab === 'consolidado') ? 'flex' : 'none';
@@ -62,6 +68,7 @@ function initReportesControls() {
 
   const selectMes = document.getElementById('repMesSelect');
   const selectAnio = document.getElementById('repAnioSelect');
+  const selectArea = document.getElementById('repAreaSelect');
   const selectServicio = document.getElementById('repServicioSelect');
   const selectRegimen = document.getElementById('repRegimenSelect');
   const selectCondicion = document.getElementById('repCondicionSelect');
@@ -81,6 +88,16 @@ function initReportesControls() {
   if (selectAnio) {
     selectAnio.addEventListener('change', (e) => {
       repState.anio = parseInt(e.target.value, 10);
+      cargarReporteActivo();
+    });
+  }
+
+  if (selectArea) {
+    selectArea.addEventListener('change', (e) => {
+      repState.areaId = e.target.value;
+      repState.ultimoDatosIndividual = null;
+      repState.ultimoDatosRol = null;
+      actualizarSelectPersonal();
       cargarReporteActivo();
     });
   }
@@ -107,6 +124,13 @@ function initReportesControls() {
     });
   }
 
+  const selectPersonalRol = document.getElementById('repPersonalRolSelect');
+  if (selectPersonalRol) selectPersonalRol.addEventListener('change', (e) => {
+    repState.rolPersonalId = e.target.value;
+    repState.ultimoDatosRol = null;
+    cargarReporteActivo();
+  });
+
   if (selectPersonal) {
     selectPersonal.addEventListener('change', (e) => {
       repState.personalId = parseInt(e.target.value, 10);
@@ -116,6 +140,7 @@ function initReportesControls() {
 
   if (btnGenerar) {
     btnGenerar.addEventListener('click', () => {
+      API.invalidate();
       cargarReporteActivo();
     });
   }
@@ -145,17 +170,15 @@ function initReportesControls() {
  */
 async function cargarListaPersonalSelect() {
   try {
-    const res = await API.get('personal/listar.php', { limit: 50 });
-    const list = res.data || res.personal || [];
-    if (list.length > 0) {
-      repState.personalLista = list;
-      actualizarSelectPersonal();
-      if (repState.tabActiva === 'individual') {
-        cargarRecordIndividual();
-      }
-    }
+    const res = await API.get('personal/opciones.php', {contexto:'reportes'});
+    const list = res.data || [];
+    repState.personalLista = list;
+    actualizarSelectPersonal();
+    if (repState.tabActiva === 'individual') cargarRecordIndividual();
   } catch (e) {
-    // Silencioso
+    const select = document.getElementById('repPersonalSelect');
+    if (select) { select.innerHTML = '<option value="">No se pudo cargar el personal</option>'; select.disabled = true; }
+    console.error('Selector de personal:', e);
   }
 }
 
@@ -163,6 +186,7 @@ async function cargarListaPersonalSelect() {
  * Filtra el desplegable de trabajadores según el servicio seleccionado
  */
 function actualizarSelectPersonal() {
+  actualizarSelectPersonalRol();
   const select = document.getElementById('repPersonalSelect');
   if (!select) return;
 
@@ -171,12 +195,10 @@ function actualizarSelectPersonal() {
   if (servId !== '') {
     filtrados = repState.personalLista.filter(p => String(p.servicio_id) === servId);
   }
-  if (filtrados.length === 0) {
-    filtrados = repState.personalLista;
-  }
+  if (repState.areaId !== '') filtrados = filtrados.filter(p => String(p.area_id) === String(repState.areaId));
 
   select.innerHTML = filtrados.map(p => `
-    <option value="${p.personal_id}">${escapeHtml(p.nombre_completo)} - ${escapeHtml(p.cargo_nombre || '')} (DNI: ${p.dni})</option>
+    <option value="${p.personal_id}">${escapeHtml(p.nombre_completo)} - ${escapeHtml(p.cargo_nombre || '')} (DNI: ${escapeHtml(p.dni)})</option>
   `).join('');
 
   if (filtrados.length > 0) {
@@ -184,7 +206,31 @@ function actualizarSelectPersonal() {
       repState.personalId = filtrados[0].personal_id;
     }
     select.value = repState.personalId;
+    select.disabled = false;
+  } else {
+    repState.personalId = 0;
+    select.innerHTML = '<option value="">Sin personal para los filtros seleccionados</option>';
+    select.disabled = true;
   }
+}
+
+/** Opciones del rol limitadas a las asignaciones reales de área y servicio. */
+function actualizarSelectPersonalRol() {
+  const select = document.getElementById('repPersonalRolSelect');
+  if (!select) return;
+  const list = repState.personalLista.filter(p =>
+    (!repState.areaId || String(p.area_id) === String(repState.areaId)) &&
+    (!repState.servicioId || String(p.servicio_id) === String(repState.servicioId))
+  );
+  if (!list.some(p => String(p.personal_id) === String(repState.rolPersonalId))) {
+    repState.rolPersonalId = '';
+    repState.ultimoDatosRol = null;
+  }
+  select.innerHTML = '<option value="">Todo el personal del área / servicio</option>' + list.map(p =>
+    `<option value="${Number(p.personal_id)}">${escapeHtml(p.nombre_completo)} (DNI: ${escapeHtml(p.dni || 'Sin registrar')})</option>`
+  ).join('');
+  select.value = repState.rolPersonalId;
+  select.disabled = list.length === 0;
 }
 
 /**
@@ -207,31 +253,86 @@ function cargarReporteActivo() {
   }
 }
 
+const reportLoads = new Map();
+
+function beginReportLoad(container, columns = 7) {
+  const previous = reportLoads.get(container.id);
+  if (previous) clearTimeout(previous.timer);
+  const signature = JSON.stringify([repState.mes,repState.anio,repState.areaId,repState.servicioId,
+    repState.personalId,repState.rolPersonalId,repState.regimen,repState.condicion,repState.formatoTurnos]);
+  const dataKeys = {recordIndividualContainer:'ultimoDatosIndividual',consolidadoPlanillasContainer:'ultimoDatosConsolidado',reporteSetiContainer:'ultimoDatosSeti',rolMensualContainer:'ultimoDatosRol'};
+  const dataKey = dataKeys[container.id];
+  if (dataKey && container.dataset?.reportSignature !== signature) repState[dataKey] = null;
+  const load = {signature, dataKey, shown:false, timer:null};
+  reportLoads.set(container.id,load);
+  const show = () => {
+    load.shown = true;
+    container.setAttribute?.('aria-busy','true');
+    const cells = Array.from({length:columns}, () => '<td><span class="skeleton report-skeleton-line" aria-hidden="true"></span></td>').join('');
+    container.innerHTML = `<div class="report-loading" role="status" aria-label="Cargando reporte">
+      <span class="skeleton report-skeleton-title" aria-hidden="true"></span>
+      <div class="report-skeleton-kpis">${Array(3).fill('<span class="skeleton report-skeleton-card" aria-hidden="true"></span>').join('')}</div>
+      <div class="table-responsive"><table class="report-skeleton-table" aria-hidden="true"><tbody>${Array(5).fill(`<tr>${cells}</tr>`).join('')}</tbody></table></div>
+    </div>`;
+  };
+  if (container.dataset?.reportSignature === signature) load.timer = setTimeout(show,150);
+  else show();
+  return load;
+}
+
+function finishReportLoad(container, load) {
+  clearTimeout(load.timer);
+  if (reportLoads.get(container.id) !== load) return false;
+  container.setAttribute?.('aria-busy','false');
+  return true;
+}
+
+function reuseReportView(container, load, data) {
+  const reuse = !load.shown && container.dataset?.reportSignature === load.signature && data._cache?.origen === 'CACHE_VIGENTE';
+  if (container.dataset) container.dataset.reportSignature = load.signature;
+  return reuse;
+}
+
 /**
  * Carga el Récord Individual Mensual
  */
 async function cargarRecordIndividual() {
   const container = document.getElementById('recordIndividualContainer');
   if (!container) return;
+  const requestId = ++repState.individualRequest;
+  if (!repState.personalId) {
+    const previous = reportLoads.get(container.id);
+    if (previous) clearTimeout(previous.timer);
+    reportLoads.delete(container.id);
+    if (container.dataset) delete container.dataset.reportSignature;
+    container.setAttribute?.('aria-busy','false');
+    repState.ultimoDatosIndividual = null;
+    container.innerHTML = '<p>Seleccione un trabajador de los filtros actuales para consultar su récord.</p>';
+    return;
+  }
 
-  container.innerHTML = `
-    <div style="text-align: center; padding: 3rem; color: var(--text-tertiary);">
-      Cargando récord individual de turnos y asistencias...
-    </div>
-  `;
+  const load = beginReportLoad(container,7);
 
   try {
     const res = await API.get('reportes/individual.php', {
       personal_id: repState.personalId,
+      area: repState.areaId,
       mes: repState.mes,
       anio: repState.anio
     });
+    if (!finishReportLoad(container,load)) return;
 
+    if (requestId !== repState.individualRequest) return;
     if (res && res.ok) {
       repState.ultimoDatosIndividual = res;
+      if (reuseReportView(container,load,res)) return;
       renderRecordIndividual(res);
     }
   } catch (e) {
+    if (!finishReportLoad(container,load)) return;
+    if (container.dataset) delete container.dataset.reportSignature;
+    if (requestId !== repState.individualRequest) return;
+    repState.ultimoDatosIndividual = null;
     container.innerHTML = `
       <div style="text-align: center; padding: 2.5rem; color: var(--status-absent-accent);">
         Error al cargar el récord del trabajador. Verifique el servidor.
@@ -363,25 +464,27 @@ async function cargarConsolidadoPlanillas() {
   const container = document.getElementById('consolidadoPlanillasContainer');
   if (!container) return;
 
-  container.innerHTML = `
-    <div style="text-align: center; padding: 3rem; color: var(--text-tertiary);">
-      Generando consolidado mensual para la Unidad de Planillas...
-    </div>
-  `;
+  const load = beginReportLoad(container,7);
 
   try {
     const res = await API.get('reportes/consolidado.php', {
       mes: repState.mes,
       anio: repState.anio,
+      area: repState.areaId,
       servicio_id: repState.servicioId,
       condicion: repState.condicion
     });
+    if (!finishReportLoad(container,load)) return;
 
     if (res && res.ok) {
       repState.ultimoDatosConsolidado = res;
+      if (reuseReportView(container,load,res)) return;
       renderConsolidadoPlanillas(res);
     }
   } catch (e) {
+    if (!finishReportLoad(container,load)) return;
+    if (container.dataset) delete container.dataset.reportSignature;
+    if (load.dataKey) repState[load.dataKey] = null;
     container.innerHTML = `
       <div style="text-align: center; padding: 2.5rem; color: var(--status-absent-accent);">
         Error al generar consolidado de planillas.
@@ -427,7 +530,7 @@ function renderConsolidadoPlanillas(data) {
               <tr>
                 <td>
                   <div style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;">${escapeHtml(f.nombre_completo)}</div>
-                  <div style="font-size: 0.74rem; color: var(--text-secondary);">DNI: ${f.dni} &bull; ${escapeHtml(f.cargo)}</div>
+                  <div style="font-size: 0.74rem; color: var(--text-secondary);">DNI: ${escapeHtml(f.dni)} &bull; ${escapeHtml(f.cargo)}</div>
                 </td>
                 <td style="font-size: 0.82rem;">${escapeHtml(f.servicio_nombre)}</td>
                 <td><span class="badge ${f.condicion_laboral === 'NOMBRADO' ? 'badge-present' : 'badge-neutral'}" style="font-size: 0.68rem;">${f.condicion_laboral}</span></td>
@@ -465,24 +568,26 @@ async function cargarReporteSeti() {
   const container = document.getElementById('reporteSetiContainer');
   if (!container) return;
 
-  container.innerHTML = `
-    <div style="text-align: center; padding: 3rem; color: var(--text-tertiary);">
-      Generando Reporte Oficial SETI (Norma 150h Asistencial MINSA)...
-    </div>
-  `;
+  const load = beginReportLoad(container,7);
 
   try {
     const res = await API.get('reportes/seti.php', {
       mes: repState.mes,
       anio: repState.anio,
+      area: repState.areaId,
       servicio_id: repState.servicioId
     });
+    if (!finishReportLoad(container,load)) return;
 
     if (res && res.ok) {
       repState.ultimoDatosSeti = res;
+      if (reuseReportView(container,load,res)) return;
       renderReporteSeti(res);
     }
   } catch (e) {
+    if (!finishReportLoad(container,load)) return;
+    if (container.dataset) delete container.dataset.reportSignature;
+    if (load.dataKey) repState[load.dataKey] = null;
     container.innerHTML = `
       <div style="text-align: center; padding: 2.5rem; color: var(--status-absent-accent);">
         Error al generar el reporte SETI.
@@ -544,6 +649,9 @@ function renderReporteSeti(data) {
         ${renderTablaSetiRegistros(data.cas)}
       </div>
     </div>
+    <div class="report-table-card"><div class="report-section-title">Condición laboral pendiente de confirmación</div>
+      <div class="table-responsive">${renderTablaSetiRegistros(data.sin_condicion_confirmada || [])}</div>
+    </div>
   `;
 }
 
@@ -568,7 +676,7 @@ function renderTablaSetiRegistros(items) {
           <tr>
             <td>
               <div style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;">${escapeHtml(s.nombre_completo)}</div>
-              <div style="font-size: 0.74rem; color: var(--text-secondary);">DNI: ${s.dni} &bull; ${escapeHtml(s.cargo)}</div>
+              <div style="font-size: 0.74rem; color: var(--text-secondary);">DNI: ${escapeHtml(s.dni)} &bull; ${escapeHtml(s.cargo)}</div>
             </td>
             <td style="font-size: 0.82rem;">${escapeHtml(s.servicio_nombre)}</td>
             <td style="text-align: center; font-weight: 600;">${s.guardias_diurnas_12h}</td>
@@ -577,7 +685,7 @@ function renderTablaSetiRegistros(items) {
             <td style="text-align: center; font-weight: 800; font-size: 0.95rem;">${s.total_horas}h</td>
             <td style="text-align: center;">
               <span class="badge ${s.cumple_150h ? 'badge-present' : 'badge-absent'}">
-                ${s.cumple_150h ? '150h Cumple ✓' : `${s.total_horas}h (${s.diferencia_horas}h)`}
+                ${s.estado_seti === 'PENDIENTE' ? 'Pendiente de datos completos' : (s.cumple_150h ? '150h Cumple ✓' : `${s.total_horas}h (${s.diferencia_horas}h)`)}
               </span>
             </td>
             <td style="text-align: center;">${s.total_inasistencias}</td>
@@ -590,12 +698,20 @@ function renderTablaSetiRegistros(items) {
 }
 
 function exportarReporteExcel() {
-  const url = `api/reportes/exportar_excel.php?tipo=${repState.tabActiva}&mes=${repState.mes}&anio=${repState.anio}&personal_id=${repState.personalId}&servicio_id=${repState.servicioId}&regimen=${encodeURIComponent(repState.regimen || '')}`;
+  if (repState.tabActiva === 'individual' && !repState.personalId) {
+    showToast('Seleccione un trabajador de los filtros actuales.', 'warning');
+    return;
+  }
+  const url = `api/reportes/exportar_excel.php?tipo=${repState.tabActiva}&mes=${repState.mes}&anio=${repState.anio}&personal_id=${repState.tabActiva === 'rol' ? repState.rolPersonalId : repState.personalId}&area=${encodeURIComponent(repState.areaId)}&servicio_id=${repState.servicioId}&regimen=${encodeURIComponent(repState.regimen || '')}`;
   window.location.href = url;
 }
 
 function exportarReporteCsv() {
-  const url = `api/reportes/exportar_csv.php?tipo=${repState.tabActiva}&mes=${repState.mes}&anio=${repState.anio}&personal_id=${repState.personalId}&servicio_id=${repState.servicioId}`;
+  if (repState.tabActiva === 'individual' && !repState.personalId) {
+    showToast('Seleccione un trabajador de los filtros actuales.', 'warning');
+    return;
+  }
+  const url = `api/reportes/exportar_csv.php?tipo=${repState.tabActiva}&mes=${repState.mes}&anio=${repState.anio}&personal_id=${repState.tabActiva === 'rol' ? repState.rolPersonalId : repState.personalId}&area=${encodeURIComponent(repState.areaId)}&servicio_id=${repState.servicioId}`;
   window.location.href = url;
 }
 
@@ -666,7 +782,7 @@ function exportarFichaPdf() {
           </tr>
           <tr>
             <td class="lbl">D.N.I.:</td>
-            <td><strong>${t.dni}</strong></td>
+            <td><strong>${escapeHtml(t.dni)}</strong></td>
             <td class="lbl">CARGO:</td>
             <td>${escapeHtml(t.cargo)}</td>
           </tr>
@@ -739,7 +855,7 @@ function exportarFichaPdf() {
         <div class="signatures">
           <div class="sig-box">
             <strong>Firma del Servidor</strong><br>
-            DNI: ${t.dni}
+            DNI: ${escapeHtml(t.dni)}
           </div>
           <div class="sig-box">
             <strong>Control de Asistencia</strong><br>
@@ -814,7 +930,7 @@ function exportarFichaPdf() {
           <tbody>
             ${data.filas.map(f => `
               <tr>
-                <td><strong>${f.dni}</strong></td>
+                <td><strong>${escapeHtml(f.dni)}</strong></td>
                 <td class="text-left"><strong>${escapeHtml(f.nombre_completo)}</strong></td>
                 <td class="text-left">${escapeHtml(f.servicio_nombre)}</td>
                 <td>${f.condicion_laboral}</td>
@@ -909,7 +1025,7 @@ function exportarFichaPdf() {
           <tbody>
             ${data.nombrados.map(s => `
               <tr>
-                <td><strong>${s.dni}</strong></td>
+                <td><strong>${escapeHtml(s.dni)}</strong></td>
                 <td class="text-left"><strong>${escapeHtml(s.nombre_completo)}</strong></td>
                 <td class="text-left">${escapeHtml(s.servicio_nombre)}</td>
                 <td>${s.guardias_diurnas_12h}</td>
@@ -943,7 +1059,7 @@ function exportarFichaPdf() {
           <tbody>
             ${data.cas.map(s => `
               <tr>
-                <td><strong>${s.dni}</strong></td>
+                <td><strong>${escapeHtml(s.dni)}</strong></td>
                 <td class="text-left"><strong>${escapeHtml(s.nombre_completo)}</strong></td>
                 <td class="text-left">${escapeHtml(s.servicio_nombre)}</td>
                 <td>${s.guardias_diurnas_12h}</td>
@@ -1082,17 +1198,7 @@ async function cargarRolOficialMinsa() {
   const container = document.getElementById('rolMensualContainer');
   if (!container) return;
 
-  container.innerHTML = `
-    <div style="text-align: center; padding: 3rem; color: var(--text-tertiary);">
-      <div style="font-size: 2.2rem; margin-bottom: 0.75rem; animation: pulse 1.5s infinite;">📋</div>
-      <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">
-        Cargando Rol Mensual Oficial de Turnos (Matriz MINSA)...
-      </div>
-      <div style="font-size: 0.8rem; color: var(--text-secondary);">
-        Consultando asignaciones programadas, turnos y reglas normativas
-      </div>
-    </div>
-  `;
+  const load = beginReportLoad(container,12);
 
   const nombresMeses = ['', 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SETIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
   const mesNombre = nombresMeses[repState.mes] || 'SETIEMBRE';
@@ -1101,15 +1207,22 @@ async function cargarRolOficialMinsa() {
   const letrasDias = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
   const sId = (repState.servicioId !== '' && repState.servicioId !== null) ? parseInt(repState.servicioId, 10) : 0;
-  const areaNombre = SERVICIOS_NOMBRES_OFICIALES[sId] || 'SERVICIOS HOSPITALARIOS';
+  const areaSelect = document.getElementById('repAreaSelect');
+  const areaNombre = repState.areaId && areaSelect ? areaSelect.selectedOptions[0].textContent : (SERVICIOS_NOMBRES_OFICIALES[sId] || 'SERVICIOS HOSPITALARIOS');
   const esNumerico = (repState.formatoTurnos !== 'letras');
 
   try {
     const res = await API.get('programacion/mensual.php', {
+      personal_id: repState.rolPersonalId,
       mes: repState.mes,
       anio: repState.anio,
+      area: repState.areaId,
       servicio_id: sId
     });
+    if (!finishReportLoad(container,load)) return;
+
+    if (reuseReportView(container,load,res)) return;
+    repState.ultimoDatosRol = null;
 
     let lista = (res && Array.isArray(res.matriz)) ? res.matriz : [];
 
@@ -1372,6 +1485,8 @@ async function cargarRolOficialMinsa() {
       </div>
     `;
   } catch (err) {
+    if (!finishReportLoad(container,load)) return;
+    if (container.dataset) delete container.dataset.reportSignature;
     console.error('Error cargando rol oficial:', err);
     container.innerHTML = `
       <div style="padding: 2rem; text-align: center; color: var(--danger-500); background: var(--bg-surface); border-radius: var(--radius-md);">

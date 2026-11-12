@@ -33,42 +33,32 @@ class AttendanceReconciler {
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $fecha) || date('Y-m-d', strtotime($fecha)) !== $fecha) throw new InvalidArgumentException('Fecha inválida.');
         $diaSemana = (int)date('N', strtotime($fecha)); // 1=Lunes .. 7=Domingo
 
-        // 1. Obtener todo el personal activo con su horario programado para ese día de la semana
+        // 1. Obtener todo el personal activo
         $sqlPersonal = "
             SELECT 
                 p.PersonalID,
-                (SELECT TOP 1 ap.ServicioID FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = p.PersonalID AND ap.EsActual = 1 AND ap.Estado = 1) AS ServicioID,
-                per.NumeroDocumento AS DNI,
-                per.Nombres,
-                per.ApellidoPaterno,
-                per.ApellidoMaterno,
-                t.TurnoID,
-                t.Nombre AS NombreTurno,
-                ISNULL(CONVERT(VARCHAR(8), t.HoraInicio, 108), '07:00:00') AS HoraProgInicio,
-                ISNULL(CONVERT(VARCHAR(8), t.HoraFin, 108), '13:00:00') AS HoraProgFin,
+                (SELECT TOP 1 ap.ServicioID FROM rrhh.AsignacionPersonal ap WHERE ap.PersonalID = p.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1) AS ServicioID,
+                p.NumeroDocumento AS DNI,
+                p.Nombres,
+                p.ApellidoPaterno,
+                p.ApellidoMaterno,
+                NULL AS TurnoID,
+                NULL AS NombreTurno,
+                NULL AS HoraProgInicio,
+                NULL AS HoraProgFin,
                 a.AsistenciaID,
                 CONVERT(VARCHAR(8), a.HoraEntrada, 108) AS HoraEntradaActual,
                 CONVERT(VARCHAR(8), a.HoraSalida, 108) AS HoraSalidaActual,
                 a.Estado AS EstadoActual,
                 a.Observacion AS ObservacionActual
             FROM rrhh.Personal p
-            INNER JOIN core.Persona per ON p.PersonaID = per.PersonaID
-            LEFT JOIN rrhh.Horario h ON p.PersonalID = h.PersonalID 
-                 AND h.DiaSemana = :diaSemana 
-                 AND h.Estado = 1 
-                 AND h.FechaInicio <= :fechaIni 
-                 AND (h.FechaFin IS NULL OR h.FechaFin >= :fechaFin)
-            LEFT JOIN rrhh.Turno t ON h.TurnoID = t.TurnoID
             LEFT JOIN rrhh.Asistencia a ON p.PersonalID = a.PersonalID AND a.Fecha = :fechaAsist
-            WHERE p.Estado = 1
-            ORDER BY per.ApellidoPaterno, per.ApellidoMaterno, per.Nombres
+            WHERE p.Activo = 1
+            ORDER BY p.ApellidoPaterno, p.ApellidoMaterno, p.Nombres
         ";
 
         $stmtPers = $pdo->prepare($sqlPersonal);
         $stmtPers->execute([
-            ':diaSemana'   => $diaSemana,
-            ':fechaIni'    => $fecha,
-            ':fechaFin'    => $fecha,
             ':fechaAsist'  => $fecha
         ]);
         $personalList = $stmtPers->fetchAll(PDO::FETCH_ASSOC);

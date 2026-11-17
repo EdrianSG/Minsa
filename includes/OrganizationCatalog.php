@@ -18,10 +18,10 @@ final class OrganizationCatalog {
         $key = 'areas_catalogo_personal' . ($allowed === null ? '' : '_serv_' . $allowed);
         $pdo = Database::getConnection();
         if ($pdo) {
-            $sql = 'SELECT a.AreaID AS id,a.Nombre AS nombre FROM organizacion.Area a';
+            $sql = 'SELECT a.AreaID AS id,a.Nombre AS nombre FROM organizacion.Area a WHERE a.Activo=1';
             $params = [];
             if ($allowed !== null) {
-                $sql .= ' WHERE EXISTS (SELECT 1 FROM organizacion.Servicio s WHERE s.AreaID=a.AreaID AND s.ServicioID=?)';
+                $sql .= ' AND EXISTS (SELECT 1 FROM organizacion.Servicio s WHERE s.AreaID=a.AreaID AND s.ServicioID=? AND s.Activo=1)';
                 $params[] = $allowed;
             }
             $stmt = $pdo->prepare($sql . ' ORDER BY a.Nombre,a.AreaID');

@@ -1,0 +1,356 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "611707accaec1128588f1362f02a57c4d12f4b5231af21d7d24423c1da4060ed",
+        "key": "roles_catalogo_seguridad",
+        "version": 4,
+        "saved_at": "2026-11-17 08:58:36",
+        "timestamp": 1794923916,
+        "hash": "357afe6cf97beff841c984b9c6a62c80",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "rol_id": 1,
+            "codigo": "RRHH_ADMIN",
+            "nombre": "Administrador de Recursos Humanos",
+            "descripcion": "Control total del sistema: gestión de cuentas, asignación de roles, configuración normativa, auditoría y catálogos.",
+            "color": "#2563eb",
+            "usuarios_total": 2,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": true
+                }
+            }
+        },
+        {
+            "rol_id": 2,
+            "codigo": "ADMIN",
+            "nombre": "Administrador",
+            "descripcion": "Rol de laboratorio",
+            "color": "#2563eb",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": true
+                }
+            }
+        },
+        {
+            "rol_id": 3,
+            "codigo": "LABORATORIO",
+            "nombre": "Personal de Laboratorio",
+            "descripcion": "Rol de laboratorio",
+            "color": "#2563eb",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": false
+                },
+                "personal": {
+                    "ver": false
+                },
+                "horarios": {
+                    "ver": false
+                },
+                "programacion": {
+                    "ver": false,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": false,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": false,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": false,
+                    "exportar_excel": false
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 4,
+            "codigo": "JEFE_SERVICIO",
+            "nombre": "Jefe de Servicio \/ UPSS",
+            "descripcion": "Elaboración y validación del rol mensual (regla 150h asistenciales) y reemplazos de urgencia de su servicio hospitalario.",
+            "color": "#d97706",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 5,
+            "codigo": "OPERADOR_ASISTENCIA",
+            "nombre": "Operador de Asistencia",
+            "descripcion": "Monitoreo diario de marcaciones, regularización de omisiones, registro de permisos\/CITT e importación biométrica.",
+            "color": "#059669",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 6,
+            "codigo": "AUDITOR_PLANILLAS",
+            "nombre": "Auditor de Planillas",
+            "descripcion": "Auditoría de cumplimiento de carga horaria (150h), cómputo de tardanzas e inasistencias y exportación a planillas.",
+            "color": "#7c3aed",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 7,
+            "codigo": "JEFE_RRHH",
+            "nombre": "Jefatura de Recursos Humanos",
+            "descripcion": "Supervisión institucional global, aprobación final de roles mensuales, dictamen de licencias\/CITT y reportes oficiales.",
+            "color": "#0284c7",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 8,
+            "codigo": "SUPERVISOR",
+            "nombre": "Supervisor de Asistencia y Turnos",
+            "descripcion": "Supervisión de turnos programados, verificación de cobertura asistencial en tiempo real y apoyo en rol mensual.",
+            "color": "#0891b2",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": false
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": false,
+                    "exportar_excel": false
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 9,
+            "codigo": "CONSULTA",
+            "nombre": "Usuario de Consulta",
+            "descripcion": "Acceso de solo lectura a la asistencia diaria, programación mensual y generación de reportes generales.",
+            "color": "#64748b",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": false
+                },
+                "horarios": {
+                    "ver": false
+                },
+                "programacion": {
+                    "ver": false,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": false,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        }
+    ]
+}

@@ -421,7 +421,7 @@ $pageScript = "administracion.js";
   <div class="modal-dialog" style="max-width: 580px;">
     <div class="modal-header">
       <div class="modal-title">
-        <span id="modalCrearUsuarioTitulo">👤 Crear Nueva Cuenta de Acceso</span>
+        <span id="modalCrearUsuarioTitulo">👤 Crear cuenta o habilitar acceso a RRHH</span>
       </div>
       <button type="button" class="modal-close" aria-label="Cerrar modal">&times;</button>
     </div>
@@ -430,6 +430,18 @@ $pageScript = "administracion.js";
         <p id="modalUserEstado" role="status" aria-live="polite">Cargando trabajadores y roles...</p>
         <a id="modalUserRegistrarPersonal" href="index.php?page=personal" hidden>Ir a Personal para registrar un trabajador</a>
         <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="modalUserModo">Operación:</label>
+          <select id="modalUserModo" class="input">
+            <option value="crear">Crear una cuenta nueva</option>
+            <option value="habilitar">Habilitar una cuenta existente para RRHH</option>
+          </select>
+        </div>
+        <div id="modalUserCuentaExistenteGrupo" class="form-group" hidden>
+          <label for="modalUserCuentaExistente">Cuenta existente:</label>
+          <select id="modalUserCuentaExistente" class="input"><option value="">Seleccione una cuenta</option></select>
+          <small>Se conserva la contraseña y el acceso a Laboratorio u otros sistemas. Solo se asigna acceso y rol en RRHH.</small>
+        </div>
+        <div id="modalUserTrabajadorGrupo" class="form-group" style="margin-bottom: 1rem;">
           <label for="modalUserPersonalSelect">Trabajador registrado (opcional para cuentas técnicas):</label>
           <select id="modalUserPersonalSelect" class="input">
             <option value="">Cargando lista de servidores...</option>
@@ -438,7 +450,7 @@ $pageScript = "administracion.js";
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem;">
-          <div class="form-group">
+          <div id="modalUserNombreGrupo" class="form-group">
             <label for="modalUserUsername">Nombre de Usuario (Login): *</label>
             <input type="text" id="modalUserUsername" class="input" minlength="3" maxlength="80" pattern="[a-zA-Z0-9._\-]{3,80}" autocomplete="off" placeholder="ej. cbenites" required>
           </div>
@@ -452,7 +464,7 @@ $pageScript = "administracion.js";
         </div>
 
         <!-- Campos de solo lectura autocompletados -->
-        <div style="background: var(--bg-surface-soft); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 1rem;">
+        <div id="modalUserDatosTrabajador" style="background: var(--bg-surface-soft); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 1rem;">
           <div style="font-size: 0.76rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.5rem;">
             Datos del Servidor Seleccionado:
           </div>
@@ -477,12 +489,150 @@ $pageScript = "administracion.js";
         </div>
 
         <div style="font-size: 0.78rem; color: var(--text-secondary); background: rgba(37, 99, 235, 0.05); padding: 0.65rem; border-radius: var(--radius-sm); border-left: 3px solid var(--primary-600);">
-          El sistema generará una contraseña aleatoria y la mostrará una sola vez al crear la cuenta. Entregue esa clave al titular por un canal privado.
+          Al crear una cuenta nueva, el sistema generará una contraseña aleatoria y la mostrará una sola vez. Al habilitar una existente, conservará su contraseña. Entregue esa clave al titular por un canal privado.
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="btnCrearCuenta" disabled>Crear Cuenta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: EDITAR USUARIO Y ROL
+     ========================================================= -->
+<div class="modal-backdrop" id="modalEditarUsuario" role="dialog" aria-modal="true" aria-labelledby="modalEditarUsuarioTitulo">
+  <div class="modal-dialog" style="max-width: 580px;">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span id="modalEditarUsuarioTitulo">✏ Editar Cuenta de Usuario</span>
+      </div>
+      <button type="button" class="modal-close" aria-label="Cerrar modal">&times;</button>
+    </div>
+    <form id="formEditarUsuario">
+      <input type="hidden" id="modalEditUserId" value="">
+      <div class="modal-body">
+        <p id="modalEditUserEstado" role="status" aria-live="polite">Cargue los datos del usuario.</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem;">
+          <div class="form-group">
+            <label for="modalEditUsername">Nombre de Usuario (Login): *</label>
+            <input type="text" id="modalEditUsername" class="input" minlength="3" maxlength="80" pattern="[a-zA-Z0-9._\-]{3,80}" autocomplete="off" required>
+            <small style="color: var(--text-tertiary);">Identificador de acceso al sistema.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="modalEditRolSelect">Rol Institucional: *</label>
+            <select id="modalEditRolSelect" class="input" required>
+              <option value="">Seleccione un rol...</option>
+            </select>
+            <small style="color: var(--text-tertiary);">Perfil RBAC asignado a esta cuenta.</small>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="modalEditPersonalSelect">Trabajador vinculado (Personal):</label>
+          <select id="modalEditPersonalSelect" class="input">
+            <option value="">Cuenta técnica (sin trabajador vinculado)</option>
+          </select>
+          <small style="color: var(--text-tertiary);">Servidor público asociado a esta cuenta institucional.</small>
+        </div>
+
+        <!-- Campos informativos del trabajador -->
+        <div style="background: var(--bg-surface-soft); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 1rem;">
+          <div style="font-size: 0.76rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.5rem;">
+            Datos del Servidor Asignado:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; font-size: 0.82rem;">
+            <div>
+              <span style="color: var(--text-tertiary);">DNI:</span>
+              <input type="text" id="modalEditDni" class="input" readonly style="background: transparent; padding: 2px; height: auto; font-weight: 700;">
+            </div>
+            <div>
+              <span style="color: var(--text-tertiary);">Nombre:</span>
+              <input type="text" id="modalEditNombre" class="input" readonly style="background: transparent; padding: 2px; height: auto; font-weight: 700;">
+            </div>
+            <div>
+              <span style="color: var(--text-tertiary);">Servicio:</span>
+              <input type="text" id="modalEditServicio" class="input" readonly style="background: transparent; padding: 2px; height: auto;">
+            </div>
+            <div>
+              <span style="color: var(--text-tertiary);">Cargo:</span>
+              <input type="text" id="modalEditCargo" class="input" readonly style="background: transparent; padding: 2px; height: auto;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Estado de la Cuenta -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+          <div class="form-group">
+            <label for="modalEditEstadoSelect">Estado de la cuenta:</label>
+            <select id="modalEditEstadoSelect" class="input">
+              <option value="1">Activa (Habilitada)</option>
+              <option value="0">Inactiva (Deshabilitada)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="modalEditBloqueadoSelect">Bloqueo preventivo:</label>
+            <select id="modalEditBloqueadoSelect" class="input">
+              <option value="0">Desbloqueado (Acceso normal)</option>
+              <option value="1">Bloqueado 🔒 (Acceso denegado)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarEdicionUsuario">Guardar Cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: RESTABLECER / ASIGNAR CONTRASEÑA
+     ========================================================= -->
+<div class="modal-backdrop" id="modalResetPassword" role="dialog" aria-modal="true" aria-labelledby="modalResetPasswordTitulo">
+  <div class="modal-dialog" style="max-width: 480px;">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span id="modalResetPasswordTitulo">🔑 Asignar Nueva Contraseña</span>
+      </div>
+      <button type="button" class="modal-close" aria-label="Cerrar modal">&times;</button>
+    </div>
+    <form id="formResetPassword">
+      <input type="hidden" id="modalResetUserId" value="">
+      <div class="modal-body">
+        <div style="margin-bottom: 1.15rem; background: var(--bg-surface-soft); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div style="font-size: 0.76rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">
+            Usuario a actualizar:
+          </div>
+          <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;" id="modalResetUsernameDisplay">
+            --
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="modalResetPasswordInput">Nueva Contraseña de Acceso: *</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="modalResetPasswordInput" class="input" minlength="4" maxlength="120" autocomplete="off" placeholder="Escriba la nueva contraseña aquí..." required style="flex: 1; font-family: monospace; font-size: 0.95rem;">
+            <button type="button" class="btn btn-secondary" id="btnGenerarClaveAleatoria" title="Generar una clave aleatoria segura">
+              <span>🎲</span>
+              <span>Generar</span>
+            </button>
+          </div>
+          <small style="color: var(--text-tertiary);">Introduzca la contraseña que utilizará el usuario para iniciar sesión (mínimo 4 caracteres).</small>
+        </div>
+
+        <div style="font-size: 0.78rem; color: var(--text-secondary); background: rgba(37, 99, 235, 0.05); padding: 0.65rem; border-radius: var(--radius-sm); border-left: 3px solid var(--primary-600);">
+          La nueva clave se guardará de forma inmediata en Microsoft SQL Server (cifrado bcrypt) y revocará sesiones anteriores. Entregue esta contraseña al titular por un medio seguro.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnConfirmarResetClave">Guardar Contraseña</button>
       </div>
     </form>
   </div>

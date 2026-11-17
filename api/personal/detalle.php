@@ -13,9 +13,6 @@ apiGuard('personal', ['GET'], ['JEFE_RRHH']);
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__.'/../../includes/WorkloadPolicy.php';
-$workloadSql=WorkloadPolicy::sql();
-
 $personalId = intval($_GET['id'] ?? 0);
 
 if ($personalId <= 0) {
@@ -27,6 +24,8 @@ if ($personalId <= 0) {
 apiRequirePersonalAccess($personalId);
 
 $pdo = Database::getConnection();
+require_once __DIR__.'/../../includes/WorkloadPolicy.php';
+$workloadSql=WorkloadPolicy::sql();
 $dbConnected = ($pdo !== null);
 $detalle = null;
 
@@ -65,7 +64,7 @@ if ($dbConnected) {
                 p.NumeroRNE AS numero_rne,
                 p.RegimenLaboral AS regimen_laboral,
                 p.GrupoOcupacional AS grupo_ocupacional,
-                p.RegimenLaboral AS tipo_personal,
+                {$workloadSql} AS tipo_personal,
                 
                 c.CargoID AS cargo_id,
                 c.Nombre AS cargo_nombre,

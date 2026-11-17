@@ -7,10 +7,10 @@ final class WorkloadPolicy {
     private static ?bool $hasModulo = null;
     private static ?string $pkCol = null;
 
-    private static function detectSchema(): void {
+    private static function detectSchema(?PDO $connection=null): void {
         if (self::$hasModulo !== null && self::$pkCol !== null) return;
         try {
-            $pdo = Database::getConnection();
+            $pdo = $connection ?? Database::getConnection();
             if ($pdo) {
                 $cols = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'auditoria' AND TABLE_NAME = 'EventoAuditoria'")->fetchAll(PDO::FETCH_COLUMN);
                 self::$hasModulo = in_array('Modulo', $cols, true);
@@ -26,29 +26,31 @@ final class WorkloadPolicy {
     }
 
     public static function fromAudit(?string $description): ?string {
-        $data=json_decode($description??'',true);
+        $description=preg_replace('/^\[(?:HORARIOS|PERSONAL)\]\s*/u','',$description??'');
+        $data=json_decode($description,true);
         $type=is_array($data)?($data['tipo_personal']??null):null;
         return in_array($type,['ASISTENCIAL','ADMINISTRATIVO'],true)?$type:null;
     }
 
-    public static function sql(string $personal='p.PersonalID',?string $date=null): string {
+    public static function sql(string $personal='p.PersonalID',?string $date=null,?PDO $connection=null): string {
         if (!preg_match('/^[a-z]+\.PersonalID$/D',$personal)) throw new InvalidArgumentException('Referencia de personal inválida.');
         $date??=date('Y-m-d');
         $parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
         if (!$parsed || $parsed->format('Y-m-d')!==$date) throw new InvalidArgumentException('Fecha de reglas inválida.');
         $code=str_replace("'","''",SystemContext::code());
-        $json="CASE WHEN ISJSON(wp.Descripcion)=1 THEN wp.Descripcion ELSE N'{}' END";
-
-        self::detectSchema();
-        $moduloCondition = self::$hasModulo ? "wp.Modulo=N'HORARIOS'" : "(wp.Descripcion LIKE N'[HORARIOS]%' OR wp.Descripcion LIKE N'%\"tipo_personal\"%')";
+        $description="CASE WHEN LEFT(wp.Descripcion,11) IN (N'[HORARIOS] ',N'[PERSONAL] ')
+            THEN SUBSTRING(wp.Descripcion,12,LEN(wp.Descripcion)) ELSE wp.Descripcion END";
+        $json="CASE WHEN ISJSON($description)=1 THEN $description ELSE N'{}' END";
+        self::detectSchema($connection);
         $pk = self::$pkCol ?? 'EventoAuditoriaID';
-
         return "(SELECT TOP 1 JSON_VALUE($json,'$.tipo_personal') FROM auditoria.EventoAuditoria wp
             JOIN seguridad.Sistema ws ON ws.SistemaID=wp.SistemaID AND ws.Codigo=N'$code'
-            WHERE $moduloCondition AND wp.Accion='ASIGNAR' AND wp.TablaAfectada=N'rrhh.Horario'
-            AND wp.RegistroID=CAST($personal AS VARCHAR(100))
+            WHERE wp.RegistroID=CAST($personal AS VARCHAR(100))
+            AND ((wp.TablaAfectada=N'rrhh.Horario' AND wp.Accion='ASIGNAR'
+                    AND JSON_VALUE($json,'$.tipo_personal') IN ('ASISTENCIAL','ADMINISTRATIVO'))
+                OR (wp.TablaAfectada=N'rrhh.Personal' AND wp.Accion IN ('INSERT','UPDATE')
+                    AND JSON_VALUE($json,'$.tipo_personal_confirmado')='true'))
             AND JSON_VALUE($json,'$.fecha_inicio')<='$date'
-            AND JSON_VALUE($json,'$.tipo_personal') IN ('ASISTENCIAL','ADMINISTRATIVO')
             ORDER BY JSON_VALUE($json,'$.fecha_inicio') DESC,wp.FechaHora DESC,wp.$pk DESC)";
     }
 }

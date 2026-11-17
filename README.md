@@ -6,7 +6,7 @@ La aplicación administra personal, horarios, programación mensual, asistencia 
 
 ## Contexto y continuidad
 
-La referencia actual del proyecto está en [Contexto actual del proyecto](docs/CONTEXTO_ACTUAL_DEL_PROYECTO.md), actualizado el **12 de noviembre de 2026**.
+La referencia actual del proyecto está en [Contexto actual del proyecto](docs/CONTEXTO_ACTUAL_DEL_PROYECTO.md), actualizado el **16 de noviembre de 2026**.
 
 Ese documento reúne el objetivo, las reglas del usuario, los entornos, la carga de personal verificada, las mejoras de filtros y dashboard, las optimizaciones, los archivos de la última entrega, las pruebas y los pendientes.
 

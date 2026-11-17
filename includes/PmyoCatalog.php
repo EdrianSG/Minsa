@@ -18,13 +18,29 @@ final class PmyoCatalog {
         $m=self::map(); $areas=self::areas();
         $profession=[]; foreach ($data['profesiones'] as $p) $profession[$p['codigo']]=$p;
         foreach ($data['areas'] as &$a) {
-            $entry=$areas[self::key($a['nombre'])]??null;
+            $areaName=self::key($a['nombre']);
+            $areaName=match ($areaName) {
+                'ASISTENTE SOCIAL'=>'ASISTENTA SOCIAL',
+                'REHABILITACIÓN'=>'REHABILITACION',
+                default=>$areaName
+            };
+            $entry=$areas[$areaName]??null;
             $a['pmyo']=$entry!==null; $a['operativa_pmyo']=$entry['operativa']??false;
             $a['perfiles_origen']=$entry['perfiles']??[]; $a['dotacion_origen']=$entry['total']??null;
         } unset($a);
         foreach ($data['cargos'] as &$c) {
-            $name=self::key($c['nombre']); $proposal=$m['propuestas'][$name]??null;
-            $c['perfil_pmyo']=in_array($name,self::profiles(),true);
+            $name=self::key($c['nombre']);
+            // Equivalencias explícitas tras la normalización del cargo general.
+            $aliases=match ($name) {
+                'ENFERMERO'=>['ENFERMERO','ENFERMERA','ENFERMERIA','ENFERMERO(A)'],
+                'TEC FARMACIA'=>['TEC FARMACIA','TEC FARCACIA'],
+                default=>[$name]
+            };
+            $proposal=null;
+            foreach ($aliases as $alias) {
+                if (isset($m['propuestas'][$alias])) { $proposal=$m['propuestas'][$alias]; break; }
+            }
+            $c['perfil_pmyo']=(bool)array_intersect($aliases,self::profiles());
             $c['formacion']=in_array($name,$m['formacion'],true);
             $c['profesion_propuesta_id']=$proposal ? ($profession[$proposal[0]]['id']??null) : null;
             $c['especialidad_propuesta_id']=null;
@@ -32,7 +48,7 @@ final class PmyoCatalog {
                 if ((int)$e['profesion_id']===(int)$c['profesion_propuesta_id'] && self::key($e['nombre'])===self::key($proposal[1])) $c['especialidad_propuesta_id']=$e['id'];
             }
             $c['areas_pmyo']=[];
-            foreach ($data['areas'] as $a) if (in_array($name,$a['perfiles_origen'],true)) $c['areas_pmyo'][]=$a['id'];
+            foreach ($data['areas'] as $a) if (array_intersect($aliases,$a['perfiles_origen'])) $c['areas_pmyo'][]=$a['id'];
         } unset($c);
         return $data;
     }

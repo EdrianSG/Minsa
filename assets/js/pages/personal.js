@@ -166,6 +166,7 @@ async function loadStaffData() {
     const params = {
       page: personalState.page,
       limit: personalState.limit,
+      busqueda_version: 3,
       ...personalState.filters
     };
 
@@ -237,7 +238,7 @@ function renderStaffTable(list) {
   tbody.innerHTML = list.map(p => {
     const initials = getWorkerInitials(p.nombres, p.apellido_paterno);
     const isNombrado = (p.condicion_laboral || '').toUpperCase() === 'NOMBRADO';
-    const regUpper = (p.tipo_personal || p.regimen_laboral || '').toUpperCase();
+    const regUpper = (p.tipo_personal || '').toUpperCase();
     const isAsist = regUpper.includes('ASIST');
     const isAdmin = regUpper.includes('ADMIN');
     const isActive = p.estado !== null && intval(p.estado) === 1;
@@ -291,7 +292,7 @@ function renderStaffTable(list) {
         <!-- 5. Régimen / SETI -->
         <td>
           <span class="badge ${isAsist ? 'badge-asistencial' : (isAdmin ? 'badge-admin' : 'badge-neutral')}">
-            ${isAsist ? 'Asistencial (150h)' : (isAdmin ? 'Administrativo' : escapeHtml(p.tipo_personal || p.regimen_laboral || 'Sin clasificar'))}
+            ${isAsist ? 'Asistencial (150h)' : (isAdmin ? 'Administrativo' : escapeHtml(p.tipo_personal || 'Sin clasificar'))}
             ${isAsist ? '<span class="badge-tag-seti">SETI</span>' : ''}
           </span>
         </td>
@@ -340,7 +341,7 @@ function updatePaginationUI() {
  */
 async function verFichaTrabajador(personalId) {
   try {
-    const res = await API.get('personal/detalle.php', { id: personalId });
+    const res = await API.get('personal/detalle.php', { id: personalId, clasificacion_version: 1 });
     if (res && res.ok && res.data) {
       populateFichaModal(res.data);
       openModal('modalFichaPersonal');
@@ -395,7 +396,9 @@ function populateFichaModal(d) {
   setEl('fichaCodigo', d.codigo_empleado);
   setEl('fichaIngreso', d.fecha_ingreso);
   setEl('fichaContrato', d.numero_contrato);
-  setEl('fichaVigencia', `${d.contrato_inicio || 'Sin registrar'} al ${d.contrato_fin || 'Sin registrar'}`);
+  setEl('fichaVigencia', !d.contrato_id ? 'Sin contrato registrado'
+    : !d.contrato_inicio && !d.contrato_fin ? 'Fechas del contrato sin registrar'
+    : `${d.contrato_inicio ? 'Desde ' + d.contrato_inicio : 'Inicio sin registrar'} · ${d.contrato_fin ? 'Hasta ' + d.contrato_fin : 'Fin sin registrar'}`);
 
   // Campos Asignación Organizacional
   setEl('fichaArea', d.area_nombre);
@@ -534,7 +537,13 @@ function populateWorkerEditor(data = {}) {
   fillWorkerOptions(document.getElementById('newWorkerSexo'), workerCatalogData.sexos, data.sexo_id);
   fillWorkerOptions(document.getElementById('newWorkerTipoContrato'), workerCatalogData.tipos_contrato, data.tipo_contrato_id);
   workerField('activo').value = data.activo ?? '';
-  if (workerField('regimen_laboral')) workerField('regimen_laboral').value = data.regimen_laboral || data.tipo_personal || '';
+  if (workerField('regimen_laboral')) {
+    const select = workerField('regimen_laboral');
+    const value = data.regimen_laboral || '';
+    if (value && !Array.from(select.options).some(option => option.value === value)) select.add(new Option(value, value));
+    select.value = value;
+  }
+  if (workerField('tipo_personal')) workerField('tipo_personal').value = ['ASISTENCIAL', 'ADMINISTRATIVO'].includes(data.tipo_personal) ? data.tipo_personal : '';
   if (workerField('condicion_laboral')) workerField('condicion_laboral').value = data.condicion_laboral || '';
   workerField('accion_asignacion').value = 'corregir';
   workerField('asignacion_actual_id').value = data.asignacion_actual_id ?? 0;

@@ -4,10 +4,10 @@
         "fecha": "2026-11-12",
         "database_source": "611707accaec1128588f1362f02a57c4d12f4b5231af21d7d24423c1da4060ed",
         "key": "asistencia_diaria_2026-11-12",
-        "version": 34,
-        "saved_at": "2026-11-12 15:57:26",
-        "timestamp": 1794517046,
-        "hash": "bd87357864efb82c1e1df45c0a9bfb2e",
+        "version": 35,
+        "saved_at": "2026-11-12 16:54:43",
+        "timestamp": 1794520483,
+        "hash": "28a272d2c12d0b9ab27236d03317fb93",
         "is_snapshot": true
     },
     "data": [
@@ -3747,7 +3747,7 @@
             "hora_salida": null,
             "minutos_tardanza": 0,
             "minutos_salida_anticipada": 0,
-            "estado_evaluado": "EN_CURSO",
+            "estado_evaluado": "SIN_DATOS",
             "observacion": "",
             "observacion_regla": "Sin marcación conciliada; pendiente de verificación",
             "es_ausente": false

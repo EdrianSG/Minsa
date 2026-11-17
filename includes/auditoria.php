@@ -25,17 +25,23 @@ class Auditoria {
         string $accion,
         ?string $tablaAfectada = null,
         ?string $registroId = null,
-        ?string $descripcion = null
+        ?string $descripcion = null,
+        ?PDO $pdo = null
     ): bool {
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
-
-        $pdo = Database::getConnection();
+        if ($pdo === null) {
+            $pdo = $connection ?? Database::getConnection();
+        }
         if ($pdo !== null) {
             try {
                 static $hasModuloCol = null;
                 if ($hasModuloCol === null) {
-                    $hasModuloCol = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'auditoria' AND TABLE_NAME = 'EventoAuditoria' AND COLUMN_NAME = 'Modulo'")->fetchColumn();
+                    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                        $hasModuloCol = true;
+                    } else {
+                        $hasModuloCol = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'auditoria' AND TABLE_NAME = 'EventoAuditoria' AND COLUMN_NAME = 'Modulo'")->fetchColumn();
+                    }
                 }
 
                 $detalleCompleto = $hasModuloCol ? ($descripcion ?? '') : ("[$modulo] " . ($descripcion ?? ''));
@@ -94,6 +100,6 @@ class Auditoria {
             'direccion_ip'=>$ip, 'descripcion'=>$descripcion
         ]);
         error_log($saved ? 'Auditoría guardada en archivo; pendiente de consolidación SQL.' : 'ERROR: no se pudo persistir la auditoría.');
-        return false;
+        return (bool)$saved;
     }
 }

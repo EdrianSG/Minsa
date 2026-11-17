@@ -39,7 +39,7 @@ $personalList = [];
 $totalRecords = 0;
 
 $filters = compact('q','servicio','areaFilter','condicion','regimen','estado','page','limit');
-$pageKey = 'personal_pagina_' . hash('sha256', json_encode([$userAllowedServ,$filters]));
+$pageKey = 'personal_pagina_clasificacion_v3_' . hash('sha256', json_encode([$userAllowedServ,$filters]));
 if ($dbConnected) {
     try {
         $result = PersonalDirectory::page($pdo, $filters);
@@ -75,38 +75,14 @@ foreach ($personalList as &$item) {
     if (trim($item['nombre_completo'] ?? '', ' ,') === '') {
         $item['nombre_completo'] = trim(implode(' ', array_filter([$item['apellido_paterno'] ?? null, $item['apellido_materno'] ?? null, $item['nombres'] ?? null]))) ?: ($item['nombre_completo_original'] ?? null);
     }
-    // Normalizar tipo_personal según grupo_ocupacional, regimen_laboral, cargo o área
-    $grupo = strtoupper(trim((string)($item['grupo_ocupacional'] ?? '')));
-    $reg = strtoupper(trim((string)($item['regimen_laboral'] ?? $item['tipo_personal'] ?? '')));
-    $area = strtoupper(trim((string)($item['area_nombre'] ?? '')));
-    $cargo = strtoupper(trim((string)($item['cargo_nombre'] ?? '')));
-
-    if ($grupo === 'ADMINISTRATIVO' || str_contains($reg, 'ADMIN') || str_contains($area, 'ADMINISTRATIV') || str_contains($cargo, 'ADMINISTRATIV') || str_contains($cargo, 'CONTADOR') || str_contains($cargo, 'SECRETARIA') || str_contains($cargo, 'SISTEMA') || str_contains($area, 'RECURSOS HUMANOS') || str_contains($area, 'SIS') || str_contains($area, 'ALMACEN')) {
-        $item['tipo_personal'] = 'ADMINISTRATIVO';
-    } elseif ($reg === 'DL 1153' || str_contains($reg, 'ASIST') || str_contains($cargo, 'MEDIC') || str_contains($cargo, 'ENFERM') || str_contains($cargo, 'OBSTETR') || str_contains($cargo, 'CIRUG') || str_contains($area, 'EMERGENCIA') || str_contains($area, 'CIRUGIA')) {
-        $item['tipo_personal'] = 'ASISTENCIAL';
-    } elseif ($reg !== '') {
-        $item['tipo_personal'] = $reg;
-    } else {
-        $item['tipo_personal'] = null;
-    }
+    $item['tipo_personal']=$item['tipo_personal_confirmado']??null;
     $item['aplica_seti'] = ($item['tipo_personal'] === 'ASISTENCIAL') ? 1 : null;
 }
 unset($item);
 
 // Filtrado en memoria si operamos con dataset
 $filtered = array_filter($personalList, function($p) use ($q, $servicio, $areaFilter, $condicion, $regimen, $estado) {
-    if ($q !== '') {
-        $matchQ = (
-            stripos((string)($p['nombre_completo'] ?? ''), $q) !== false ||
-            stripos((string)($p['dni'] ?? ''), $q) !== false ||
-            stripos((string)($p['codigo_empleado'] ?? ''), $q) !== false ||
-            stripos((string)($p['cargo_nombre'] ?? ''), $q) !== false ||
-            stripos((string)($p['profesion_nombre'] ?? ''), $q) !== false ||
-            stripos((string)($p['biostar_user_id'] ?? ''), $q) !== false
-        );
-        if (!$matchQ) return false;
-    }
+    if (!PersonalSearch::matches($p,$q)) return false;
 
     if ($areaFilter !== '' && (int)($p['area_id'] ?? 0) !== (int)$areaFilter) return false;
 
@@ -124,19 +100,9 @@ $filtered = array_filter($personalList, function($p) use ($q, $servicio, $areaFi
         $workerGrupo = strtoupper(trim((string)($p['grupo_ocupacional'] ?? '')));
         $workerRegimen = strtoupper(trim((string)($p['regimen_laboral'] ?? '')));
 
-        if ($targetRegimen === 'ADMINISTRATIVO') {
-            if ($workerTipo !== 'ADMINISTRATIVO' && $workerGrupo !== 'ADMINISTRATIVO' && !str_contains($workerRegimen, 'ADMIN')) {
-                return false;
-            }
-        } elseif ($targetRegimen === 'ASISTENCIAL') {
-            if ($workerTipo !== 'ASISTENCIAL' && $workerRegimen !== 'DL 1153' && !str_contains($workerRegimen, 'ASIST')) {
-                return false;
-            }
-        } else {
-            if ($workerTipo !== $targetRegimen && !str_contains($workerRegimen, $targetRegimen)) {
-                return false;
-            }
-        }
+        if (in_array($targetRegimen,['ASISTENCIAL','ADMINISTRATIVO'],true)) {
+            if ($workerTipo!==$targetRegimen) return false;
+        } elseif (!str_contains($workerRegimen,$targetRegimen)) return false;
     }
 
     if ($estado !== null && intval($p['estado']) !== $estado) {

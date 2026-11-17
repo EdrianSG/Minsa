@@ -45,11 +45,13 @@ class PersonalRepository {
         // Normalización compatible con CHECK constraints de BD_HOSPITAL_V3
         if (isset($out['regimen_laboral'])) {
             $regUpper = mb_strtoupper(trim($out['regimen_laboral']), 'UTF-8');
-            if ($regUpper === 'ADMINISTRATIVO') {
-                $out['grupo_ocupacional'] = $out['grupo_ocupacional'] ?? 'ADMINISTRATIVO';
-                $out['regimen_laboral'] = 'DL 276';
-            } elseif ($regUpper === 'ASISTENCIAL') {
-                $out['regimen_laboral'] = 'DL 1153';
+            if (in_array($regUpper,['ADMINISTRATIVO','ASISTENCIAL'],true)) {
+                // Compatibilidad con el formulario anterior sin inferir un régimen legal.
+                if (isset($data['tipo_personal']) && trim((string)$data['tipo_personal'])!==$regUpper) {
+                    throw new InvalidArgumentException('La clasificación de personal recibida es contradictoria.');
+                }
+                $out['tipo_personal']=$regUpper;
+                unset($out['regimen_laboral']);
             } elseif (in_array($regUpper, ['276', 'D.L. 276', 'D.L 276', 'DL276'], true)) {
                 $out['regimen_laboral'] = 'DL 276';
             } elseif (in_array($regUpper, ['728', 'D.L. 728', 'D.L 728', 'DL728'], true)) {
@@ -73,6 +75,12 @@ class PersonalRepository {
             elseif (str_contains($grupUpper, 'PROF')) $out['grupo_ocupacional'] = 'PROFESIONAL';
             elseif (str_contains($grupUpper, 'TEC')) $out['grupo_ocupacional'] = 'TECNICO';
             elseif (str_contains($grupUpper, 'AUX')) $out['grupo_ocupacional'] = 'AUXILIAR';
+        }
+        if (array_key_exists('tipo_personal',$data)) {
+            if (!is_scalar($data['tipo_personal']) && $data['tipo_personal']!==null) throw new InvalidArgumentException('Clasificación inválida.');
+            $type=mb_strtoupper(trim((string)($data['tipo_personal']??'')),'UTF-8');
+            if (!in_array($type,['','ASISTENCIAL','ADMINISTRATIVO'],true)) throw new InvalidArgumentException('Clasificación de personal inválida.');
+            $out['tipo_personal']=$type===''?null:$type;
         }
         return $out;
     }
@@ -170,8 +178,7 @@ class PersonalRepository {
             $fields=[]; $values=[];
             foreach (self::FIELDS as $key=>$column) if (array_key_exists($key,$d)) { $fields[]=$column; $values[]=$d[$key]; }
             if ($id === null) {
-                $s=$pdo->prepare('INSERT INTO rrhh.Personal ('.implode(',',$fields).',FechaRegistro) VALUES ('.implode(',',array_fill(0,count($values),'?')).',SYSDATETIME())');
-                $s->execute($values); $id=(int)$pdo->lastInsertId();
+                $id=self::insertIdentity($pdo,'INSERT INTO rrhh.Personal ('.implode(',',$fields).',FechaRegistro) VALUES ('.implode(',',array_fill(0,count($values),'?')).',SYSDATETIME())',$values);
             } elseif ($fields) {
                 $s=$pdo->prepare('UPDATE rrhh.Personal SET '.implode(',',array_map(fn($f)=>$f.' = ?',$fields)).', FechaActualizacion=SYSDATETIME() WHERE PersonalID = ?');
                 $s->execute([...$values,$id]);
@@ -206,13 +213,41 @@ class PersonalRepository {
                 }
             }
             require_once __DIR__.'/auditoria.php';
-            $description=json_encode(['profesion_antes'=>$old['ProfesionID']??null,'profesion_despues'=>$merged['profesion_id']??null,'especialidad_antes'=>$old['EspecialidadID']??null,'especialidad_despues'=>$merged['especialidad_id']??null,'relacion'=>$assignment],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
-            if (mb_strlen($description,'UTF-8')>1000) throw new InvalidArgumentException('El detalle de auditoría es demasiado extenso; reduzca el motivo de la modificación.');
+            $audit=['profesion_antes'=>$old['ProfesionID']??null,'profesion_despues'=>$merged['profesion_id']??null,
+                'especialidad_antes'=>$old['EspecialidadID']??null,'especialidad_despues'=>$merged['especialidad_id']??null,'relacion'=>$assignment];
+            if (array_key_exists('tipo_personal',$d)) {
+                $audit['tipo_personal_confirmado']=true;
+                $audit['tipo_personal']=$d['tipo_personal'];
+                // Fecha de confirmación de la clasificación, independiente del ingreso y del contrato.
+                $audit['fecha_inicio']=date('Y-m-d');
+            }
+            $description=json_encode($audit,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+            if (mb_strlen($description,'UTF-8')>989) throw new InvalidArgumentException('El detalle de auditoría es demasiado extenso; reduzca el motivo de la modificación.');
             if (!Auditoria::registrar($actor,'PERSONAL',isset($old)?'UPDATE':'INSERT','rrhh.Personal',(string)$id,$description)) throw new RuntimeException('No se pudo auditar la ficha.');
             $pdo->commit();
             return ['success'=>true,'ok'=>true,'message'=>'Ficha guardada.','data'=>['personal_id'=>$id]];
         } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     }
+    /** Identidad de esta inserción y ámbito, compatible con PDO ODBC y triggers de auditoría. */
+    private static function insertIdentity(PDO $pdo,string $insert,array $values): int {
+        $stmt=$pdo->prepare($insert . '; SELECT CAST(SCOPE_IDENTITY() AS int) AS inserted_id;');
+        $stmt->execute($values);
+        try {
+            do {
+                if ($stmt->columnCount()===0) continue;
+                $row=$stmt->fetch(PDO::FETCH_ASSOC);
+                if (is_array($row) && array_key_exists('inserted_id',$row)) {
+                    $id=filter_var($row['inserted_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+                    if ($id===false) throw new RuntimeException('No se obtuvo una identidad válida al guardar.');
+                    return $id;
+                }
+            } while ($stmt->nextRowset());
+            throw new RuntimeException('SQL Server no devolvió la identidad del registro.');
+        } finally {
+            $stmt->closeCursor();
+        }
+    }
+
     /** Corrige una relación o registra una vigencia nueva, sin confundir ambas operaciones. */
     private static function saveAssignment(PDO $pdo,int $personal,array $input,array $data): array {
         $keys=['area_id'=>'AreaID','servicio_id'=>'ServicioID','cargo_id'=>'CargoID','fecha_asignacion'=>'FechaInicio'];
@@ -276,9 +311,8 @@ class PersonalRepository {
             $s->execute([$after['area_id'],$after['servicio_id'],$after['cargo_id'],$after['fecha_asignacion'],$current['AsignacionPersonalID']]);
             $assignment=(int)$current['AsignacionPersonalID'];
         } else {
-            $s=$pdo->prepare('INSERT INTO rrhh.AsignacionPersonal (PersonalID,AreaID,ServicioID,CargoID,FechaInicio,EsActual,Activo) VALUES (?,?,?,?,?,1,1)');
-            $s->execute([$personal,$after['area_id'],$after['servicio_id'],$after['cargo_id'],$after['fecha_asignacion']]);
-            $assignment=(int)$pdo->lastInsertId();
+            $assignment=self::insertIdentity($pdo,'INSERT INTO rrhh.AsignacionPersonal (PersonalID,AreaID,ServicioID,CargoID,FechaInicio,EsActual,Activo) VALUES (?,?,?,?,?,1,1)',
+                [$personal,$after['area_id'],$after['servicio_id'],$after['cargo_id'],$after['fecha_asignacion']]);
         }
         return ['accion'=>$action,'asignacion_id'=>$assignment,'antes'=>$before,'despues'=>$after,'motivo'=>$reason];
     }

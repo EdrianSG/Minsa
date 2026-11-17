@@ -1,0 +1,287 @@
+{
+    "_meta": {
+        "source": "SQL_SERVER_LIVE",
+        "database_source": "611707accaec1128588f1362f02a57c4d12f4b5231af21d7d24423c1da4060ed",
+        "key": "roles_catalogo_oficial",
+        "version": 1,
+        "saved_at": "2026-11-17 08:48:00",
+        "timestamp": 1794923280,
+        "hash": "a122153f31c63b0abbf8fc219ef17f22",
+        "is_snapshot": true
+    },
+    "data": [
+        {
+            "rol_id": 1,
+            "codigo": "RRHH_ADMIN",
+            "nombre": "Administrador de Recursos Humanos",
+            "descripcion": "Administrador del sistema RRHH solamente",
+            "color": "#2563eb",
+            "usuarios_total": 2,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "aprobar": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": true
+                }
+            }
+        },
+        {
+            "rol_id": 4,
+            "codigo": "JEFE_SERVICIO",
+            "nombre": "Jefe de Servicio",
+            "descripcion": "Elaboración y validación del rol mensual (regla 150h) y reemplazos de urgencia de su servicio.",
+            "color": "#059669",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "aprobar": false,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 5,
+            "codigo": "OPERADOR_ASISTENCIA",
+            "nombre": "Operador de Asistencia",
+            "descripcion": "Regularización diaria de marcaciones, registro de CITT\/licencias y monitoreo de asistencia.",
+            "color": "#d97706",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "aprobar": false,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 6,
+            "codigo": "AUDITOR_PLANILLAS",
+            "nombre": "Auditor de Planillas",
+            "descripcion": "Auditoría de cargas horarias, control de inasistencias y exportación de reportes a planillas.",
+            "color": "#dc2626",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "aprobar": false,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 7,
+            "codigo": "JEFE_RRHH",
+            "nombre": "Jefe de Recursos Humanos",
+            "descripcion": "Supervisión global de personal, aprobación final de programaciones y dictamen de licencias.",
+            "color": "#7c3aed",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": true
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "aprobar": true,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": true
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": true
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 8,
+            "codigo": "SUPERVISOR",
+            "nombre": "Supervisor Asistencial",
+            "descripcion": "Supervisión de turnos de piso, dotación de personal y control de incidencias.",
+            "color": "#0891b2",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": false
+                },
+                "horarios": {
+                    "ver": true
+                },
+                "programacion": {
+                    "ver": true,
+                    "aprobar": false,
+                    "editar": true
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": true,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": false,
+                    "exportar_excel": false
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        },
+        {
+            "rol_id": 9,
+            "codigo": "CONSULTA",
+            "nombre": "Usuario de Consulta",
+            "descripcion": "Acceso de solo lectura a dashboard, reportes consolidados y control de asistencia.",
+            "color": "#64748b",
+            "usuarios_total": 0,
+            "permisos": {
+                "dashboard": {
+                    "ver": true
+                },
+                "personal": {
+                    "ver": false
+                },
+                "horarios": {
+                    "ver": false
+                },
+                "programacion": {
+                    "ver": false,
+                    "aprobar": false,
+                    "editar": false
+                },
+                "asistencia": {
+                    "ver": true,
+                    "regularizar": false
+                },
+                "ausencias": {
+                    "ver": false,
+                    "dictaminar": false
+                },
+                "reportes": {
+                    "ver": true,
+                    "exportar_excel": true
+                },
+                "administracion": {
+                    "ver": false
+                }
+            }
+        }
+    ]
+}

@@ -11,7 +11,7 @@ function element(id) {
     add(option) {this.options.push(option);}, reset() {}};
   elements.set(id, item); return item;
 }
-for (const id of ['btnNuevoUsuario','modalCrearUsuario','modalUserPersonalSelect','modalUserRolSelect','modalUserDni','modalUserNombre','modalUserServicio','modalUserCargo','modalUserUsername','formCrearUsuario','btnCrearCuenta','modalUserEstado','modalUserRegistrarPersonal']) element(id);
+for (const id of ['btnNuevoUsuario','modalCrearUsuario','modalUserPersonalSelect','modalUserRolSelect','modalUserDni','modalUserNombre','modalUserServicio','modalUserCargo','modalUserUsername','formCrearUsuario','btnCrearCuenta','modalUserEstado','modalUserRegistrarPersonal','modalUserModo','modalUserCuentaExistente','modalUserCuentaExistenteGrupo']) element(id);
 const worker = {personal_id:'2',nombre_completo:'Prueba Nueva',dni:'12345678',servicio_nombre:'Servicio',cargo_nombre:'Cargo'};
 let staff = [{...worker,personal_id:'1'}], requests = 0, fail = false, release;
 const alerts = [];
@@ -20,16 +20,24 @@ const context = vm.createContext({console,Date,setTimeout,clearTimeout,
   window:{},Option:class {constructor(text,value){this.text=text;this.value=value;}},
   alert:message=>alerts.push(message),
   API:{
-    async get(endpoint) {
+    async get(endpoint, params = {}) {
       if (fail) throw new Error('Sesión vencida');
       if (endpoint==='personal/opciones.php') return {ok:true,data:staff,total_paginas:1};
+      if (endpoint==='administracion/usuarios.php' && params.modo==='habilitables') return {ok:true,cuentas:[{usuario_id:7,personal_id:2,username:'cuenta_lab',nombre_completo:'Prueba Nueva'}]};
       if (endpoint==='administracion/usuarios.php') return {ok:true,usuarios:[{personal_id:1}]};
       if (endpoint==='administracion/roles.php') return {ok:true,roles:[{rol_id:7,codigo:'RRHH_ADMIN',nombre:'Administrador'}]};
       return {ok:true,eventos:[],totales:{}};
     },
     async post(endpoint,payload) {
       requests++;
-      assert.equal(payload.personal_id,2); assert.equal(payload.rol_id,7);
+      assert.equal(payload.rol_id,7);
+      if (payload.accion==='habilitar') {
+        assert.equal(payload.usuario_id,7);
+        assert.equal(payload.password,undefined);
+        assert.equal(payload.personal_id,undefined);
+        return {ok:true,mensaje:'Cuenta habilitada para RRHH.'};
+      }
+      assert.equal(payload.personal_id,2);
       await new Promise(resolve=>{release=resolve;});
       return {ok:true,clave_temporal:'clave-generada'};
     }
@@ -59,8 +67,19 @@ const flush = () => new Promise(resolve=>setImmediate(resolve));
   release(); await pending; await flush();
   assert.match(alerts[0],/clave-generada/);
   assert.equal(elements.get('modalCrearUsuario').classList.contains('open'),false);
+  elements.get('modalUserModo').value='habilitar';
+  elements.get('modalUserModo').listeners.change();
+  assert.equal(elements.get('modalUserUsername').disabled,true);
+  assert.equal(elements.get('modalUserUsername').required,false);
+  assert.equal(elements.get('modalUserPersonalSelect').disabled,true);
+  assert.equal(elements.get('modalUserCuentaExistenteGrupo').hidden,false);
+  elements.get('modalUserCuentaExistente').value='7';
+  elements.get('modalUserRolSelect').value='7';
+  await context.guardarNuevoUsuario();await flush();
+  assert.equal(requests,2,'No se envió habilitación de cuenta existente');
+  assert.equal(alerts.length,1,'Se mostró una contraseña inexistente al habilitar');
   fail=true;elements.get('btnNuevoUsuario').listeners.click();await flush();
   assert.match(elements.get('modalUserEstado').textContent,/Sesión vencida/);
   assert.ok(elements.get('btnCrearCuenta').disabled);
-  console.log('OK: botón Nuevo Usuario, modal, lista vacía, autocompletado, creación, doble clic y error de sesión.');
+  console.log('OK: botón Nuevo Usuario, modal, lista vacía, autocompletado, creación, doble clic, habilitación de cuenta existente sin contraseña y error de sesión.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

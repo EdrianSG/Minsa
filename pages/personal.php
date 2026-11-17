@@ -140,14 +140,15 @@ $pageScript = "personal.js";
           <option value="NOMBRADO">Nombrado</option>
           <option value="CAS">CAS (D.L. 1057)</option>
           <option value="DESTACADO">Destacado</option>
+          <option value="TERCERO">Tercero</option>
         </select>
       </div>
 
       <!-- Filtro por Régimen / SETI -->
       <div class="filter-item">
-        <label for="staffRegimenFilter">Régimen</label>
+        <label for="staffRegimenFilter">Clasificación</label>
         <select class="form-select" id="staffRegimenFilter">
-          <option value="">Todos los regímenes</option>
+          <option value="">Todas las clasificaciones</option>
           <option value="ASISTENCIAL">Asistencial (150h / SETI)</option>
           <option value="ADMINISTRATIVO">Administrativo</option>
         </select>
@@ -174,7 +175,7 @@ $pageScript = "personal.js";
           <th>Cargo / Profesión</th>
           <th>Servicio y Área</th>
           <th>Condición</th>
-          <th>Régimen / SETI</th>
+          <th>Clasificación / SETI</th>
           <th>Estado</th>
           <th style="text-align: right;">Acciones</th>
         </tr>
@@ -311,7 +312,7 @@ $pageScript = "personal.js";
             <span class="ficha-field-val" id="fichaContrato">—</span>
           </div>
           <div class="ficha-field">
-            <span class="ficha-field-lbl">Vigencia:</span>
+            <span class="ficha-field-lbl">Vigencia del contrato:</span>
             <span class="ficha-field-val" id="fichaVigencia">—</span>
           </div>
         </div>
@@ -322,7 +323,7 @@ $pageScript = "personal.js";
             <span>⏱</span> Régimen y Cómputo de Horas
           </div>
           <div class="ficha-field">
-            <span class="ficha-field-lbl">Régimen:</span>
+            <span class="ficha-field-lbl">Régimen laboral:</span>
             <span class="ficha-field-val" id="fichaRegimenTexto">—</span>
           </div>
           <div class="ficha-field">
@@ -414,7 +415,19 @@ $pageScript = "personal.js";
             <label>Grupo ocupacional<input name="grupo_ocupacional" class="form-control" maxlength="30"></label>
             <label>Régimen laboral
               <select name="regimen_laboral" id="newWorkerRegimen" class="form-select">
-                <option value="">Sin definir</option>
+                <option value="">Sin régimen documentado</option>
+                <option value="DL 276">DL 276</option>
+                <option value="DL 728">DL 728</option>
+                <option value="DL 1057 CAS">DL 1057 CAS</option>
+                <option value="DL 1153">DL 1153</option>
+                <option value="LEY 30057">LEY 30057</option>
+                <option value="LOCACION">LOCACION</option>
+                <option value="OTRO">OTRO</option>
+              </select>
+            </label>
+            <label>Clasificación de personal
+              <select name="tipo_personal" class="form-select">
+                <option value="">Por confirmar</option>
                 <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
                 <option value="ASISTENCIAL">ASISTENCIAL (150h / SETI)</option>
               </select>
@@ -425,6 +438,7 @@ $pageScript = "personal.js";
                 <option value="NOMBRADO">NOMBRADO</option>
                 <option value="CAS">CAS (D.L. 1057)</option>
                 <option value="DESTACADO">DESTACADO</option>
+                <option value="TERCERO">Tercero</option>
               </select>
             </label>
           </div>

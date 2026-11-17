@@ -1,7 +1,10 @@
 <?php
+require_once __DIR__ . '/PersonalSearch.php';
+require_once __DIR__ . '/WorkloadPolicy.php';
 /** Lectura paginada de personal. Conserva los criterios de presentación existentes. */
 final class PersonalDirectory {
     public static function page(PDO $pdo, array $filters): array {
+        $workloadSql=WorkloadPolicy::sql('p.PersonalID',null,$pdo);
         $q = $filters['q'];
         $servicio = $filters['servicio'];
         $areaFilter = $filters['areaFilter'];
@@ -25,9 +28,9 @@ final class PersonalDirectory {
                 CAST(NULL AS DATETIME2) AS fecha_alta_biometrica,
                 (SELECT TOP 1 vb.BiostarUserID FROM rrhh.VinculacionBiometrica vb WHERE vb.PersonalID=p.PersonalID ORDER BY vb.VinculacionBiometricaID) AS biostar_user_id,
                 p.RegimenLaboral AS regimen_laboral,
-                p.RegimenLaboral AS tipo_personal,
+                {$workloadSql} AS tipo_personal_confirmado,
                 p.GrupoOcupacional AS grupo_ocupacional,
-                CAST(NULL AS NVARCHAR(250)) AS nombre_completo_original,
+                p.NombreCompletoOriginal AS nombre_completo_original,
                 p.Nombres AS nombres,
                 p.ApellidoPaterno AS apellido_paterno,
                 p.ApellidoMaterno AS apellido_materno,
@@ -81,11 +84,7 @@ final class PersonalDirectory {
 
         if ($regimen !== '') {
             $regUpper = strtoupper(trim($regimen));
-            if ($regUpper === 'ADMINISTRATIVO') {
-                $sql .= " AND (p.GrupoOcupacional = 'ADMINISTRATIVO' OR p.RegimenLaboral LIKE '%ADMIN%' OR a.Nombre LIKE '%ADMINISTRATIV%')";
-            } elseif ($regUpper === 'ASISTENCIAL') {
-                $sql .= " AND (p.RegimenLaboral = 'DL 1153' OR p.RegimenLaboral LIKE '%ASIST%' OR p.GrupoOcupacional <> 'ADMINISTRATIVO')";
-            } else {
+            if (!in_array($regUpper,['ADMINISTRATIVO','ASISTENCIAL'],true)) {
                 $sql .= " AND (p.RegimenLaboral LIKE :regimen OR p.RegimenLaboral = :regimenExact)";
                 $params[':regimen'] = "%$regimen%";
                 $params[':regimenExact'] = $regimen;
@@ -107,51 +106,22 @@ final class PersonalDirectory {
             }
         }
 
-        if ($q !== '') {
-            $sql .= " AND (p.Nombres LIKE :q1 OR p.ApellidoPaterno LIKE :q2 OR p.ApellidoMaterno LIKE :q3 OR p.NumeroDocumento LIKE :q4 OR p.CodigoEmpleado LIKE :q5 OR EXISTS(SELECT 1 FROM rrhh.VinculacionBiometrica vb WHERE vb.PersonalID=p.PersonalID AND vb.BiostarUserID LIKE :q6))";
-            foreach (range(1, 6) as $index) $params[':q' . $index] = "%$q%";
+        $identitySql = "CONCAT(p.Nombres,N' ',p.ApellidoPaterno,N' ',p.ApellidoMaterno,N' ',
+            p.NombreCompletoOriginal,N' ',p.NumeroDocumento,N' ',p.CodigoEmpleado,N' ',c.Nombre,N' ',prof.Nombre)";
+        foreach (PersonalSearch::terms($q) as $index=>$term) {
+            $sql .= " AND (CHARINDEX(:nameTerm$index,$identitySql COLLATE Latin1_General_100_CI_AI)>0
+                OR EXISTS(SELECT 1 FROM rrhh.VinculacionBiometrica vb WHERE vb.PersonalID=p.PersonalID
+                    AND CHARINDEX(:bioTerm$index,vb.BiostarUserID COLLATE Latin1_General_100_CI_AI)>0))";
+            $params[':nameTerm'.$index] = $term;
+            $params[':bioTerm'.$index] = $term;
         }
 
-
-        $groupSql = self::upperSql("LTRIM(RTRIM(COALESCE(grupo_ocupacional,'')))");
-        $regimeSql = self::upperSql("LTRIM(RTRIM(COALESCE(regimen_laboral,'')))");
-        $areaSql = self::upperSql('area_nombre');
-        $cargoSql = self::upperSql('cargo_nombre');
         $conditionSql = self::upperSql('condicion_laboral');
-        $admin = "$groupSql='ADMINISTRATIVO' OR CHARINDEX('ADMIN',$regimeSql)>0
-            OR CHARINDEX('ADMINISTRATIV',$areaSql)>0 OR CHARINDEX('ADMINISTRATIV',$cargoSql)>0
-            OR CHARINDEX('CONTADOR',$cargoSql)>0 OR CHARINDEX('SECRETARIA',$cargoSql)>0
-            OR CHARINDEX('SISTEMA',$cargoSql)>0 OR CHARINDEX('RECURSOS HUMANOS',$areaSql)>0
-            OR CHARINDEX('SIS',$areaSql)>0 OR CHARINDEX('ALMACEN',$areaSql)>0";
-        $assist = "$regimeSql='DL 1153' OR CHARINDEX('ASIST',$regimeSql)>0
-            OR CHARINDEX('MEDIC',$cargoSql)>0 OR CHARINDEX('ENFERM',$cargoSql)>0
-            OR CHARINDEX('OBSTETR',$cargoSql)>0 OR CHARINDEX('CIRUG',$cargoSql)>0
-            OR CHARINDEX('EMERGENCIA',$areaSql)>0 OR CHARINDEX('CIRUGIA',$areaSql)>0";
-        $cte = "WITH Base AS ($sql), Normalized AS (SELECT Base.*,
-            CASE WHEN $admin THEN 'ADMINISTRATIVO' WHEN $assist THEN 'ASISTENCIAL'
-            ELSE NULLIF($regimeSql,'') END AS tipo_calculado FROM Base)";
+        $cte = "WITH Base AS ($sql), Normalized AS (SELECT Base.*,tipo_personal_confirmado AS tipo_calculado FROM Base)";
         $postFilters = [];
-        if ($q !== '') {
-            $searchParts = [];
-            foreach (['nombre_completo','dni','codigo_empleado','cargo_nombre','profesion_nombre','biostar_user_id'] as $index=>$column) {
-                $parameter = ':postQ'.$index;
-                $columnSql = self::upperSql("COALESCE($column,'')");
-                $searchParts[] = "CHARINDEX($parameter,$columnSql)>0";
-                $params[$parameter] = strtoupper($q);
-            }
-            $postFilters[] = '('.implode(' OR ',$searchParts).')';
-        }
-        if ($regimen !== '') {
-            $target = strtoupper(trim($regimen));
-            if ($target === 'ADMINISTRATIVO') {
-                $postFilters[] = "(tipo_calculado='ADMINISTRATIVO' OR $groupSql='ADMINISTRATIVO' OR CHARINDEX('ADMIN',$regimeSql)>0)";
-            } elseif ($target === 'ASISTENCIAL') {
-                $postFilters[] = "(tipo_calculado='ASISTENCIAL' OR $regimeSql='DL 1153' OR CHARINDEX('ASIST',$regimeSql)>0)";
-            } else {
-                $postFilters[] = "(tipo_calculado=:postRegimen OR CHARINDEX(:postRegimenTexto,$regimeSql)>0)";
-                $params[':postRegimen'] = $target;
-                $params[':postRegimenTexto'] = $target;
-            }
+        if (in_array(strtoupper(trim($regimen)),['ASISTENCIAL','ADMINISTRATIVO'],true)) {
+            $postFilters[]='tipo_calculado=:tipoFiltro';
+            $params[':tipoFiltro']=strtoupper(trim($regimen));
         }
         $matches = $postFilters ? implode(' AND ',$postFilters) : '1=1';
         // Materializar solo claves y contadores durante esta consulta evita repetir

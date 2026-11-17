@@ -1,6 +1,6 @@
 # Contexto actual del proyecto SIGH-MINSA
 
-Actualizado el 12 de noviembre de 2026. Hospital Distrital de Pacasmayo, PMYO.
+Actualizado el 16 de noviembre de 2026. Hospital Distrital de Pacasmayo, PMYO.
 
 Este documento reúne el objetivo, las decisiones del usuario, los cambios implementados y los pendientes para continuar el trabajo. El estado se sustenta en el código local, las pruebas registradas y las confirmaciones del usuario. Las cifras de cargas y respaldos conservan la fecha de su verificación.
 
@@ -229,3 +229,115 @@ El usuario suele copiar manualmente los archivos al ingeniero. Cada entrega debe
 La recarga con Ctrl+F5 ayuda a recibir los assets nuevos. Si un filtro no produce una petición, comprobar el JavaScript servido y la consola. Si la petición existe, revisar URL, estado y respuesta. No atribuir el fallo a SQL únicamente por un mensaje genérico del navegador.
 
 Los documentos de inventario, preflight, preparación de carga y V4 siguen disponibles para rastrear decisiones anteriores. El README histórico queda identificado como tal. Este documento es la referencia actual de continuidad y debe actualizarse con las siguientes entregas y sus validaciones.
+
+
+## 14. Consolidación de denominaciones solicitada el 16 de noviembre
+
+El usuario confirmó haber ejecutado `database/consolidar_area_cirugia_v3.sql` en el entorno del ingeniero. El script consolida CIRUGIA en CIRUGIA GENERAL, conserva las referencias de personal, servicios y puntos de red existentes, audita la operación y elimina el área de origen. La confirmación procede del usuario; el asistente no ejecutó ese script en el destino.
+
+Posteriormente se preparó `database/normalizar_enfermeria_v3.sql` para consolidar el área ENFERMERA en ENFERMERIA y el cargo ENFERMERIA en ENFERMERA, conforme a la denominación indicada por el usuario. Conserva los IDs de los destinos existentes y traslada sus referencias, incluyendo asignaciones históricas del mismo concepto. No altera profesión, especialidad, técnicos, internos, licenciados ni el cargo Enfermero(a).
+
+Esta segunda consolidación se entrega sin ejecución SQL y está pendiente de confirmación del usuario. Usa una transacción única, auditoría y comprobación de referencias adicionales. Los nombres se buscan completos; los IDs del inventario histórico no se codifican como IDs del ingeniero.
+
+
+### Aclaración posterior de la limpieza de Enfermería
+
+El usuario indicó que ya trasladó manualmente el personal al área ENFERMERIA y cambió sus cargos a ENFERMERA. La solicitud vigente queda limitada a eliminar el área ENFERMERA vacía.
+
+Se preparó `database/eliminar_area_enfermera_vacia_v3.sql`. Comprueba todas las FK reales, incluidas relaciones históricas y acciones en cascada, y elimina únicamente el área si no encuentra referencias. Audita el registro eliminado. No reasigna personal ni modifica cargos. Este script queda pendiente de ejecución por el usuario. El script anterior de consolidación completa de Enfermería queda identificado como histórico y sustituido para esta solicitud.
+
+
+## 15. Nueva normalización de cargos de Enfermería
+
+El usuario solicitó eliminar el área vacía de LIC ENFERMERIA y corregir las denominaciones del catálogo de cargos. Se preparó `database/normalizar_roles_enfermeria_v3.sql`, pendiente de ejecución en el ingeniero.
+
+El cargo general queda como ENFERMERO. El script reconoce ENFERMERA, ENFERMERIA y Enfermero(a) como variantes del mismo grupo. Prioriza un ENFERMERO existente; de faltar, renombra una variante existente siguiendo el orden explícito del script. Conserva su ID y código técnico y traslada las asignaciones de los cargos redundantes antes de eliminarlos. Rechaza duplicados ambiguos y diferencias de nivel que requieran revisión.
+
+El cargo de licenciado queda separado como LIC ENFERMERIA. La variante ortográfica LIC.ENFEMERIA o LIC ENFEMERIA se corrige o consolida en ese grupo. Técnicos, internos, profesiones y especialidades quedan fuera de la normalización.
+
+La eliminación del área solo procede si no tiene referencias, incluidas las históricas. Todo se realiza en una transacción con auditoría. El script se contrastó estáticamente con los metadatos disponibles; no se ejecutó SQL.
+
+También se actualizó `includes/PmyoCatalog.php` para reconocer el nombre ENFERMERO en el selector de cargos del área y en sus propuestas explícitas de profesión. Este archivo debe copiarse al ingeniero junto con la ejecución del script. El mapa de origen conserva sus denominaciones históricas. `tests/pmyo_cargos_normalizados.php` verificó seis casos de compatibilidad.
+
+
+## 16. Búsqueda rápida por varios nombres y apellidos
+
+Se corrigió la búsqueda de Personal que descartaba una frase cuando no estaba completa en un único campo de identidad. Ahora cada término debe aparecer en los datos del trabajador, con independencia del orden, permitiendo combinar apellido paterno, materno y nombres. Se admiten espacios repetidos y comas. La comparación omite diferencias de mayúsculas y acentos.
+
+Se añadió `includes/PersonalSearch.php`, compartido por la construcción SQL y la búsqueda en respaldos. Se modificaron `includes/PersonalDirectory.php`, `api/personal/listar.php` y `assets/js/pages/personal.js`. La versión de búsqueda cambió para descartar resultados de caché anteriores. También se consulta el nombre completo original informado cuando está disponible, sin inferir apellidos ausentes.
+
+Las pruebas locales `tests/personal_search.php` cubrieron 18 combinaciones y la construcción parametrizada de SQL con varios términos. `tests/personal_search_live.php` quedó preparado para verificar registros existentes mediante solo lectura, pero la conexión a la base de pruebas no estuvo disponible. La copia de los cuatro archivos de aplicación y la validación en el ingeniero quedan pendientes de confirmación.
+
+
+## 17. Área Asistente Social y diagnóstico de edición
+
+Se preparó `database/renombrar_area_asistente_social_v3.sql` para corregir ASISTENTA SOCIAL a ASISTENTE SOCIAL conservando el mismo ID y todas sus relaciones. Está pendiente de ejecución. `includes/PmyoCatalog.php` reconoce el nombre corregido mediante una equivalencia explícita con el mapa de origen, conservando la oferta del cargo LIC TRABAJO SOCIAL.
+
+El usuario reportó HTTP 500 en la instalación IIS del ingeniero al guardar esa relación. Indicó que editar género funciona y que había modificado otras áreas anteriormente. La captura del POST a `api/personal/editar.php` mostraba estado 500 con contenido HTML. La respuesta posterior «Método no permitido» corresponde al control del método HTTP y todavía no identifica la causa del 500.
+
+El mapa contempla esa relación de área/cargo. La causa concreta del fallo sigue pendiente de la respuesta del POST fallido o del registro PHP a la misma hora. Un fallo al registrar auditoría es una posibilidad contemplada por el código, no un diagnóstico confirmado. No se modificó el repositorio de guardado para ocultar o saltar validaciones.
+
+
+## 18. Clasificación asistencial y vigencia del contrato (16/11/2026)
+
+Se encontró una clasificación errónea en Personal: buscar SIS como subcadena del área también coincidía con ASISTENTA SOCIAL / ASISTENTE SOCIAL. Además, el editor recibía códigos legales (DL 1153, etc.) en un selector que solamente contenía ADMINISTRATIVO/ASISTENCIAL y convertía esas categorías en regímenes legales al guardar.
+
+Se separaron régimen laboral legal y clasificación de personal en el formulario. La clasificación confirmada se guarda en la auditoría existente de rrhh.Personal, dentro de la misma transacción, y WorkloadPolicy la consulta por sistema junto con las confirmaciones de Horarios. Una clasificación vacía confirmada permite retirar una clasificación anterior sin inventar otra. No se crean tablas ni columnas. La fecha técnica de confirmación no representa contratación. Las etiquetas y filtros del directorio ahora utilizan confirmaciones explícitas; sin confirmación pueden aparecer como Sin clasificar. No se deduce profesión, clasificación o régimen a partir del área. Los datos de auditoría antiguos con prefijo [HORARIOS] o [PERSONAL] se reconocen.
+
+Vigencia corresponde a rrhh.Contrato: sin contrato muestra Sin contrato registrado; si existe sin fechas, Fechas del contrato sin registrar. No se crean contratos ni fechas al cambiar área o cargo. Deben revisarse documentalmente los regímenes legales que pudieran haber sido inferidos por versiones anteriores; no se modificaron masivamente.
+
+Archivos de esta corrección: includes/WorkloadPolicy.php, includes/PersonalRepository.php, includes/PersonalDirectory.php, api/personal/listar.php, api/personal/detalle.php, pages/personal.php, assets/js/pages/personal.js. Prueba añadida: tests/personal_classification.php. Validaciones locales de clasificación, búsqueda y selectores aprobadas, así como sintaxis PHP/JS. La suite histórica tests/v4_regressions.php no terminó: su fixture SQLite de TipoDocumento carece de Codigo, columna que ya utiliza validateRelations. No se ejecutaron cambios en SQL Server; pendiente prueba de guardado y reapertura en el servidor del ingeniero.
+
+
+## 19. Error IM001 al crear personal o asignaciones
+
+El servidor del ingeniero devolvió: SQLSTATE[IM001], driver does not support lastInsertId(). PersonalRepository usaba esa función después de insertar rrhh.Personal y rrhh.AsignacionPersonal. Se reemplazó por INSERT seguido de SELECT CAST(SCOPE_IDENTITY() AS int) en el mismo lote y conexión; se recorren resultados intermedios, se valida identidad positiva y se cierra el cursor. Se conserva la transacción y la reversión ante fallo. SCOPE_IDENTITY evita tomar la identidad generada dentro de un trigger. No se altera el esquema ni se insertan datos durante las pruebas locales.
+
+Archivo para desplegar: includes/PersonalRepository.php. Prueba local: php tests/personal_insert_identity.php (5 casos con PDO simulado), clasificación y búsqueda también aprobadas. Pendiente comprobación con el controlador real del ingeniero. Este mensaje confirma la causa de ese intento; solo explicaría el fallo anterior de Asistente Social si ese guardado también insertó una asignación y falló en lastInsertId.
+
+
+## 20. Habilitar cuentas compartidas para RRHH (17/11/2026)
+
+Diagnóstico remitido por el usuario desde SVR-WEB / BD_HOSPITAL_V3: UsuarioID 7, PersonalID 2302 existe; no tiene filas en UsuarioSistema ni UsuarioRol. RolID 3 es CONSULTA del sistema RRHH. Compartir rrhh.Personal y seguridad.Usuario con Laboratorio no concede permisos de RRHH. El script puntual anterior no fue ejecutado por el usuario y deja de ser necesario para este caso: se habilita desde Administración.
+
+En Nuevo Usuario se agregó la operación Habilitar una cuenta existente para RRHH: consulta cuentas activas y no bloqueadas sin vínculo previo con RRHH, permite elegir una y asignar un rol real de RRHH. La acción habilitar reutiliza UsuarioID, PersonalID y contraseña; agrega UsuarioSistema y asigna el rol exclusivamente del sistema actual en una transacción auditada. No crea personal ni cuentas duplicadas, no toca roles de Laboratorio. No reactiva automáticamente vínculos previos vencidos o inactivos. Las cuentas técnicas requieren rol administrador; los roles con alcance por servicio requieren un servicio real asignado. Repetir la habilitación se rechaza sin duplicar registros.
+
+La edición de una cuenta compartida permite cambiar el rol de RRHH si los datos globales no cambian. Cambiar identidad, contraseña, bloqueo o estado global desde RRHH se rechaza en cuentas compartidas. El listado ahora incluye cuentas vinculadas a RRHH aunque carezcan de rol, para regularizarlas, y selecciona únicamente un rol vigente del sistema. El catálogo de roles deja de ofrecer roles de otros sistemas, sin SistemaID, respaldos históricos o identificadores predeterminados como si fueran asignables. Sin catálogo SQL vigente devuelve error.
+
+Se corrigió además el alta nueva: antes creaba Usuario y UsuarioSistema pero omitía UsuarioRol. Ahora persiste los tres registros y auditoría en la misma transacción. Auditoria::registrar acepta la conexión PDO de la operación para que sus errores reviertan exactamente esa transacción. Auth no requirió cambios: login y validateSession ya exigen rol activo/vigente de RRHH y UsuarioSistema activo/vigente, además del estado de cuenta y trabajador.
+
+Archivos para despliegue: includes/UserAdmin.php, includes/auditoria.php, api/administracion/usuarios.php, api/administracion/roles.php, pages/administracion.php, assets/js/pages/administracion.js.
+
+Pruebas: php tests/user_admin_shared.php (incluye tests/test_user_admin_edition.php), php tests/v4_auth.php, node tests/admin-new-user.cjs, node tests/api-client.cjs; sintaxis PHP/JS de los archivos modificados. La prueba compartida utiliza SQLite en memoria y verifica acceso antes/después de habilitar, integridad de cuenta y Laboratorio, rol ajeno rechazado, doble habilitación, edición del rol RRHH, bloqueo de cambios globales, cuentas inactivas/bloqueadas, alta nueva con rol y reversión de vínculo/rol si falla auditoría. La prueba JavaScript verifica selección de cuenta y envío exclusivo de acción, UsuarioID y RolID sin contraseña. No se insertaron datos reales ni se alteró el esquema. Pendiente validación en IIS/SQL Server del ingeniero: copiar archivos, recargar, Nuevo Usuario > Habilitar cuenta existente, elegir cuenta 40955497 y rol apropiado. El rol CONSULTA exige un servicio asignado según la regla vigente de alcance.
+
+
+## 21. Corrección TEC FARCACIA a TEC FARMACIA (17/11/2026)
+
+El usuario confirmó el error ortográfico heredado del Excel. Se preparó database/corregir_cargo_tec_farmacia_v3.sql: renombra exactamente el cargo en rrhh.Cargo conservando ID y todos los demás datos; por tanto las asignaciones actuales e históricas siguen apuntando al mismo registro. Incluye transacción, auditoría y guardas por duplicidad. Si ya hay otro TEC FARMACIA, aborta sin consolidar ni eliminar cargos: requiere revisar ambos IDs. Si ya está corregido, no modifica nada. No cambia profesiones ni estados laborales. No se ejecutó en SQL Server.
+
+includes/PmyoCatalog.php reconoce TEC FARMACIA como equivalencia explícita del perfil histórico TEC FARCACIA, manteniendo su filtro en FARMACIA y la propuesta profesional TFAR para revisión; no asigna profesiones automáticamente. config/pmyo_personal_map.php conserva el texto histórico de origen. tests/pmyo_cargos_normalizados.php pasó 10 comprobaciones y la sintaxis PHP fue válida. Copiar includes/PmyoCatalog.php al servidor además de ejecutar el script en la base real; recargar catálogo después de la corrección.
+
+
+## 22. Áreas confirmadas: Rehabilitación y SIS; Medicina separada (17/11/2026)
+
+El usuario confirmó: MEDICINA y MEDICINA GENERAL son áreas distintas, no consolidar; REHABILITACIÓN FÍSICA se consolida en REHABILITACIÓN; SIS se consolida en SIS (SEGURO INTEGRAL DE SALUD). No se autoriza con esto reclasificar otras áreas con nombres de cargo.
+
+Se preparó database/unificar_areas_rehabilitacion_sis_v3.sql, sin ejecutarlo: una transacción para ambos pares, identificación por nombre completo ignorando acentos y mayúsculas, destino único y activo ya existente, control de departamento, revisión de FK reales y de relaciones área/servicio y de códigos de servicio coincidentes. Conserva ServicioID, CargoID y PersonalID; traslada servicios y todas las asignaciones de cada origen, incluidas históricas, respetando la FK compuesta AreaID/ServicioID mediante una separación temporal dentro de la transacción. Traslada referencias conocidas de redes.PuntoRed, se detiene ante otras referencias con datos y conserva cada área de origen con Activo=0; no elimina filas. Audita las consolidaciones y el nombre final acentuado de REHABILITACIÓN. Un fallo en cualquier par revierte ambos. Repetir no crea áreas, servicios ni asignaciones adicionales.
+
+includes/OrganizationCatalog.php ahora filtra áreas activas y respeta el servicio activo permitido. El editor ya filtraba catálogos inactivos preservando las relaciones existentes al abrir una ficha, por lo que no requirió cambios. includes/PmyoCatalog.php reconoce el nombre final REHABILITACIÓN para mantener los perfiles observados del padrón sin atribuir profesiones. La copia histórica del mapa sigue sin modificarse.
+
+Se añadió docs/GUIA_AREAS_PERSONAL.md para capacitación: explica la separación confirmada de Medicina y Medicina General sin inventar una diferencia funcional no documentada, y distingue área, servicio, cargo, profesión y rol de acceso. Pruebas locales: 12 comprobaciones PMYO y 28 del modelo/editor; sintaxis PHP correcta. No se probó la ejecución T-SQL contra el servidor del ingeniero. Desplegar includes/OrganizationCatalog.php e includes/PmyoCatalog.php, ejecutar el script completo en BD_HOSPITAL_V3 y recargar conectado a SQL Server para actualizar catálogos. Si falta un destino, hay duplicados, códigos de servicio coincidentes o referencias adicionales, revisar el error; no deshabilitar restricciones para forzarlo.
+
+
+## 23. Condición laboral Tercero (17/11/2026)
+
+Se agregó Tercero (valor TERCERO) al editor de Personal y al filtro de Condición Laboral en pages/personal.php. Es un valor existente y permitido por CK_Personal_Condicion en el esquema V3 revisado; no requiere cambios SQL. El repositorio conserva TERCERO y los filtros de listado ya consultan CondicionLaboral por igualdad. El usuario debe confirmar y asignar esta condición en cada ficha; no se modificaron trabajadores en masa.
+
+La condición TERCERO no se deduce de la ausencia de marcaciones ni de la vinculación biométrica; no cambia actividad, clasificación asistencial, régimen legal, área ni servicio. No se generaron BiostarUserID ni se cambiaron reglas de asistencia. Verificación local: sintaxis PHP del formulario y normalización TERCERO sin campos laborales o biométricos inferidos. Pendiente guardar/reabrir una ficha y filtrar Tercero en el servidor del ingeniero. Archivo de despliegue único de esta entrega: pages/personal.php.
+
+
+## 24. Inventario de áreas, servicios, cargos y roles
+
+Se preparó database/consultar_areas_servicios_cargos_roles_v3.sql, exclusivamente de lectura. Presenta entorno, departamentos, áreas y servicios activos/inactivos, cargos y conteos de asignaciones, distribución actual por área/servicio/cargo, profesiones/especialidades, denominaciones repetidas, áreas con nombres de puestos para revisión, relaciones inconsistentes, roles separados por sistema y cuentas sin registros de rol/vínculo RRHH. Las cuentas exclusivas de Laboratorio no deben habilitarse automáticamente por aparecer en ese resultado. Incluye conteos de fichas sin asignación, sin interpretarlos como bajas.
+
+El detalle nominal se activa expresamente con @IncluirDetalleNominal=1 y puede limitarse con @AreaID; no consulta contraseñas ni documentos. Asignación actual sigue el criterio EsActual=1 AND Activo=1 del proyecto. Personas con asignación y personal activo son conteos diferentes; no se multiplican por el número de servicios del área. Se verificaron las tablas referenciadas contra el inventario V3 y la ausencia de instrucciones de escritura; no se ejecutó T-SQL en el servidor del ingeniero. No se cambiaron archivos de la aplicación ni datos.

@@ -26,6 +26,24 @@ if ($method === 'GET') {
     $pdo = apiRequireDatabase();
     $dbConnected = ($pdo !== null);
 
+    if (($_GET['modo']??'')==='habilitables') {
+        try {
+            $stmt=$pdo->prepare("SELECT u.UsuarioID AS usuario_id,u.NombreUsuario AS username,u.PersonalID AS personal_id,
+                p.NumeroDocumento AS dni,p.NombreCompletoOriginal AS nombre_original,
+                LTRIM(RTRIM(CONCAT(p.Nombres,' ',p.ApellidoPaterno,' ',p.ApellidoMaterno))) AS nombre_completo
+                FROM seguridad.Usuario u LEFT JOIN rrhh.Personal p ON p.PersonalID=u.PersonalID
+                WHERE u.Activo=1 AND u.Bloqueado=0 AND (u.PersonalID IS NULL OR p.Activo=1)
+                AND NOT EXISTS (SELECT 1 FROM seguridad.UsuarioSistema us WHERE us.UsuarioID=u.UsuarioID AND us.SistemaID=?)
+                ORDER BY u.NombreUsuario,u.UsuarioID");
+            $stmt->execute([SystemContext::id($pdo)]);
+            echo json_encode(['ok'=>true,'cuentas'=>$stmt->fetchAll(PDO::FETCH_ASSOC)],JSON_UNESCAPED_UNICODE);
+        } catch (Throwable $e) {
+            error_log('Cuentas habilitables: '.$e->getMessage());
+            apiError(503,'No se pudieron consultar las cuentas existentes.');
+        }
+        exit;
+    }
+
     $usuarios = [];
 
     if ($dbConnected) {
@@ -41,29 +59,38 @@ if ($method === 'GET') {
                     u.Activo,
                     p.NumeroDocumento AS DNI,
                     CONCAT(p.Nombres, ' ', p.ApellidoPaterno, ' ', ISNULL(p.ApellidoMaterno, '')) AS NombreCompleto,
-                    r.RolID,
-                    r.Codigo AS RolCodigo,
-                    r.Nombre AS RolNombre,
+                    ISNULL(r.RolID, 0) AS RolID,
+                    ISNULL(r.Codigo, 'SIN_ROL') AS RolCodigo,
+                    ISNULL(r.Nombre, 'Sin Rol Asignado') AS RolNombre,
                     ISNULL(s.Nombre, 'Hospital Distrital de Pacasmayo') AS NombreServicio,
                     ISNULL(c.Nombre, 'Servidor Público') AS NombreCargo
                 FROM seguridad.Usuario u
                 LEFT JOIN rrhh.Personal p ON u.PersonalID = p.PersonalID
-                LEFT JOIN seguridad.UsuarioRol ur ON u.UsuarioID = ur.UsuarioID AND ur.Activo = 1
-                INNER JOIN seguridad.Rol r ON ur.RolID = r.RolID AND r.SistemaID = :sistema_id
+                OUTER APPLY (SELECT TOP 1 rx.RolID,rx.Codigo,rx.Nombre FROM seguridad.UsuarioRol ur
+                    JOIN seguridad.Rol rx ON rx.RolID=ur.RolID AND rx.Activo=1 AND rx.SistemaID=:sistema_id
+                    WHERE ur.UsuarioID=u.UsuarioID AND ur.Activo=1
+                    AND (ur.FechaInicio IS NULL OR ur.FechaInicio<=CAST(GETDATE() AS DATE))
+                    AND (ur.FechaFin IS NULL OR ur.FechaFin>=CAST(GETDATE() AS DATE))
+                    ORDER BY CASE WHEN rx.Codigo IN ('ADMIN','ADMIN_RRHH','RRHH_ADMIN') THEN 0 ELSE 1 END,rx.RolID) r
                 LEFT JOIN rrhh.AsignacionPersonal ap ON p.PersonalID = ap.PersonalID AND ap.EsActual = 1 AND ap.Activo = 1
                 LEFT JOIN organizacion.Servicio s ON ap.ServicioID = s.ServicioID
                 LEFT JOIN rrhh.Cargo c ON ap.CargoID = c.CargoID
-                WHERE " . SystemContext::membershipSql() . "
+                WHERE EXISTS (SELECT 1 FROM seguridad.UsuarioSistema us WHERE us.UsuarioID=u.UsuarioID
+                    AND us.SistemaID=:sistema_vinculo)
             ";
-            $params = [':sistema_id'=>SystemContext::id($pdo)];
+            $params = [':sistema_id'=>SystemContext::id($pdo),':sistema_vinculo'=>SystemContext::id($pdo)];
 
             if ($busqueda !== '') {
                 $sql .= " AND (u.NombreUsuario LIKE :q1 OR p.NumeroDocumento LIKE :q2 OR p.Nombres LIKE :q3 OR p.ApellidoPaterno LIKE :q4)";
                 foreach (range(1,4) as $n) $params[':q'.$n] = "%$busqueda%";
             }
             if ($rolFiltro !== '') {
-                $sql .= " AND r.Codigo = :rol";
-                $params[':rol'] = $rolFiltro;
+                if ($rolFiltro === 'SIN_ROL') {
+                    $sql .= " AND r.RolID IS NULL";
+                } else {
+                    $sql .= " AND r.Codigo = :rol";
+                    $params[':rol'] = $rolFiltro;
+                }
             }
             if ($estadoFiltro !== null) {
                 $sql .= " AND u.Activo = :estado";
